@@ -69,11 +69,17 @@ export function createZeusMesh() {
   );
   arm.position.set(0.65, 1.3, 0.15);
   arm.rotation.z = -Math.PI * 0.25;
-  body.add(arm);
+  // add arms to root so they remain visible in first-person (we'll hide torso separately)
+  root.add(arm);
 
   const handAnchor = new THREE.Object3D();
   handAnchor.position.set(0.85, 1.15, 0.25);
-  body.add(handAnchor);
+  root.add(handAnchor);
+
+  // left hand anchor for first-person centering (no VFX by default)
+  const leftHandAnchor = new THREE.Object3D();
+  leftHandAnchor.position.set(-0.85, 1.15, 0.25);
+  root.add(leftHandAnchor);
 
   const thunderOrb = new THREE.Mesh(
     new THREE.IcosahedronGeometry(0.2, 0),
@@ -94,7 +100,7 @@ export function createZeusMesh() {
   );
   armL.position.set(-0.65, 1.3, 0.15);
   armL.rotation.z = Math.PI * 0.25;
-  body.add(armL);
+  root.add(armL);
 
   // Biceps bulges
   const bicepR = new THREE.Mesh(
@@ -104,7 +110,7 @@ export function createZeusMesh() {
   bicepR.position.set(0.55, 1.45, 0.12);
   const bicepL = bicepR.clone();
   bicepL.position.x = -0.55;
-  body.add(bicepR, bicepL);
+  root.add(bicepR, bicepL);
 
   // Tunic (waist cloth)
   const tunic = new THREE.Mesh(
@@ -139,9 +145,12 @@ export function createZeusMesh() {
   pony.rotation.x = Math.PI * 0.9;
   head.add(pony);
 
-  // expose hand anchor for VFX origins
+  // expose hand anchors for VFX and first-person view
   root.userData = root.userData || {};
   root.userData.handAnchor = handAnchor;
+  root.userData.leftHandAnchor = leftHandAnchor;
+  // parts to hide when entering first-person (torso/head/cloak) so hands remain visible
+  root.userData.fpHide = [ body ];
 
   // Assemble placeholder into root
   root.add(body);

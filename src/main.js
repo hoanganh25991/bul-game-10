@@ -65,6 +65,44 @@ const btnCamera = document.getElementById("btnCamera");
 const langVi = document.getElementById("langVi");
 const langEn = document.getElementById("langEn");
 let firstPerson = false;
+// preserve original camera defaults
+const _defaultCameraNear = camera.near || 0.1;
+const _defaultCameraFov = camera.fov || 60;
+
+/**
+ * Toggle first-person mode and adjust camera projection to reduce clipping.
+ * When enabled we use a tighter near plane and slightly wider FOV for a comfortable FPS feel.
+ */
+function setFirstPerson(enabled) {
+  firstPerson = !!enabled;
+  if (firstPerson) {
+    camera.near = 0.01;
+    camera.fov = 75;
+    camera.updateProjectionMatrix();
+    // Hide torso/head/cloak parts so arms remain visible in first-person
+    try {
+      if (typeof player !== "undefined" && player?.mesh?.userData?.fpHide) {
+        player.mesh.userData.fpHide.forEach((o) => { if (o) o.visible = false; });
+      }
+      if (typeof heroBars !== "undefined" && heroBars?.container) {
+        heroBars.container.visible = false;
+      }
+    } catch (e) {}
+  } else {
+    camera.near = _defaultCameraNear;
+    camera.fov = _defaultCameraFov;
+    camera.updateProjectionMatrix();
+    // Restore visibility
+    try {
+      if (typeof player !== "undefined" && player?.mesh?.userData?.fpHide) {
+        player.mesh.userData.fpHide.forEach((o) => { if (o) o.visible = true; });
+      }
+      if (typeof heroBars !== "undefined" && heroBars?.container) {
+        heroBars.container.visible = true;
+      }
+    } catch (e) {}
+  }
+}
 
  // Settings handlers
  btnSettings?.addEventListener("click", () => settingsPanel?.classList.toggle("hidden"));
@@ -84,7 +122,8 @@ let firstPerson = false;
 
  // intro may be absent (we removed it), keep safe guard
  btnStart?.addEventListener("click", () => { introScreen?.classList.add("hidden"); });
- btnCamera?.addEventListener("click", () => { firstPerson = !firstPerson; });
+// use the setter so projection updates correctly
+btnCamera?.addEventListener("click", () => { setFirstPerson(!firstPerson); });
 
 langVi?.addEventListener("click", () => setLanguage("vi"));
 langEn?.addEventListener("click", () => setLanguage("en"));
@@ -546,12 +585,35 @@ function animate() {
 
   updatePlayer(dt);
   updateEnemies(dt);
-  if (firstPerson) {
-    const head = player.pos().clone(); head.y = 1.6;
+  if (firstPerson && typeof player !== "undefined") {
+    // Compute world positions for left/right hand anchors (fall back to approximations)
+    const ud = player.mesh.userData || {};
+    const left = new THREE.Vector3();
+    const right = new THREE.Vector3();
+    if (ud.leftHandAnchor && ud.handAnchor) {
+      ud.leftHandAnchor.getWorldPosition(left);
+      ud.handAnchor.getWorldPosition(right);
+    } else if (player.mesh.userData && player.mesh.userData.handAnchor) {
+      const p = player.pos();
+      left.set(p.x - 0.4, p.y + 1.15, p.z + 0.25);
+      right.set(p.x + 0.4, p.y + 1.15, p.z + 0.25);
+    } else {
+      const p = player.pos();
+      left.set(p.x - 0.4, p.y + 1.15, p.z);
+      right.set(p.x + 0.4, p.y + 1.15, p.z);
+    }
+
+    // Midpoint between hands, and forward vector from player orientation
+    const mid = left.clone().add(right).multiplyScalar(0.5);
     const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(player.mesh.quaternion).normalize();
-    const target = head.clone().add(forward.multiplyScalar(5));
-    camera.position.lerp(head, 1 - Math.pow(0.001, dt));
-    camera.lookAt(target);
+
+    // Position camera slightly behind the hands (negative forward) so both hands are visible in front
+    const desiredPos = mid.clone().add(forward.clone().multiplyScalar(-0.45)).add(new THREE.Vector3(0, 0.05, 0));
+    camera.position.lerp(desiredPos, 1 - Math.pow(0.001, dt));
+
+    // Look ahead a bit so view feels natural
+    const lookTarget = mid.clone().add(forward.clone().multiplyScalar(1.5));
+    camera.lookAt(lookTarget);
   } else {
     updateCamera(camera, player, lastMoveDir, dt, cameraOffset, cameraShake);
   }
