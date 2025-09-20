@@ -78,29 +78,31 @@
     <!-- Settings button (top-right) -->
     <button id="btnSettings" class="icon-btn top-right" aria-label="Settings" title="Cài đặt / Settings">⚙️</button>
 
+    <!-- Hero screen button (top-right, next to settings) -->
+    <button id="btnHeroScreen" class="icon-btn top-right" aria-label="Hero" title="Hero" style="right:64px;">🛡️</button>
+
     <!-- Camera toggle (right side) -->
     <button id="btnCamera" class="icon-btn right-center" aria-label="Camera Toggle" title="Camera">🎥</button>
 
-    <!-- Settings Panel -->
-    <div id="settingsPanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-      <div class="panel-header">
-        <h2 id="settingsTitle" data-i18n="settings.title">Cài đặt</h2>
-        <button id="btnCloseSettings" class="icon-btn small" aria-label="Close">✕</button>
-      </div>
-      <div class="panel-content">
-        <div class="row">
-          <span class="row-label" data-i18n="settings.language">Ngôn ngữ</span>
-          <div class="lang-switch">
-            <button class="flag" id="langVi" title="Tiếng Việt" aria-label="Tiếng Việt">🇻🇳</button>
-            <button class="flag" id="langEn" title="English" aria-label="English">🇺🇸</button>
+    <!-- Settings Panel (now full-screen system screen) -->
+    <div id="settingsPanel" class="screen hidden system-screen" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="screen-content">
+        <div class="panel-header">
+          <h2 id="settingsTitle" data-i18n="settings.title">Cài đặt</h2>
+          <button id="btnCloseSettings" class="icon-btn small" aria-label="Close">✕</button>
+        </div>
+        <div class="panel-content">
+          <div class="row">
+            <span class="row-label" data-i18n="settings.language">Ngôn ngữ</span>
+            <div class="lang-switch">
+              <button class="flag" id="langVi" title="Tiếng Việt" aria-label="Tiếng Việt">🇻🇳</button>
+              <button class="flag" id="langEn" title="English" aria-label="English">🇺🇸</button>
+            </div>
           </div>
-        </div>
-        <div class="row">
-          <span class="row-label" data-i18n="settings.instructions">Hướng dẫn</span>
-          <div class="instructions" id="settingsInstructions"></div>
-        </div>
-        <div class="row">
-          <button id="btnHeroScreen" class="primary" data-i18n="settings.openHero">Màn hình anh hùng</button>
+          <div class="row">
+            <span class="row-label" data-i18n="settings.instructions">Hướng dẫn</span>
+            <div class="instructions" id="settingsInstructions"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -115,7 +117,7 @@
     </div>
 
     <!-- Hero Screen -->
-    <div id="heroScreen" class="screen hidden">
+    <div id="heroScreen" class="screen hidden system-screen">
       <div class="screen-content hero-layout">
         <div class="hero-left">
           <div class="hero-figure">
