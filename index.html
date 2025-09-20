@@ -32,29 +32,6 @@
         </div>
       </div>
 
-      <!-- Skill bar (Q W E R) -->
-      <div id="skillbar">
-        <div class="skill" data-key="Q" id="skillQ" title="Q - Chain Lightning">
-          <span class="key">Q</span>
-          <span class="name">Chain</span>
-          <div class="cooldown" id="cdQ"></div>
-        </div>
-        <div class="skill" data-key="W" id="skillW" title="W - Lightning Bolt (AOE)">
-          <span class="key">W</span>
-          <span class="name">Bolt</span>
-          <div class="cooldown" id="cdW"></div>
-        </div>
-        <div class="skill" data-key="E" id="skillE" title="E - Static Field (Aura)">
-          <span class="key">E</span>
-          <span class="name">Static</span>
-          <div class="cooldown" id="cdE"></div>
-        </div>
-        <div class="skill" data-key="R" id="skillR" title="R - Thunderstorm (Ultimate)">
-          <span class="key">R</span>
-          <span class="name">Storm</span>
-          <div class="cooldown" id="cdR"></div>
-        </div>
-      </div>
 
       <!-- Minimap -->
       <canvas id="minimap" width="200" height="200"></canvas>
@@ -151,10 +128,18 @@
       <!-- Skill wheel (bottom-right quarter circle) -->
       <div id="skillWheel">
         <button id="btnBasic" class="skill-btn center" title="Basic">⚡</button>
-        <button id="btnSkillQ" class="skill-btn q" title="Q">Q</button>
-        <button id="btnSkillW" class="skill-btn w" title="W">W</button>
-        <button id="btnSkillE" class="skill-btn e" title="E">E</button>
-        <button id="btnSkillR" class="skill-btn r" title="R">R</button>
+        <button id="btnSkillQ" class="skill-btn q" title="Q">Q
+          <div class="cooldown" id="cdQ"></div>
+        </button>
+        <button id="btnSkillW" class="skill-btn w" title="W">W
+          <div class="cooldown" id="cdW"></div>
+        </button>
+        <button id="btnSkillE" class="skill-btn e" title="E">E
+          <div class="cooldown" id="cdE"></div>
+        </button>
+        <button id="btnSkillR" class="skill-btn r" title="R">R
+          <div class="cooldown" id="cdR"></div>
+        </button>
       </div>
     </div>
 

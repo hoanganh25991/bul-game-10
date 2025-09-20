@@ -66,13 +66,25 @@ const langVi = document.getElementById("langVi");
 const langEn = document.getElementById("langEn");
 let firstPerson = false;
 
-// Settings handlers
-btnSettings?.addEventListener("click", () => settingsPanel?.classList.toggle("hidden"));
-btnCloseSettings?.addEventListener("click", () => settingsPanel?.classList.add("hidden"));
-btnHeroScreen?.addEventListener("click", () => { renderHeroScreen(); heroScreen?.classList.remove("hidden"); });
-btnCloseHero?.addEventListener("click", () => heroScreen?.classList.add("hidden"));
-btnStart?.addEventListener("click", () => { introScreen?.classList.add("hidden"); });
-btnCamera?.addEventListener("click", () => { firstPerson = !firstPerson; });
+ // Settings handlers
+ btnSettings?.addEventListener("click", () => settingsPanel?.classList.toggle("hidden"));
+ btnCloseSettings?.addEventListener("click", () => settingsPanel?.classList.add("hidden"));
+
+ // Hero open/close
+ btnHeroScreen?.addEventListener("click", () => { renderHeroScreen(); heroScreen?.classList.remove("hidden"); });
+ btnCloseHero?.addEventListener("click", () => heroScreen?.classList.add("hidden"));
+
+ // Generic top-right screen-close icons (ensure any element with .screen-close closes its parent .screen)
+ document.querySelectorAll(".screen-close").forEach((b) => {
+   b.addEventListener("click", (e) => {
+     const sc = e.currentTarget.closest(".screen");
+     if (sc) sc.classList.add("hidden");
+   });
+ });
+
+ // intro may be absent (we removed it), keep safe guard
+ btnStart?.addEventListener("click", () => { introScreen?.classList.add("hidden"); });
+ btnCamera?.addEventListener("click", () => { firstPerson = !firstPerson; });
 
 langVi?.addEventListener("click", () => setLanguage("vi"));
 langEn?.addEventListener("click", () => setLanguage("en"));
