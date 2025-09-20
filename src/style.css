@@ -196,9 +196,9 @@ canvas{ display:block; }
   align-items: center;
   justify-content: center;
   color: #e6f4ff;
-  font-weight: 800;
-  font-size: 12px;
-  border-radius: 10px;
+  font-weight: 900;
+  font-size: 13px;
+  border-radius: 50%;
   background: none;
   pointer-events: none;
   text-shadow: 0 1px 0 rgba(0,0,0,0.6);
@@ -640,30 +640,70 @@ html.splash-active body > :not(#flashOverlay) {
   pointer-events: auto;
 }
 
-/* Skill Wheel bottom-right quarter */
+/* Skill Wheel bottom-right quarter
+   Converted to circular buttons and larger central basic-attack.
+   Layout remains anchored to bottom-right of the screen.
+*/
 #skillWheel{
   position: absolute;
-  right: 16px; bottom: 16px;
-  width: 220px; height: 220px;
+  right: 12px;
+  bottom: 12px;
+  width: 260px;
+  height: 260px;
   pointer-events: none;
+  /* container remains non-interactive; children enable pointer-events */
 }
+
+/* Circular skill buttons */
 .skill-btn{
   position: absolute;
-  width: 56px; height: 56px;
-  display: grid; place-items: center;
-  border-radius: 12px;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
   border: 1px solid rgba(124,196,255,0.35);
-  background: linear-gradient(180deg, rgba(22,44,78,0.8), rgba(10,25,48,0.7));
+  background: linear-gradient(180deg, rgba(22,44,78,0.92), rgba(10,25,48,0.9));
   color: #e6f4ff;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  box-shadow: 0 10px 36px rgba(0,0,0,0.45);
   pointer-events: auto;
   user-select: none;
+  transition: transform 140ms cubic-bezier(.2,.9,.2,1), box-shadow 120ms ease;
+  will-change: transform;
+  text-align: center;
+  overflow: visible;
 }
-.skill-btn.center{ right: 0; bottom: 0; }
-.skill-btn.q{ right: 64px; bottom: 6px; }
-.skill-btn.w{ right: 28px; bottom: 84px; }
-.skill-btn.e{ right: 96px; bottom: 64px; }
-.skill-btn.r{ right: 140px; bottom: 0px; }
+
+/* Icon inside button */
+.skill-btn .icon{
+  font-size: 26px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Bigger central Basic Attack button placed at the corner (acts as circle center) */
+.skill-btn.center{
+  right: 12px;
+  bottom: 12px;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  font-size: 22px;
+  z-index: 5;
+  box-shadow: 0 12px 44px rgba(0,0,0,0.55);
+}
+
+/* Position the four skill buttons in a pleasant arc around the basic button */
+.skill-btn.q{ right: 96px; bottom: 32px; }
+.skill-btn.w{ right: 64px; bottom: 124px; }
+.skill-btn.e{ right: 148px; bottom: 100px; }
+.skill-btn.r{ right: 208px; bottom: 24px; }
+
+/* Make cooldown visuals circular to match buttons */
+.skill-btn .cooldown{
+  border-radius: 50%;
+  inset: 0;
+}
 
 /* ====== Hero screen: Loadout picker styles ====== */
 .loadout-slots {
