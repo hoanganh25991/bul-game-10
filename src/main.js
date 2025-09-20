@@ -426,7 +426,7 @@ const portals = initPortals(scene);
 const skills = new SkillsSystem(player, enemies, effects, ui.getCooldownElements());
 
 // Touch controls (joystick + skill wheel)
-const touch = initTouchControls({ player, skills, effects, aimPreview, attackPreview });
+const touch = initTouchControls({ player, skills, effects, aimPreview, attackPreview, enemies, getNearestEnemy, WORLD });
 
 // ------------------------------------------------------------
 // Raycasting
@@ -575,10 +575,21 @@ window.addEventListener("keydown", (e) => {
   if (e.repeat) return;
   const k = e.key.toLowerCase();
   if (k === "a") {
-    // Attack aim: click enemy to set target, or ground to attack-move
-    player.aimMode = true;
-    player.aimModeSkill = "ATTACK";
-    renderer.domElement.style.cursor = "crosshair";
+    // Auto-select nearest enemy and attempt basic attack.
+    // If no viable target is nearby, fall back to attack-aim mode.
+    const nearest = getNearestEnemy(player.pos(), WORLD.attackRange * 1.2, enemies);
+    if (nearest) {
+      // select and perform basic attack immediately
+      player.target = nearest;
+      player.moveTarget = null;
+      player.attackMove = false;
+      effects.spawnTargetPing(nearest);
+      // Attempt basic attack (skills.tryBasicAttack will check cooldown/range)
+      try { skills.tryBasicAttack(player, nearest); } catch (err) { /* ignore */ }
+    } else {
+      // No target nearby: leave player state unchanged (do not enter attack-aim)
+      // Intentionally no-op so 'A' performs only an immediate auto-attack if a valid target exists.
+    }
   } else if (k === "q") {
     skills.castSkill("Q");
   } else if (k === "w") {

@@ -27,7 +27,7 @@
 
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
-export function initTouchControls({ player, skills, effects, aimPreview, attackPreview }) {
+export function initTouchControls({ player, skills, effects, aimPreview, attackPreview, enemies, getNearestEnemy, WORLD }) {
   const els = {
     joystick: document.getElementById("joystick"),
     joyBase: document.getElementById("joyBase"),
@@ -170,10 +170,25 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
   // Skill wheel actions
   if (els.btnBasic) {
     els.btnBasic.addEventListener("click", () => {
-      // Enter attack aim mode (like 'A' key)
-      player.aimMode = true;
-      player.aimModeSkill = "ATTACK";
-      if (els.btnCancelAim) els.btnCancelAim.classList.remove("hidden");
+      // Mobile "A" / Basic button: attempt immediate basic attack on nearest enemy.
+      if (player.frozen) return;
+      try {
+        const nearest = (typeof getNearestEnemy === "function")
+          ? getNearestEnemy(player.pos(), WORLD.attackRange * 1.2, enemies)
+          : null;
+        if (nearest) {
+          // select and perform basic attack immediately
+          player.target = nearest;
+          player.moveTarget = null;
+          player.attackMove = false;
+          effects?.spawnTargetPing?.(nearest);
+          try { skills.tryBasicAttack(player, nearest); } catch (err) { /* ignore */ }
+        } else {
+          // No nearby enemy: do nothing (do not enter aim mode)
+        }
+      } catch (e) {
+        // fail silently
+      }
     });
   }
   if (els.btnQ) {

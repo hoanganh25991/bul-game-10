@@ -9,7 +9,7 @@
     "items": [
       "Left Click: select",
       "Right Click: move / attack enemy",
-      "A: aim attack (then Left Click an enemy)",
+      "A: basic attack (auto-target nearest enemy)",
       "W: aim AOE (then Left Click to cast, ESC cancels)",
       "Q/E/R: skills",
       "S: Stop (cancel orders)",
