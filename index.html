@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Zeus RPG</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="stylesheet" href="src/style.css" />
+    <meta name="theme-color" content="#0b1a2b" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' ry='12' fill='%230b1a2b'/%3E%3Cpath d='M36 4 L12 40 h16 l-4 20 28-40 H36 Z' fill='%23ffffff'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <!-- Three.js renderer will append its canvas to body and sit under UI -->
+
+    <!-- UI/HUD Overlay -->
+    <div id="ui-root">
+      <div id="hud">
+        <div id="stats">
+          <div class="bar hp">
+            <div class="fill" id="hpFill"></div>
+            <div class="label"><span>HP</span><span id="hpText">100/100</span></div>
+          </div>
+          <div class="bar mp">
+            <div class="fill" id="mpFill"></div>
+            <div class="label"><span>MP</span><span id="mpText">100/100</span></div>
+          </div>
+          <div class="bar xp">
+            <div class="fill" id="xpFill"></div>
+            <div class="label"><span>XP</span><span id="xpText">0/100</span></div>
+          </div>
+          <div id="level">Lv <span id="levelValue">1</span></div>
+        </div>
+      </div>
+
+      <!-- Skill bar (Q W E R) -->
+      <div id="skillbar">
+        <div class="skill" data-key="Q" id="skillQ" title="Q - Chain Lightning">
+          <span class="key">Q</span>
+          <span class="name">Chain</span>
+          <div class="cooldown" id="cdQ"></div>
+        </div>
+        <div class="skill" data-key="W" id="skillW" title="W - Lightning Bolt (AOE)">
+          <span class="key">W</span>
+          <span class="name">Bolt</span>
+          <div class="cooldown" id="cdW"></div>
+        </div>
+        <div class="skill" data-key="E" id="skillE" title="E - Static Field (Aura)">
+          <span class="key">E</span>
+          <span class="name">Static</span>
+          <div class="cooldown" id="cdE"></div>
+        </div>
+        <div class="skill" data-key="R" id="skillR" title="R - Thunderstorm (Ultimate)">
+          <span class="key">R</span>
+          <span class="name">Storm</span>
+          <div class="cooldown" id="cdR"></div>
+        </div>
+      </div>
+
+      <!-- Minimap -->
+      <canvas id="minimap" width="200" height="200"></canvas>
+
+      <!-- Hints -->
+      <div id="hints" style="display:none;">
+        <div>DOTA-style controls:</div>
+        <div>- Left Click: select</div>
+        <div>- Right Click: move / attack enemy</div>
+        <div>- A: aim attack (then Left Click an enemy)</div>
+        <div>- W: aim AOE (then Left Click to cast, ESC cancels)</div>
+        <div>- Q/E/R: skills</div>
+        <div>- S: Stop (cancel orders)</div>
+        <div>- B: Recall to village (opens portal back)</div>
+      </div>
+    </div>
+
+    <div id="deathMsg" class="center-msg" style="display:none;">You died. Respawning...</div>
+
+    <!-- New Interactive UI -->
+    <!-- Settings button (top-right) -->
+    <button id="btnSettings" class="icon-btn top-right" aria-label="Settings" title="Cài đặt / Settings">⚙️</button>
+
+    <!-- Camera toggle (right side) -->
+    <button id="btnCamera" class="icon-btn right-center" aria-label="Camera Toggle" title="Camera">🎥</button>
+
+    <!-- Settings Panel -->
+    <div id="settingsPanel" class="panel hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="panel-header">
+        <h2 id="settingsTitle" data-i18n="settings.title">Cài đặt</h2>
+        <button id="btnCloseSettings" class="icon-btn small" aria-label="Close">✕</button>
+      </div>
+      <div class="panel-content">
+        <div class="row">
+          <span class="row-label" data-i18n="settings.language">Ngôn ngữ</span>
+          <div class="lang-switch">
+            <button class="flag" id="langVi" title="Tiếng Việt" aria-label="Tiếng Việt">🇻🇳</button>
+            <button class="flag" id="langEn" title="English" aria-label="English">🇺🇸</button>
+          </div>
+        </div>
+        <div class="row">
+          <span class="row-label" data-i18n="settings.instructions">Hướng dẫn</span>
+          <div class="instructions" id="settingsInstructions"></div>
+        </div>
+        <div class="row">
+          <button id="btnHeroScreen" class="primary" data-i18n="settings.openHero">Màn hình anh hùng</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Intro Screen -->
+    <div id="introScreen" class="screen">
+      <div class="screen-content">
+        <h1>ZEUS RPG</h1>
+        <p data-i18n="intro.tagline">Thần sấm sét thức tỉnh.</p>
+        <button id="btnStart" class="primary" data-i18n="btn.start">Bắt đầu</button>
+      </div>
+    </div>
+
+    <!-- Hero Screen -->
+    <div id="heroScreen" class="screen hidden">
+      <div class="screen-content hero-layout">
+        <div class="hero-left">
+          <div class="hero-figure">
+            <!-- Decorative thunder theme -->
+            <div class="thunder deco"></div>
+          </div>
+        </div>
+        <div class="hero-right">
+          <h2 data-i18n="hero.title">Zeus</h2>
+          <div id="heroInfo"></div>
+          <h3 data-i18n="hero.skills">Kỹ năng</h3>
+          <div id="heroSkillsList"></div>
+          <button id="btnCloseHero" class="secondary" data-i18n="btn.close">Đóng</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flash overlay -->
+    <div id="flashOverlay" class="flash hidden"></div>
+
+    <!-- Mobile Touch Controls -->
+    <div id="mobileControls">
+      <!-- Joystick (bottom-left) -->
+      <div id="joystick">
+        <div id="joyBase"></div>
+        <div id="joyKnob"></div>
+        <button id="btnCancelAim" class="small hidden" data-i18n="btn.cancel">Hủy</button>
+      </div>
+      <!-- Skill wheel (bottom-right quarter circle) -->
+      <div id="skillWheel">
+        <button id="btnBasic" class="skill-btn center" title="Basic">⚡</button>
+        <button id="btnSkillQ" class="skill-btn q" title="Q">Q</button>
+        <button id="btnSkillW" class="skill-btn w" title="W">W</button>
+        <button id="btnSkillE" class="skill-btn e" title="E">E</button>
+        <button id="btnSkillR" class="skill-btn r" title="R">R</button>
+      </div>
+    </div>
+
+    <!-- Module game code -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+      }
+    }
+    </script>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>

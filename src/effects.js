@@ -1,0 +1,216 @@
+import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+import { COLOR } from "./constants.js";
+import { now } from "./utils.js";
+import { handWorldPos } from "./entities.js";
+
+// Standalone ring factory (used by UI modules and effects)
+export function createGroundRing(innerR, outerR, color, opacity = 0.6) {
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(innerR, outerR, 48),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.02;
+  return ring;
+}
+
+// Manages transient effects (lines, flashes) and indicator meshes (rings, pings)
+export class EffectsManager {
+  constructor(scene) {
+    this.scene = scene;
+
+    this.transient = new THREE.Group();
+    scene.add(this.transient);
+
+    this.indicators = new THREE.Group();
+    scene.add(this.indicators);
+
+    // Internal timed queue for cleanup and animations
+    this.queue = []; // items: { obj, until, fade?, mat?, scaleRate? }
+  }
+
+  // ----- Indicator helpers -----
+  spawnMovePing(point, color = COLOR.blue) {
+    const ring = createGroundRing(0.6, 0.85, color, 0.8);
+    ring.position.set(point.x, 0.02, point.z);
+    this.indicators.add(ring);
+    this.queue.push({ obj: ring, until: now() + 0.8, fade: true, mat: ring.material, scaleRate: 1.6 });
+  }
+
+  spawnTargetPing(entity, color = 0xff6060) {
+    if (!entity || !entity.alive) return;
+    const p = entity.pos();
+    const ring = createGroundRing(0.65, 0.9, color, 0.85);
+    ring.position.set(p.x, 0.02, p.z);
+    this.indicators.add(ring);
+    this.queue.push({ obj: ring, until: now() + 0.7, fade: true, mat: ring.material, scaleRate: 1.4 });
+  }
+
+  showNoTargetHint(player, radius) {
+    const ring = createGroundRing(Math.max(0.1, radius - 0.2), radius + 0.2, 0x8fd3ff, 0.35);
+    const p = player.pos();
+    ring.position.set(p.x, 0.02, p.z);
+    this.indicators.add(ring);
+    this.queue.push({ obj: ring, until: now() + 0.8, fade: true, mat: ring.material });
+    // subtle spark at player for feedback
+    this.spawnStrike(player.pos(), 1.2, 0x8fd3ff);
+  }
+
+  // ----- Beam helpers -----
+  spawnBeam(from, to, color = COLOR.blue, life = 0.12) {
+    const geometry = new THREE.BufferGeometry().setFromPoints([from.clone(), to.clone()]);
+    const material = new THREE.LineBasicMaterial({ color, linewidth: 2 });
+    const line = new THREE.Line(geometry, material);
+    this.transient.add(line);
+    this.queue.push({ obj: line, until: now() + life, fade: true, mat: material });
+  }
+
+  // Jagged electric beam with small fork
+  spawnElectricBeam(from, to, color = COLOR.blue, life = 0.12, segments = 10, amplitude = 0.6) {
+    const dir = to.clone().sub(from);
+    const normal = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+    const up = new THREE.Vector3(0, 1, 0);
+
+    const points = [];
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments;
+      const p = from.clone().lerp(to, t);
+      const amp = Math.sin(Math.PI * t) * amplitude;
+      const jitter = normal.clone().multiplyScalar((Math.random() * 2 - 1) * amp)
+        .add(up.clone().multiplyScalar((Math.random() * 2 - 1) * amp * 0.4));
+      p.add(jitter);
+      points.push(p);
+    }
+
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({ color });
+    const line = new THREE.Line(geometry, material);
+    this.transient.add(line);
+    this.queue.push({ obj: line, until: now() + life, fade: true, mat: material });
+
+    // occasional fork flicker
+    const length = dir.length() || 1;
+    if (length > 6) {
+      const mid = from.clone().lerp(to, 0.6);
+      const forkEnd = mid.clone().add(normal.clone().multiplyScalar(1.2 + Math.random() * 1.2));
+      const g2 = new THREE.BufferGeometry().setFromPoints([mid, forkEnd]);
+      const m2 = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.8 });
+      const l2 = new THREE.Line(g2, m2);
+      this.transient.add(l2);
+      this.queue.push({ obj: l2, until: now() + life * 0.7, fade: true, mat: m2 });
+    }
+  }
+
+  // Auto-scaling multi-pass beam for thickness by distance
+  spawnElectricBeamAuto(from, to, color = COLOR.blue, life = 0.12) {
+    const dir = to.clone().sub(from);
+    const length = dir.length() || 1;
+    const normal = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+    const up = new THREE.Vector3(0, 1, 0);
+
+    const segments = Math.max(8, Math.min(18, Math.round(8 + length * 0.5)));
+    const amplitude = Math.min(1.2, 0.35 + length * 0.03);
+    const count = length < 12 ? 1 : (length < 28 ? 2 : 3);
+
+    for (let n = 0; n < count; n++) {
+      const pts = [];
+      for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const p = from.clone().lerp(to, t);
+        const amp = Math.sin(Math.PI * t) * amplitude;
+        const jitter = normal.clone().multiplyScalar((Math.random() * 2 - 1) * amp * (0.8 + n * 0.15))
+          .add(up.clone().multiplyScalar((Math.random() * 2 - 1) * amp * 0.35));
+        p.add(jitter);
+        pts.push(p);
+      }
+      const g = new THREE.BufferGeometry().setFromPoints(pts);
+      const opacity = Math.max(0.35, (0.7 + Math.min(0.3, length * 0.01) - n * 0.15));
+      const m = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+      const l = new THREE.Line(g, m);
+      this.transient.add(l);
+      this.queue.push({ obj: l, until: now() + life, fade: true, mat: m });
+    }
+
+    if (length > 6) {
+      const mid = from.clone().lerp(to, 0.6);
+      const forkEnd = mid.clone().add(normal.clone().multiplyScalar(1.2 + Math.random() * 1.2));
+      const g2 = new THREE.BufferGeometry().setFromPoints([mid, forkEnd]);
+      const m2 = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.8 });
+      const l2 = new THREE.Line(g2, m2);
+      this.transient.add(l2);
+      this.queue.push({ obj: l2, until: now() + life * 0.7, fade: true, mat: m2 });
+    }
+  }
+
+  spawnArcNoisePath(from, to, color = 0xbfe9ff, life = 0.08, passes = 2) {
+    for (let i = 0; i < passes; i++) {
+      this.spawnElectricBeam(from, to, color, life, 6, 0.2);
+    }
+  }
+
+  // ----- Impact helpers -----
+  spawnHitDecal(center) {
+    const ring = createGroundRing(0.2, 0.55, 0xbfe9ff, 0.5);
+    ring.position.set(center.x, 0.02, center.z);
+    this.indicators.add(ring);
+    this.queue.push({ obj: ring, until: now() + 0.22, fade: true, mat: ring.material, scaleRate: 1.3 });
+  }
+
+  spawnStrike(point, radius = 2, color = COLOR.blue) {
+    // Vertical strike
+    const from = point.clone().add(new THREE.Vector3(0, 14, 0));
+    const to = point.clone().add(new THREE.Vector3(0, 0.2, 0));
+    this.spawnBeam(from, to, color, 0.12);
+
+    // Radial sparks
+    for (let i = 0; i < 4; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const r = Math.random() * radius;
+      const p2 = point.clone().add(new THREE.Vector3(Math.cos(ang) * r, 0.2 + Math.random() * 1.2, Math.sin(ang) * r));
+      this.spawnBeam(point.clone().add(new THREE.Vector3(0, 0.4, 0)), p2, color, 0.08);
+    }
+  }
+
+  spawnHandFlash(player) {
+    const p = handWorldPos(player);
+    const s = new THREE.Mesh(
+      new THREE.SphereGeometry(0.28, 12, 12),
+      new THREE.MeshBasicMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.9 })
+    );
+    s.position.copy(p);
+    this.transient.add(s);
+    this.queue.push({ obj: s, until: now() + 0.12, fade: true, mat: s.material, scaleRate: 1.8 });
+  }
+
+  // ----- Frame update -----
+  update(t, dt) {
+    for (let i = this.queue.length - 1; i >= 0; i--) {
+      const e = this.queue[i];
+
+      // Optional animated scaling (for pings)
+      if (e.scaleRate && e.obj && e.obj.scale) {
+        const s = 1 + e.scaleRate * dt;
+        e.obj.scale.multiplyScalar(s);
+      }
+
+      if (e.fade && e.mat) {
+        e.mat.opacity = e.mat.opacity ?? 1;
+        e.mat.transparent = true;
+        e.mat.opacity = Math.max(0, e.mat.opacity - dt * 4);
+      }
+      if (t >= e.until) {
+        // Remove from either transient or indicators group if present
+        this.transient.remove(e.obj);
+        this.indicators.remove(e.obj);
+        if (e.obj.geometry) e.obj.geometry.dispose?.();
+        this.queue.splice(i, 1);
+      }
+    }
+  }
+}
