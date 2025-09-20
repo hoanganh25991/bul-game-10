@@ -135,8 +135,17 @@
       </div>
     </div>
 
-    <!-- Flash overlay -->
-    <div id="flashOverlay" class="flash hidden"></div>
+    <!-- Flash overlay (visible by default to ensure coverage before JS runs) -->
+    <div id="flashOverlay" class="flash" style="display: grid;">
+      <div class="flash-card" role="status" aria-live="polite" aria-busy="true">
+        <h2 class="flash-title">Loading Zeus RPG</h2>
+        <p class="flash-desc">Preparing thunderous experience…</p>
+        <div class="progress" aria-hidden="false">
+          <div class="bar" id="flashProgressBar" style="width: 0%" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+        </div>
+        <div class="flash-note" style="margin-top:10px;font-size:12px;color:rgba(10,10,10,0.5)">Loading modules…</div>
+      </div>
+    </div>
 
     <!-- Mobile Touch Controls -->
     <div id="mobileControls">

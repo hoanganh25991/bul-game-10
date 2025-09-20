@@ -15,6 +15,7 @@ import { createHouse, createHeroOverheadBars } from "./meshes.js";
 import { distance2D, dir2D, now, clamp01 } from "./utils.js";
 import { initPortals } from "./portals.js";
 import { initI18n, setLanguage, getLanguage, t } from "./i18n.js";
+import { initSplash } from "./splash.js";
 import { initTouchControls } from "./touch.js";
 import { SKILL_POOL, DEFAULT_LOADOUT } from "./skills_pool.js";
 import { loadOrDefault, saveLoadout, resolveLoadout } from "./loadout.js";
@@ -46,6 +47,8 @@ const { renderer, scene, camera, ground, cameraOffset, cameraShake } = initWorld
 const ui = new UIManager();
 const effects = new EffectsManager(scene);
 
+/* Initialize splash first (shows full-screen loader), then i18n */
+initSplash();
 // Initialize i18n (default Vietnamese)
 initI18n();
 
