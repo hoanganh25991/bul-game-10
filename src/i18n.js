@@ -173,6 +173,14 @@ export function initI18n() {
     // ignore
   }
 
+  // Expose helpers on window for convenience (used by splash/start flow)
+  try {
+    if (typeof window !== "undefined") {
+      window.applyTranslations = applyTranslations;
+      window.loadLocale = loadLocale;
+    }
+  } catch (e) {}
+
   // Apply keys immediately so the UI is populated
   applyTranslations(document);
   const instr = document.getElementById("settingsInstructions");

@@ -39,5 +39,13 @@
   },
   "intro": {
     "tagline": "Thần sấm sét thức tỉnh."
+  },
+  "flash": {
+    "title": "Đang tải Zeus RPG",
+    "desc": "Chuẩn bị trải nghiệm sấm sét…"
+  },
+  "start": {
+    "title": "Hành trình của Thần Sấm",
+    "story": "Thế giới chìm trong u ám. Những bóng đêm tỉnh dậy, và chỉ một vị thần có thể gọi sấm sét trở lại. Hãy dẫn Zeus — vị thần sấm — qua rừng hoang, làng mạc đổ nát và chiến trường, tiêu diệt lũ quái và khôi phục trật tự."
   }
 }

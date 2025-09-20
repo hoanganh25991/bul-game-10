@@ -53,20 +53,51 @@ export function initSplash() {
         setProgress(cur);
         if (cur >= 100) {
           clearInterval(interval);
-          // short fade-out
-          overlay.style.transition = "opacity 320ms ease";
-          overlay.style.opacity = "0";
-          setTimeout(() => {
-            overlay.classList.add("hidden");
-            overlay.style.display = "";
-            overlay.style.opacity = "";
-            overlay.style.transition = "";
-            // Remove splash-active marker so underlying screens return to normal
-            try { document.documentElement.classList.remove("splash-active"); } catch (e) {}
-            // Reset progress for future uses (optional)
-            progressBar.style.width = "0%";
-            progress = 0;
-          }, 340);
+
+          // Reveal the start screen (keeps overlay visible) and wait for player to click Start.
+          const startScreen = document.getElementById("startScreen");
+          const startBtn = document.getElementById("btnStartGame");
+
+          if (startScreen) {
+            startScreen.style.display = "block";
+            // Ensure translated text is applied if i18n has loaded later
+            try {
+              // applyTranslations is exported by src/i18n.js; if available on window, call it
+              if (typeof window !== "undefined" && window.applyTranslations) {
+                window.applyTranslations(document);
+              }
+            } catch (e) {}
+          }
+
+          // Cleanup function to hide splash and restore UI
+          function cleanupAndCloseSplash() {
+            // short fade-out
+            overlay.style.transition = "opacity 320ms ease";
+            overlay.style.opacity = "0";
+            setTimeout(() => {
+              overlay.classList.add("hidden");
+              overlay.style.display = "";
+              overlay.style.opacity = "";
+              overlay.style.transition = "";
+              // Remove splash-active marker so underlying screens return to normal
+              try { document.documentElement.classList.remove("splash-active"); } catch (e) {}
+              // Reset progress for future uses (optional)
+              progressBar.style.width = "0%";
+              progress = 0;
+            }, 340);
+          }
+
+          if (startBtn) {
+            // Wait for explicit player action
+            startBtn.addEventListener("click", () => {
+              cleanupAndCloseSplash();
+            }, { once: true });
+          } else {
+            // Fallback: auto-close after a short delay
+            setTimeout(() => {
+              cleanupAndCloseSplash();
+            }, 800);
+          }
         }
       }, 30);
     }, wait);

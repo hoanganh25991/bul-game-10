@@ -121,12 +121,19 @@
     <!-- Flash overlay (visible by default to ensure coverage before JS runs) -->
     <div id="flashOverlay" class="flash" style="display: grid;">
       <div class="flash-card" role="status" aria-live="polite" aria-busy="true">
-        <h2 class="flash-title">Loading Zeus RPG</h2>
-        <p class="flash-desc">Preparing thunderous experience…</p>
+        <h2 class="flash-title" data-i18n="flash.title">Đang tải Zeus RPG</h2>
+        <p class="flash-desc" data-i18n="flash.desc">Chuẩn bị trải nghiệm sấm sét…</p>
         <div class="progress" aria-hidden="false">
           <div class="bar" id="flashProgressBar" style="width: 0%" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
         </div>
-        <div class="flash-note" style="margin-top:10px;font-size:12px;color:rgba(10,10,10,0.5)">Loading modules…</div>
+        <div class="flash-note" style="margin-top:10px;font-size:12px;color:rgba(10,10,10,0.5)" data-i18n="flash.note">Loading modules…</div>
+
+        <!-- Start screen (shown after splash completes) -->
+        <div id="startScreen" class="start-screen" style="display:none; margin-top:12px;">
+          <h2 id="startTitle" data-i18n="start.title">Hành trình của Thần Sấm</h2>
+          <p id="startStory" data-i18n="start.story">Thế giới chìm trong u ám. Những bóng đêm tỉnh dậy, và chỉ một vị thần có thể gọi sấm sét trở lại. Hãy dẫn Zeus — vị thần sấm — qua rừng hoang, làng mạc đổ nát và chiến trường, tiêu diệt lũ quái và khôi phục trật tự.</p>
+          <button id="btnStartGame" class="primary" data-i18n="btn.start">Bắt đầu</button>
+        </div>
       </div>
     </div>
 

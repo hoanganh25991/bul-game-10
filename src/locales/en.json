@@ -39,5 +39,13 @@
   },
   "intro": {
     "tagline": "The thunder god awakens."
+  },
+  "flash": {
+    "title": "Loading Zeus RPG",
+    "desc": "Preparing thunderous experience…"
+  },
+  "start": {
+    "title": "Journey of the Thunder God",
+    "story": "The world has slipped into shadow. Waking phantoms roam the land; only one god can summon the storm again. Lead Zeus — the thunder god — through wild forests, ruined villages and battlefields, slaying hordes of creatures and restoring order."
   }
 }
