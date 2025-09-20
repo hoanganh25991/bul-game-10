@@ -16,9 +16,10 @@ export function initSplash() {
   const progressBar = document.getElementById("flashProgressBar");
   if (!overlay || !progressBar) return;
 
-  // Ensure overlay is visible
+  // Ensure overlay is visible and mark document so underlying .screen-content is hidden
   overlay.classList.remove("hidden");
   overlay.style.display = "flex";
+  try { document.documentElement.classList.add("splash-active"); } catch (e) {}
 
   const minDisplayMs = 1000; // minimum visible time
   const startTs = Date.now();
@@ -60,6 +61,8 @@ export function initSplash() {
             overlay.style.display = "";
             overlay.style.opacity = "";
             overlay.style.transition = "";
+            // Remove splash-active marker so underlying screens return to normal
+            try { document.documentElement.classList.remove("splash-active"); } catch (e) {}
             // Reset progress for future uses (optional)
             progressBar.style.width = "0%";
             progress = 0;

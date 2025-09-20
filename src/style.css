@@ -521,6 +521,25 @@ canvas{ display:block; }
 /* Hidden helper */
 .flash.hidden{ display:none; pointer-events: none; opacity: 0; transition: none; }
 
+/* When splash is active, hide existing screens and UI so the splash fully replaces app UI */
+.splash-active .screen,
+.splash-active .screen .screen-content,
+.splash-active #ui-root,
+.splash-active #mobileControls {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Hard replace: hide everything except the splash overlay to ensure the splash fully covers UI.
+   This rule targets direct children of the body (except the #flashOverlay) so no residual
+   .screen-content or HUD elements remain visible while splash-active is present on <html>. */
+html.splash-active body > :not(#flashOverlay) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 /* Instructions list inside settings */
 .instr-title{ font-weight:800; margin-bottom: 6px; color:#bfe5ff; }
 #settingsInstructions ul{ margin: 6px 0 0 18px; padding:0; }
