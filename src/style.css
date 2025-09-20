@@ -141,22 +141,6 @@ canvas{ display:block; }
   text-shadow: 0 1px 0 rgba(0,0,0,0.4);
 }
 
-/* Skill bar bottom-center */
-#skillbar{
-  position: absolute;
-  left: 50%;
-  bottom: 14px;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 10px;
-  background: var(--glass);
-  border: 1px solid rgba(124,196,255,0.25);
-  padding: 10px;
-  border-radius: 12px;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
-  pointer-events: none; /* display only */
-}
 
 .skill{
   width: 56px;
@@ -201,6 +185,43 @@ canvas{ display:block; }
   border-radius: 10px;
   background: none; /* set by JS using conic-gradient */
   pointer-events: none;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+}
+
+/* Cooldown inside the new bottom-right skill buttons */
+.skill-btn .cooldown{
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e6f4ff;
+  font-weight: 800;
+  font-size: 12px;
+  border-radius: 10px;
+  background: none;
+  pointer-events: none;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+}
+
+/* Key and name inside new skill buttons */
+.skill-btn .key{
+  position: absolute;
+  left: 6px;
+  top: 4px;
+  font-size: 11px;
+  color: #cfe9ff;
+  opacity: 0.85;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+}
+
+.skill-btn .name{
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e6f4ff;
   text-shadow: 0 1px 0 rgba(0,0,0,0.6);
 }
 

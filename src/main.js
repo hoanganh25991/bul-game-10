@@ -113,8 +113,8 @@ function applyLoadoutToSKILLS(loadoutIds) {
  * Update the skillbar labels to reflect the active SKILLS mapping.
  */
 function updateSkillBarLabels() {
-  try {
-    const map = { Q: "#skillQ", W: "#skillW", E: "#skillE", R: "#skillR" };
+    try {
+    const map = { Q: "#btnSkillQ", W: "#btnSkillW", E: "#btnSkillE", R: "#btnSkillR" };
     for (const k of Object.keys(map)) {
       const el = document.querySelector(map[k]);
       if (!el) continue;
