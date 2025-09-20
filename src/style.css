@@ -204,11 +204,11 @@ canvas{ display:block; }
   text-shadow: 0 1px 0 rgba(0,0,0,0.6);
 }
 
-/* Minimap top-right */
+/* Minimap top-right (moved below top-right screen buttons) */
 #minimap{
   position: absolute;
   right: 12px;
-  top: 12px;
+  top: 64px; /* moved down to sit below the top-right button group */
   width: 200px;
   height: 200px;
   background: radial-gradient(220px 220px at 50% 50%, rgba(24,48,80,0.55) 0%, rgba(10,20,40,0.55) 60%, rgba(5,10,18,0.6) 100%);
@@ -216,7 +216,8 @@ canvas{ display:block; }
   border-radius: 10px;
   box-shadow: 0 8px 30px rgba(0,0,0,0.35);
   image-rendering: pixelated;
-  pointer-events: none;
+  pointer-events: auto;
+  z-index: 30;
 }
 
 /* Hints bottom-left */
@@ -316,6 +317,23 @@ canvas{ display:block; }
   user-select: none;
 }
 .icon-btn.small{ width: 32px; height: 32px; font-size: 14px; }
+
+/* Screen close button positioned top-right of screen overlays */
+.screen .screen-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3000;
+  pointer-events: auto;
+  background: var(--system-bg);
+  color: var(--system-text);
+  border: 1px solid var(--system-border);
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+}
 .icon-btn.top-right{ right: 12px; top: 12px; }
 .icon-btn.right-center{ right: 12px; top: 50%; transform: translateY(-50%); }
 
