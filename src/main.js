@@ -16,6 +16,8 @@ import { distance2D, dir2D, now, clamp01 } from "./utils.js";
 import { initPortals } from "./portals.js";
 import { initI18n, setLanguage, getLanguage } from "./i18n.js";
 import { initTouchControls } from "./touch.js";
+import { SKILL_POOL, DEFAULT_LOADOUT } from "./skills_pool.js";
+import { loadOrDefault, saveLoadout, resolveLoadout } from "./loadout.js";
 
 // ------------------------------------------------------------
 // Bootstrapping world, UI, effects
@@ -44,7 +46,7 @@ let firstPerson = false;
 // Settings handlers
 btnSettings?.addEventListener("click", () => settingsPanel?.classList.toggle("hidden"));
 btnCloseSettings?.addEventListener("click", () => settingsPanel?.classList.add("hidden"));
-btnHeroScreen?.addEventListener("click", () => heroScreen?.classList.remove("hidden"));
+btnHeroScreen?.addEventListener("click", () => { renderHeroScreen(); heroScreen?.classList.remove("hidden"); });
 btnCloseHero?.addEventListener("click", () => heroScreen?.classList.add("hidden"));
 btnStart?.addEventListener("click", () => { introScreen?.classList.add("hidden"); });
 btnCamera?.addEventListener("click", () => { firstPerson = !firstPerson; });
@@ -53,6 +55,154 @@ langVi?.addEventListener("click", () => setLanguage("vi"));
 langEn?.addEventListener("click", () => setLanguage("en"));
 
 // Selection/aim indicators
+/* Load and apply saved loadout so runtime SKILLS.Q/W/E/R reflect player's choice */
+let currentLoadout = loadOrDefault(SKILL_POOL, DEFAULT_LOADOUT);
+
+/**
+ * Apply an array of 4 skill ids to the SKILLS mapping (mutates exported SKILLS).
+ */
+function applyLoadoutToSKILLS(loadoutIds) {
+  const idMap = new Map(SKILL_POOL.map((s) => [s.id, s]));
+  const keys = ["Q", "W", "E", "R"];
+  for (let i = 0; i < 4; i++) {
+    const id = loadoutIds[i];
+    const def = idMap.get(id);
+    if (def) {
+      // shallow copy to avoid accidental shared references
+      SKILLS[keys[i]] = Object.assign({}, def);
+    }
+  }
+}
+
+/**
+ * Update the skillbar labels to reflect the active SKILLS mapping.
+ */
+function updateSkillBarLabels() {
+  try {
+    const map = { Q: "#skillQ", W: "#skillW", E: "#skillE", R: "#skillR" };
+    for (const k of Object.keys(map)) {
+      const el = document.querySelector(map[k]);
+      if (!el) continue;
+      const nameEl = el.querySelector(".name");
+      if (nameEl) nameEl.textContent = SKILLS[k].short || SKILLS[k].name || nameEl.textContent;
+      const keyEl = el.querySelector(".key");
+      if (keyEl) keyEl.textContent = k;
+    }
+  } catch (err) {
+    console.warn("updateSkillBarLabels error", err);
+  }
+}
+
+/**
+ * Persist and apply a new loadout.
+ */
+function setLoadoutAndSave(ids) {
+  const resolved = resolveLoadout(SKILL_POOL, ids, DEFAULT_LOADOUT);
+  currentLoadout = resolved;
+  applyLoadoutToSKILLS(currentLoadout);
+  saveLoadout(currentLoadout);
+  updateSkillBarLabels();
+}
+
+/**
+ * Render the hero screen skill picker UI into #heroSkillsList
+ * - shows hero info, current 4-slot loadout, and the full skill pool
+ * - click a slot to select it, then click a skill to assign; or click Assign on a skill
+ */
+function renderHeroScreen() {
+  const container = document.getElementById("heroSkillsList");
+  if (!container) return;
+  container.innerHTML = "";
+
+  // Hero basic info
+  const info = document.createElement("div");
+  info.className = "hero-info";
+  info.innerHTML = `<div>Level: ${player.level || 1}</div><div>HP: ${Math.floor(player.hp)}/${player.maxHP}</div><div>MP: ${Math.floor(player.mp)}/${player.maxMP}</div>`;
+  container.appendChild(info);
+
+  // Loadout slots (Q W E R)
+  const keys = ["Q", "W", "E", "R"];
+  const slotsWrap = document.createElement("div");
+  slotsWrap.className = "loadout-slots";
+  for (let i = 0; i < 4; i++) {
+    const slot = document.createElement("div");
+    slot.className = "loadout-slot";
+    slot.dataset.slotIndex = String(i);
+    const skillId = currentLoadout[i];
+    const skillDef = SKILL_POOL.find((s) => s.id === skillId);
+    slot.innerHTML = `<div class="slot-key">${keys[i]}</div>
+                      <div class="slot-short">${skillDef ? skillDef.short : "—"}</div>
+                      <div class="slot-name">${skillDef ? skillDef.name : "Empty"}</div>
+                      <button class="slot-clear">Clear</button>`;
+    slotsWrap.appendChild(slot);
+  }
+  container.appendChild(slotsWrap);
+
+  // Skill pool list
+  const poolWrap = document.createElement("div");
+  poolWrap.className = "skill-pool";
+  SKILL_POOL.forEach((s) => {
+    const el = document.createElement("div");
+    el.className = "skill-pool-item";
+    el.dataset.skillId = s.id;
+    el.innerHTML = `<div class="skill-short">${s.short}</div><div class="skill-name">${s.name}</div><button class="assign">Assign</button>`;
+    poolWrap.appendChild(el);
+  });
+  container.appendChild(poolWrap);
+
+  // Interaction handling
+  let selectedSlotIndex = null;
+  slotsWrap.querySelectorAll(".loadout-slot").forEach((slotEl) => {
+    slotEl.addEventListener("click", () => {
+      slotsWrap.querySelectorAll(".loadout-slot").forEach((s) => s.classList.remove("selected"));
+      slotEl.classList.add("selected");
+      selectedSlotIndex = parseInt(slotEl.dataset.slotIndex, 10);
+    });
+    const clearBtn = slotEl.querySelector(".slot-clear");
+    clearBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      currentLoadout[parseInt(slotEl.dataset.slotIndex, 10)] = null;
+      setLoadoutAndSave(currentLoadout);
+      renderHeroScreen();
+    });
+  });
+
+  poolWrap.querySelectorAll(".skill-pool-item").forEach((itemEl) => {
+    const skillId = itemEl.dataset.skillId;
+    itemEl.addEventListener("click", () => {
+      const slotToAssign = selectedSlotIndex !== null ? selectedSlotIndex : 0;
+      currentLoadout[slotToAssign] = skillId;
+      setLoadoutAndSave(currentLoadout);
+      renderHeroScreen();
+    });
+    const btn = itemEl.querySelector(".assign");
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const slotToAssign = selectedSlotIndex !== null ? selectedSlotIndex : 0;
+      currentLoadout[slotToAssign] = skillId;
+      setLoadoutAndSave(currentLoadout);
+      renderHeroScreen();
+    });
+  });
+
+  // Actions (reset)
+  const actions = document.createElement("div");
+  actions.className = "hero-actions";
+  const resetBtn = document.createElement("button");
+  resetBtn.textContent = "Reset to Default";
+  resetBtn.addEventListener("click", () => {
+    currentLoadout = DEFAULT_LOADOUT.slice();
+    setLoadoutAndSave(currentLoadout);
+    renderHeroScreen();
+  });
+  actions.appendChild(resetBtn);
+  container.appendChild(actions);
+}
+
+// Apply initial loadout so SKILLS are correct for subsequent UI/effects
+applyLoadoutToSKILLS(currentLoadout);
+updateSkillBarLabels();
+
 const aimPreview = createGroundRing(SKILLS.W.radius - 0.15, SKILLS.W.radius + 0.15, 0x9fd8ff, 0.35);
 aimPreview.visible = false;
 effects.indicators.add(aimPreview);
