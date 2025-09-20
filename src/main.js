@@ -571,12 +571,60 @@ renderer.domElement.addEventListener("mousedown", (e) => {
   }
 });
 
+/* Defensive capture handler for 'A' key
+   Runs in capture phase to intercept any legacy handlers that may still enable aim-mode.
+   Stops propagation so the existing non-capture handler won't re-enable aim.
+*/
+window.addEventListener("keydown", (e) => {
+  try {
+    if (e.repeat) return;
+    const kk = (e.key || "").toLowerCase();
+    if (kk === "a") {
+      try { e.preventDefault(); } catch (err) {}
+      try { e.stopImmediatePropagation?.(); e.stopPropagation?.(); } catch (err) {}
+      // Debug: log capture invocation to help diagnose legacy handlers
+      try { console.debug && console.debug("[input] A pressed (capture)"); } catch (err) {}
+      // Defensive cancel any aim-mode UI that may have been set elsewhere
+      try {
+        player.aimMode = false;
+        player.aimModeSkill = null;
+        if (aimPreview) aimPreview.visible = false;
+        if (attackPreview) attackPreview.visible = false;
+        renderer.domElement.style.cursor = "default";
+      } catch (err) {}
+      // Attempt immediate auto-attack
+      try {
+        const nearest = getNearestEnemy(player.pos(), WORLD.attackRange * 1.2, enemies);
+        if (nearest) {
+          try { console.debug && console.debug("[input] A auto-attack target found", nearest); } catch (err) {}
+          player.target = nearest;
+          player.moveTarget = null;
+          player.attackMove = false;
+          effects.spawnTargetPing(nearest);
+          try { skills.tryBasicAttack(player, nearest); } catch (err) {}
+        } else {
+          try { console.debug && console.debug("[input] A auto-attack no target"); } catch (err) {}
+        }
+      } catch (err) {}
+      return;
+    }
+  } catch (err) {}
+}, true);
+
 window.addEventListener("keydown", (e) => {
   if (e.repeat) return;
   const k = e.key.toLowerCase();
   if (k === "a") {
+    // Ensure any existing aim mode is cancelled (defensive - some UI flows may have set aim)
+    try {
+      player.aimMode = false;
+      player.aimModeSkill = null;
+      if (aimPreview) aimPreview.visible = false;
+      if (attackPreview) attackPreview.visible = false;
+      renderer.domElement.style.cursor = "default";
+    } catch (e) {}
+
     // Auto-select nearest enemy and attempt basic attack.
-    // If no viable target is nearby, fall back to attack-aim mode.
     const nearest = getNearestEnemy(player.pos(), WORLD.attackRange * 1.2, enemies);
     if (nearest) {
       // select and perform basic attack immediately
@@ -587,8 +635,7 @@ window.addEventListener("keydown", (e) => {
       // Attempt basic attack (skills.tryBasicAttack will check cooldown/range)
       try { skills.tryBasicAttack(player, nearest); } catch (err) { /* ignore */ }
     } else {
-      // No target nearby: leave player state unchanged (do not enter attack-aim)
-      // Intentionally no-op so 'A' performs only an immediate auto-attack if a valid target exists.
+      // No nearby enemy: do nothing (explicitly avoid entering ATTACK aim mode)
     }
   } else if (k === "q") {
     skills.castSkill("Q");
@@ -628,6 +675,18 @@ function animate() {
   const t = now();
   const dt = Math.min(0.05, t - lastT);
   lastT = t;
+
+  // Force-disable legacy ATTACK aim mode in case any handler still sets it.
+  // This is a defensive safeguard so pressing "A" cannot leave the player in aim mode.
+  try {
+    if (player && player.aimModeSkill === "ATTACK") {
+      player.aimMode = false;
+      player.aimModeSkill = null;
+      if (attackPreview) attackPreview.visible = false;
+      if (aimPreview) aimPreview.visible = false;
+      try { renderer.domElement.style.cursor = "default"; } catch (e) {}
+    }
+  } catch (e) {}
 
   // Mobile joystick drive movement
   if (typeof touch !== "undefined" && touch?.getMoveDir) {
