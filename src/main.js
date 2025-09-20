@@ -379,7 +379,7 @@ renderer.domElement.addEventListener("mousedown", (e) => {
       if (player.aimModeSkill === "W") {
         const p = raycast.raycastGround();
         if (p) {
-          skills.castW_AOE(p);
+          skills.castSkill("W", p);
           effects.spawnMovePing(p, 0x9fd8ff);
         }
       } else if (player.aimModeSkill === "ATTACK") {
@@ -433,7 +433,7 @@ window.addEventListener("keydown", (e) => {
     player.aimModeSkill = "ATTACK";
     renderer.domElement.style.cursor = "crosshair";
   } else if (k === "q") {
-    skills.castQ_ChainLightning();
+    skills.castSkill("Q");
   } else if (k === "w") {
     player.aimMode = true;
     player.aimModeSkill = "W";
@@ -443,9 +443,9 @@ window.addEventListener("keydown", (e) => {
     }
     renderer.domElement.style.cursor = "crosshair";
   } else if (k === "e") {
-    skills.castE_StaticField();
+    skills.castSkill("E");
   } else if (k === "r") {
-    skills.castR_Thunderstorm();
+    skills.castSkill("R");
   } else if (k === "b") {
     portals.recallToVillage(player, setCenterMsg);
   } else if (k === "s") {
