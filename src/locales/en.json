@@ -1,0 +1,24 @@
+{
+  "settings.title": "Settings",
+  "settings.language": "Language",
+  "settings.instructions": "Instructions",
+  "settings.openHero": "Hero Screen",
+  "intro.tagline": "The thunder god awakens.",
+  "btn.start": "Start",
+  "btn.close": "Close",
+  "btn.cancel": "Cancel",
+  "hero.title": "Zeus",
+  "hero.skills": "Skills",
+  "camera.first": "First-person",
+  "camera.third": "Third-person",
+  "instructions.title": "DOTA-style Controls",
+  "instructions.items": [
+    "Left click: select hero/enemy; confirm target while aiming (W/A).",
+    "Right click: move / attack clicked enemy.",
+    "A: Attack aim; left-click enemy to attack or ground to attack-move.",
+    "W: AOE aim; left-click to cast. ESC cancels.",
+    "Q/E/R: Skills.",
+    "S: Stop orders (briefly suppress auto-acquire).",
+    "B: Recall to village, then click portal to travel back."
+  ]
+}

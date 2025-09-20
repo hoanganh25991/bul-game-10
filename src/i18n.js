@@ -1,80 +1,83 @@
 /**
- * Simple i18n utility for Zeus RPG (default Vietnamese).
- * - Uses data-i18n attributes to populate textContent.
- * - Persists selected language in localStorage ("lang").
- * - Provides helper to render the instructions list into a container.
+ * i18n utility (logic only) for Zeus RPG.
+ *
+ * Behavior:
+ * - Loads locale JSON files dynamically from ./locales/{lang}.json (relative to this module).
+ * - Caches loaded locales and persists selected language in localStorage ("lang").
+ * - t(key) is non-blocking: if the locale file is not yet loaded (or key missing), it immediately
+ *   returns the key string so the UI can render quickly. After the JSON is loaded, translations
+ *   are re-applied.
  */
-const STORAGE_KEY = "lang";
 
-const DICTS = {
-  vi: {
-    "settings.title": "Cài đặt",
-    "settings.language": "Ngôn ngữ",
-    "settings.instructions": "Hướng dẫn",
-    "settings.openHero": "Màn hình anh hùng",
-    "intro.tagline": "Thần sấm sét thức tỉnh.",
-    "btn.start": "Bắt đầu",
-    "btn.close": "Đóng",
-    "btn.cancel": "Hủy",
-    "hero.title": "Zeus",
-    "hero.skills": "Kỹ năng",
-    "camera.first": "Góc nhìn thứ nhất",
-    "camera.third": "Góc nhìn thứ ba",
-    // Instructions (settings panel)
-    "instructions.title": "Điều khiển DOTA-style",
-    "instructions.items": [
-      "Chuột trái: chọn hero/kẻ địch; xác nhận mục tiêu khi đang nhắm (W/A).",
-      "Chuột phải: di chuyển / tấn công kẻ địch được nhấn.",
-      "A: Vào chế độ nhắm tấn công; nhấp kẻ địch để tấn công hoặc mặt đất để vừa đi vừa tấn công.",
-      "W: Vào chế độ nhắm AOE; nhấp chuột để thi triển. ESC để hủy.",
-      "Q/E/R: Kỹ năng.",
-      "S: Dừng lệnh (hủy di chuyển/tự tìm mục tiêu tạm thời).",
-      "B: Gọi cổng dịch chuyển về làng, sau đó nhấp cổng để quay lại."
-    ],
-  },
-  en: {
-    "settings.title": "Settings",
-    "settings.language": "Language",
-    "settings.instructions": "Instructions",
-    "settings.openHero": "Hero Screen",
-    "intro.tagline": "The thunder god awakens.",
-    "btn.start": "Start",
-    "btn.close": "Close",
-    "btn.cancel": "Cancel",
-    "hero.title": "Zeus",
-    "hero.skills": "Skills",
-    "camera.first": "First-person",
-    "camera.third": "Third-person",
-    // Instructions (settings panel)
-    "instructions.title": "DOTA-style Controls",
-    "instructions.items": [
-      "Left click: select hero/enemy; confirm target while aiming (W/A).",
-      "Right click: move / attack clicked enemy.",
-      "A: Attack aim; left-click enemy to attack or ground to attack-move.",
-      "W: AOE aim; left-click to cast. ESC cancels.",
-      "Q/E/R: Skills.",
-      "S: Stop orders (briefly suppress auto-acquire).",
-      "B: Recall to village, then click portal to travel back."
-    ],
-  },
-};
+const STORAGE_KEY = "lang";
+const DEFAULT_LANG = "vi";
+
+/**
+ * LOCALES cache structure:
+ * {
+ *   en: { status: "loaded" | "loading" | "error", data: Object|null, promise: Promise|null },
+ *   vi: { ... }
+ * }
+ */
+const LOCALES = {};
 
 let currentLang = (() => {
-  const saved = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
-  return saved && DICTS[saved] ? saved : "vi";
+  try {
+    const saved = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
+    return saved || DEFAULT_LANG;
+  } catch (e) {
+    return DEFAULT_LANG;
+  }
 })();
 
 /**
+ * Load a locale JSON file (./locales/{lang}.json) relative to this module.
+ * Returns a Promise that resolves to the locale object or null on error.
+ * Caches in LOCALES to avoid duplicate network requests.
+ */
+export function loadLocale(lang) {
+  if (!lang) return Promise.resolve(null);
+
+  const existing = LOCALES[lang];
+  if (existing) {
+    if (existing.status === "loaded") return Promise.resolve(existing.data);
+    if (existing.promise) return existing.promise;
+  }
+
+  const url = new URL(`./locales/${lang}.json`, import.meta.url).href;
+  const promise = fetch(url, { cache: "no-cache" })
+    .then((res) => {
+      if (!res.ok) throw new Error(`Failed to load locale ${lang}: ${res.status}`);
+      return res.json();
+    })
+    .then((json) => {
+      LOCALES[lang] = { status: "loaded", data: json, promise: null };
+      return json;
+    })
+    .catch((err) => {
+      // Keep a record so we don't continuously retry on failure
+      console.error("i18n: loadLocale error", err);
+      LOCALES[lang] = { status: "error", data: null, promise: null };
+      return null;
+    });
+
+  LOCALES[lang] = { status: "loading", data: null, promise };
+  return promise;
+}
+
+/**
  * Translate by key from current language.
+ * Non-blocking: if translation is not available, returns the key string.
  */
 export function t(key) {
-  const dict = DICTS[currentLang] || {};
-  const val = dict[key];
+  const locale = LOCALES[currentLang] && LOCALES[currentLang].data;
+  const val = locale ? locale[key] : undefined;
   return Array.isArray(val) || typeof val === "string" ? val : key;
 }
 
 /**
  * Apply translations to all elements with [data-i18n] within root.
+ * If translations are not yet loaded, the elements will receive the raw key text.
  */
 export function applyTranslations(root = document) {
   if (!root || !root.querySelectorAll) return;
@@ -82,16 +85,12 @@ export function applyTranslations(root = document) {
     const key = el.getAttribute("data-i18n");
     const val = t(key);
     if (Array.isArray(val)) {
-      // if array, join with line breaks by default
       el.textContent = val.join("\n");
     } else {
       el.textContent = val;
     }
   });
-  // Reflect language on html tag
-  if (root.documentElement) {
-    root.documentElement.lang = currentLang;
-  }
+  if (root.documentElement) root.documentElement.lang = currentLang;
 }
 
 /**
@@ -111,6 +110,11 @@ export function renderInstructions(container) {
       li.textContent = line;
       ul.appendChild(li);
     });
+  } else {
+    // Render a single item containing the returned value (likely the key) so UI isn't empty.
+    const li = document.createElement("li");
+    li.textContent = items;
+    ul.appendChild(li);
   }
   container.appendChild(title);
   container.appendChild(ul);
@@ -118,31 +122,53 @@ export function renderInstructions(container) {
 
 /**
  * Set active language and persist to localStorage.
+ * Non-blocking: immediately applies keys so the UI updates without waiting for fetch.
+ * When the JSON finishes loading, translations are re-applied.
  */
 export function setLanguage(lang) {
-  if (!DICTS[lang]) return;
+  if (!lang) return;
   currentLang = lang;
   try {
     localStorage.setItem(STORAGE_KEY, lang);
-  } catch {}
+  } catch (e) {
+    // ignore
+  }
+
+  // Apply immediate (will show keys if not loaded)
   applyTranslations(document);
   const instr = document.getElementById("settingsInstructions");
   if (instr) renderInstructions(instr);
+
+  // Load and re-apply when ready
+  loadLocale(lang).then(() => {
+    applyTranslations(document);
+    if (instr) renderInstructions(instr);
+  });
 }
 
 /**
  * Initialize i18n. Default language is Vietnamese.
+ * Ensures localStorage has a value and starts loading the selected locale.
  */
 export function initI18n() {
-  // set default if missing
-  if (!localStorage.getItem(STORAGE_KEY)) {
-    try {
-      localStorage.setItem(STORAGE_KEY, currentLang);
-    } catch {}
+  try {
+    const saved = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
+    if (saved) currentLang = saved;
+    else localStorage.setItem(STORAGE_KEY, currentLang);
+  } catch (e) {
+    // ignore
   }
+
+  // Apply keys immediately so the UI is populated
   applyTranslations(document);
   const instr = document.getElementById("settingsInstructions");
   if (instr) renderInstructions(instr);
+
+  // Load selected locale and re-apply once it's available
+  loadLocale(currentLang).then(() => {
+    applyTranslations(document);
+    if (instr) renderInstructions(instr);
+  });
 }
 
 export function getLanguage() {

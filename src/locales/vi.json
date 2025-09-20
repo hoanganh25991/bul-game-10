@@ -1,0 +1,24 @@
+{
+  "settings.title": "Cài đặt",
+  "settings.language": "Ngôn ngữ",
+  "settings.instructions": "Hướng dẫn",
+  "settings.openHero": "Màn hình anh hùng",
+  "intro.tagline": "Thần sấm sét thức tỉnh.",
+  "btn.start": "Bắt đầu",
+  "btn.close": "Đóng",
+  "btn.cancel": "Hủy",
+  "hero.title": "Zeus",
+  "hero.skills": "Kỹ năng",
+  "camera.first": "Góc nhìn thứ nhất",
+  "camera.third": "Góc nhìn thứ ba",
+  "instructions.title": "Điều khiển DOTA-style",
+  "instructions.items": [
+    "Chuột trái: chọn hero/kẻ địch; xác nhận mục tiêu khi đang nhắm (W/A).",
+    "Chuột phải: di chuyển / tấn công kẻ địch được nhấn.",
+    "A: Vào chế độ nhắm tấn công; nhấp kẻ địch để tấn công hoặc mặt đất để vừa đi vừa tấn công.",
+    "W: Vào chế độ nhắm AOE; nhấp chuột để thi triển. ESC để hủy.",
+    "Q/E/R: Kỹ năng.",
+    "S: Dừng lệnh (hủy di chuyển/tự tìm mục tiêu tạm thời).",
+    "B: Gọi cổng dịch chuyển về làng, sau đó nhấp cổng để quay lại."
+  ]
+}
