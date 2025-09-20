@@ -94,20 +94,66 @@ export class Player extends Entity {
 
 export class Enemy extends Entity {
   constructor(position) {
-    const mesh = createEnemyMesh();
+    // Determine tier for visual variety and scaling (normal, tough, elite, boss)
+    const r = Math.random();
+    let tier = "normal";
+    if (r < 0.005) tier = "boss";
+    else if (r < 0.04) tier = "elite";
+    else if (r < 0.22) tier = "tough";
+
+    const TIER_COLOR = {
+      normal: COLOR.enemyDark,
+      tough: 0xff8a50,
+      elite: 0xffd86a,
+      boss: 0xffeb99,
+    };
+    const TIER_EYE = {
+      normal: 0x550000,
+      tough: 0xff5500,
+      elite: 0xffaa00,
+      boss: 0xffee88,
+    };
+
+    const mesh = createEnemyMesh({ color: TIER_COLOR[tier], eyeEmissive: TIER_EYE[tier] });
     super(mesh, 1.1);
     this.team = "enemy";
-    this.maxHP = randBetween(60, 120);
+    this.tier = tier;
+
+    // HP scaled by tier so stronger tiers are noticeably tougher
+    const tierMult = { normal: 1, tough: 3, elite: 8, boss: 30 };
+    const baseHP = randBetween(60, 120);
+    this.maxHP = Math.max(8, Math.floor(baseHP * tierMult[tier]));
     this.hp = this.maxHP;
+
     this.moveTarget = null;
-    this.speed = WORLD.aiSpeed;
+    this.speed = WORLD.aiSpeed * (tier === "boss" ? 0.9 : tier === "elite" ? 1.05 : 1);
     this.nextAttackReady = 0;
+
+    // Attack damage scales with tier (used in combat)
+    const dmgMult = { normal: 1, tough: 1.8, elite: 3.2, boss: 6 };
+    this.attackDamage = Math.max(1, Math.floor(WORLD.aiAttackDamage * dmgMult[tier]));
+
+    // XP reward scales with HP so killing stronger enemies is rewarding
+    this.xpOnDeath = Math.max(8, Math.floor(this.maxHP / 10));
 
     mesh.position.copy(position);
 
-    // small billboard hp bar
+    // small billboard hp bar (scaled by tier for readability)
     this.hpBar = createBillboardHPBar();
+    const barScale = tier === "boss" ? 2.2 : tier === "elite" ? 1.5 : tier === "tough" ? 1.15 : 1;
+    this.hpBar.container.scale.set(barScale, barScale, barScale);
     mesh.add(this.hpBar.container);
+
+    // color HP fill per tier
+    const BAR_COLOR = {
+      normal: COLOR.enemy,
+      tough: 0xffa65a,
+      elite: 0xffe085,
+      boss: 0xfff0b3,
+    };
+    if (this.hpBar && this.hpBar.fill && this.hpBar.fill.material) {
+      this.hpBar.fill.material.color.setHex(BAR_COLOR[tier]);
+    }
   }
 
   updateHPBar() {

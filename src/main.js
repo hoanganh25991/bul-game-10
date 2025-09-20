@@ -857,7 +857,7 @@ function updateEnemies(dt) {
           const to = player.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
           effects.spawnBeam(from, to, 0xff8080, 0.09);
           // Damage
-          player.takeDamage(WORLD.aiAttackDamage);
+          player.takeDamage(en.attackDamage);
         }
       }
     } else {
@@ -885,7 +885,7 @@ function updateEnemies(dt) {
     // Death cleanup and XP grant
     if (!en.alive && !en._xpGranted) {
       en._xpGranted = true;
-      player.gainXP(30);
+      player.gainXP(en.xpOnDeath);
     }
   });
 }

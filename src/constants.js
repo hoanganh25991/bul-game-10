@@ -17,35 +17,42 @@ export const COLOR = {
 export const WORLD = {
   groundSize: 500,     // local visual grid chunk size
   gridStep: 2,
-  enemyCount: 12,
-  enemySpawnRadius: 150,
-  playerSpeed: 14,
-  playerTurnSpeed: 8,
-  attackRange: 14,
-  basicAttackCooldown: 0.8,
-  basicAttackDamage: 12,
-  aiAggroRadius: 40,
-  aiForgetRadius: 60,
-  aiWanderRadius: 30,
-  aiSpeed: 9,
-  aiAttackRange: 8,
-  aiAttackCooldown: 1.4,
-  aiAttackDamage: 8,
+  // Increased enemy density for "hunter" playstyle:
+  enemyCount: 200,
+  enemySpawnRadius: 220,
+  // Make the player slightly faster and more responsive
+  playerSpeed: 16,
+  playerTurnSpeed: 10,
+  // Slightly longer attack range and faster basic attack
+  attackRange: 16,
+  basicAttackCooldown: 0.6,
+  basicAttackDamage: 24,
+  // Enemies are more aggressive and a bit tougher
+  aiAggroRadius: 60,
+  aiForgetRadius: 100,
+  aiWanderRadius: 40,
+  aiSpeed: 10,
+  aiAttackRange: 10,
+  aiAttackCooldown: 1.2,
+  aiAttackDamage: 14,
 };
 
 export const STATS_BASE = {
-  hp: 120,
-  mp: 120,
-  hpRegen: 1.2,
-  mpRegen: 1.6,
-  xpToLevel: 100,
+  // Hero as a "god" baseline: much higher HP/MP and regen so the player can clear many enemies
+  hp: 800,
+  mp: 400,
+  hpRegen: 8,
+  mpRegen: 4,
+  // Increase XP required to level to give longer progression window
+  xpToLevel: 200,
 };
 
 export const SKILLS = {
-  Q: { name: "Chain Lightning", cd: 5, mana: 22, range: 45, jumps: 5, jumpRange: 24, dmg: 24 },
-  W: { name: "Lightning Bolt (AOE)", cd: 8, mana: 34, radius: 16, dmg: 35 },
-  E: { name: "Static Field (Aura)", cd: 15, mana: 0, radius: 14, tick: 0.7, dmg: 8, duration: 10, manaPerTick: 2 },
-  R: { name: "Thunderstorm", cd: 22, mana: 55, radius: 30, strikes: 22, dmg: 20, duration: 7 },
+  // Significantly boosted skills for mass-clear gameplay.
+  Q: { name: "Chain Lightning", cd: 4, mana: 20, range: 60, jumps: 8, jumpRange: 30, dmg: 120 },
+  W: { name: "Lightning Bolt (AOE)", cd: 6, mana: 40, radius: 18, dmg: 220 },
+  E: { name: "Static Field (Aura)", cd: 12, mana: 0, radius: 18, tick: 0.6, dmg: 18, duration: 12, manaPerTick: 3 },
+  R: { name: "Thunderstorm", cd: 18, mana: 70, radius: 36, strikes: 40, dmg: 90, duration: 8 },
 };
 
 // Village and recall/portals

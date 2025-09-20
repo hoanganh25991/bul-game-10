@@ -193,22 +193,25 @@ export function createZeusMesh() {
   return root;
 }
 
-// Enemy body with single eye detail
-export function createEnemyMesh() {
-  const geo = new THREE.CapsuleGeometry(0.6, 0.8, 4, 10);
-  const mat = new THREE.MeshStandardMaterial({ color: COLOR.enemyDark, emissive: 0x2a0a0a, roughness: 0.7 });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.castShadow = true;
+ // Enemy body with single eye detail
+ export function createEnemyMesh(options = {}) {
+   const color = options.color !== undefined ? options.color : COLOR.enemyDark;
+   const eyeEmissive = options.eyeEmissive !== undefined ? options.eyeEmissive : 0x550000;
 
-  const eye = new THREE.Mesh(
-    new THREE.SphereGeometry(0.18, 12, 12),
-    new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x550000 })
-  );
-  eye.position.set(0, 1.2, 0.45);
-  mesh.add(eye);
+   const geo = new THREE.CapsuleGeometry(0.6, 0.8, 4, 10);
+   const mat = new THREE.MeshStandardMaterial({ color: color, emissive: 0x2a0a0a, roughness: 0.7 });
+   const mesh = new THREE.Mesh(geo, mat);
+   mesh.castShadow = true;
 
-  return mesh;
-}
+   const eye = new THREE.Mesh(
+     new THREE.SphereGeometry(0.18, 12, 12),
+     new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: eyeEmissive })
+   );
+   eye.position.set(0, 1.2, 0.45);
+   mesh.add(eye);
+
+   return mesh;
+ }
 
 // Billboard HP bar parts to attach to enemy mesh
 export function createBillboardHPBar() {
