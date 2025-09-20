@@ -462,33 +462,8 @@ renderer.domElement.addEventListener("mousemove", (e) => {
     aimPreview.visible = false;
   }
 
-  // Attack aim pointer behavior
-  if (player.aimMode && player.aimModeSkill === "ATTACK") {
-    raycast.raycaster.setFromCamera(raycast.mouseNDC, camera);
-    const em = raycast.raycaster.intersectObjects(raycast.enemiesMeshesProvider(), true)[0];
-    if (em) {
-      const enemy = (function findEnemyFromObject(obj) {
-        let o = obj;
-        while (o) {
-          if (o.userData && o.userData.enemyRef) return o.userData.enemyRef;
-          o = o.parent;
-        }
-        return null;
-      })(em.object);
-    if (enemy) {
-        const ep = enemy.pos();
-        attackPreview.visible = true;
-        attackPreview.position.set(ep.x, 0.02, ep.z);
-      }
-    } else if (p) {
-      attackPreview.visible = true;
-      attackPreview.position.set(p.x, 0.02, p.z);
-    } else {
-      attackPreview.visible = false;
-    }
-  } else {
-    attackPreview.visible = false;
-  }
+  // Attack aim removed — always hide attackPreview
+  attackPreview.visible = false;
 });
 
 renderer.domElement.addEventListener("mousedown", (e) => {
@@ -522,28 +497,12 @@ renderer.domElement.addEventListener("mousedown", (e) => {
     }
 
     if (player.aimMode) {
-      // Aim confirm for targeted skills
+      // Aim confirm for targeted skills (only W remains)
       if (player.aimModeSkill === "W") {
         const p = raycast.raycastGround();
         if (p) {
           skills.castSkill("W", p);
           effects.spawnMovePing(p, 0x9fd8ff);
-        }
-      } else if (player.aimModeSkill === "ATTACK") {
-        if (obj && obj.type === "enemy") {
-          player.target = obj.enemy;
-          player.moveTarget = null;
-          player.attackMove = false;
-          skills.tryBasicAttack(player, obj.enemy);
-          effects.spawnTargetPing(obj.enemy);
-        } else {
-          const p = raycast.raycastGround();
-          if (p) {
-            player.moveTarget = p.clone();
-            player.attackMove = true;
-            player.target = null;
-            effects.spawnMovePing(p);
-          }
         }
       }
       aimPreview.visible = false;
