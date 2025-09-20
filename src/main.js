@@ -14,7 +14,7 @@ import { createRaycast } from "./raycast.js";
 import { createHouse, createHeroOverheadBars } from "./meshes.js";
 import { distance2D, dir2D, now, clamp01 } from "./utils.js";
 import { initPortals } from "./portals.js";
-import { initI18n, setLanguage, getLanguage } from "./i18n.js";
+import { initI18n, setLanguage, getLanguage, t } from "./i18n.js";
 import { initTouchControls } from "./touch.js";
 import { SKILL_POOL, DEFAULT_LOADOUT } from "./skills_pool.js";
 import { loadOrDefault, saveLoadout, resolveLoadout } from "./loadout.js";
@@ -117,7 +117,7 @@ function renderHeroScreen() {
   // Hero basic info
   const info = document.createElement("div");
   info.className = "hero-info";
-  info.innerHTML = `<div>Level: ${player.level || 1}</div><div>HP: ${Math.floor(player.hp)}/${player.maxHP}</div><div>MP: ${Math.floor(player.mp)}/${player.maxMP}</div>`;
+  info.innerHTML = `<div>${t("hero.info.level")}: ${player.level || 1}</div><div>${t("hero.info.hp")}: ${Math.floor(player.hp)}/${player.maxHP}</div><div>${t("hero.info.mp")}: ${Math.floor(player.mp)}/${player.maxMP}</div>`;
   container.appendChild(info);
 
   // Loadout slots (Q W E R)
@@ -132,8 +132,8 @@ function renderHeroScreen() {
     const skillDef = SKILL_POOL.find((s) => s.id === skillId);
     slot.innerHTML = `<div class="slot-key">${keys[i]}</div>
                       <div class="slot-short">${skillDef ? skillDef.short : "—"}</div>
-                      <div class="slot-name">${skillDef ? skillDef.name : "Empty"}</div>
-                      <button class="slot-clear">Clear</button>`;
+                      <div class="slot-name">${skillDef ? skillDef.name : t("hero.slot.empty")}</div>
+                      <button class="slot-clear">${t("hero.slot.clear")}</button>`;
     slotsWrap.appendChild(slot);
   }
   container.appendChild(slotsWrap);
@@ -145,9 +145,13 @@ function renderHeroScreen() {
     const el = document.createElement("div");
     el.className = "skill-pool-item";
     el.dataset.skillId = s.id;
-    el.innerHTML = `<div class="skill-short">${s.short}</div><div class="skill-name">${s.name}</div><button class="assign">Assign</button>`;
+    el.innerHTML = `<div class="skill-short">${s.short}</div><div class="skill-name">${s.name}</div><button class="assign">${t("hero.assign")}</button>`;
     poolWrap.appendChild(el);
   });
+  const poolHeader = document.createElement("div");
+  poolHeader.className = "skill-pool-header";
+  poolHeader.textContent = t("hero.pool");
+  container.appendChild(poolHeader);
   container.appendChild(poolWrap);
 
   // Interaction handling
@@ -189,7 +193,7 @@ function renderHeroScreen() {
   const actions = document.createElement("div");
   actions.className = "hero-actions";
   const resetBtn = document.createElement("button");
-  resetBtn.textContent = "Reset to Default";
+  resetBtn.textContent = t("hero.slot.reset");
   resetBtn.addEventListener("click", () => {
     currentLoadout = DEFAULT_LOADOUT.slice();
     setLoadoutAndSave(currentLoadout);

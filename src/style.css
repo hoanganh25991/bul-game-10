@@ -481,3 +481,151 @@ canvas{ display:block; }
 .skill-btn.w{ right: 28px; bottom: 84px; }
 .skill-btn.e{ right: 96px; bottom: 64px; }
 .skill-btn.r{ right: 140px; bottom: 0px; }
+
+/* ====== Hero screen: Loadout picker styles ====== */
+.loadout-slots {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  pointer-events: auto;
+}
+
+.loadout-slot {
+  pointer-events: auto;
+  width: calc(25% - 7.5px);
+  min-width: 120px;
+  background: linear-gradient(180deg, rgba(22,44,78,0.6), rgba(10,25,48,0.55));
+  border: 1px solid rgba(124,196,255,0.12);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  cursor: pointer;
+  transition: box-shadow 160ms ease, transform 120ms ease;
+  user-select: none;
+}
+
+.loadout-slot.selected {
+  box-shadow: 0 8px 30px rgba(124,196,255,0.14), inset 0 0 10px rgba(124,196,255,0.06);
+  transform: translateY(-4px);
+  border-color: rgba(124,196,255,0.35);
+}
+
+.loadout-slot .slot-key {
+  font-weight: 900;
+  color: #cfe9ff;
+  font-size: 14px;
+}
+
+.loadout-slot .slot-short {
+  font-size: 20px;
+  font-weight: 800;
+  color: #e6f4ff;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.4);
+}
+
+.loadout-slot .slot-name {
+  font-size: 13px;
+  color: #bfe5ff;
+  opacity: 0.95;
+}
+
+.loadout-slot .slot-clear {
+  margin-left: auto;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.04);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.04);
+  pointer-events: auto;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+/* Skill pool */
+.skill-pool-header {
+  margin-top: 8px;
+  font-weight: 800;
+  color: #bfe5ff;
+  margin-bottom: 6px;
+}
+
+.skill-pool {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  max-height: 320px;
+  overflow: auto;
+  padding: 6px 0;
+  pointer-events: auto;
+}
+
+.skill-pool-item {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(12,24,44,0.4), rgba(10,18,34,0.36));
+  border: 1px solid rgba(124,196,255,0.06);
+  cursor: pointer;
+}
+
+.skill-pool-item .skill-short {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  background: rgba(124,196,255,0.06);
+  border-radius: 6px;
+  font-size: 16px;
+}
+
+.skill-pool-item .skill-name {
+  font-weight: 700;
+  color: #e6f4ff;
+  font-size: 13px;
+}
+
+.skill-pool-item .assign {
+  margin-left: auto;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(22,44,78,0.9), rgba(10,25,48,0.8));
+  border: 1px solid rgba(124,196,255,0.22);
+  color: #e6f4ff;
+  pointer-events: auto;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+/* Hero actions */
+.hero-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  pointer-events: auto;
+}
+
+.hero-actions button {
+  pointer-events: auto;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(22,44,78,0.9), rgba(10,25,48,0.8));
+  border: 1px solid rgba(124,196,255,0.2);
+  color: #e6f4ff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+/* Small responsive tweaks */
+@media (max-width: 720px) {
+  .hero-layout { grid-template-columns: 1fr; }
+  .loadout-slot { min-width: 0; width: 100%; }
+  .skill-pool { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+}
