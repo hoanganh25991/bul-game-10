@@ -1,24 +1,43 @@
 {
-  "settings.title": "Settings",
-  "settings.language": "Language",
-  "settings.instructions": "Instructions",
-  "settings.openHero": "Hero Screen",
-  "intro.tagline": "The thunder god awakens.",
-  "btn.start": "Start",
-  "btn.close": "Close",
-  "btn.cancel": "Cancel",
-  "hero.title": "Zeus",
-  "hero.skills": "Skills",
-  "camera.first": "First-person",
-  "camera.third": "Third-person",
-  "instructions.title": "DOTA-style Controls",
-  "instructions.items": [
-    "Left click: select hero/enemy; confirm target while aiming (W/A).",
-    "Right click: move / attack clicked enemy.",
-    "A: Attack aim; left-click enemy to attack or ground to attack-move.",
-    "W: AOE aim; left-click to cast. ESC cancels.",
-    "Q/E/R: Skills.",
-    "S: Stop orders (briefly suppress auto-acquire).",
-    "B: Recall to village, then click portal to travel back."
-  ]
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "instructions": "Instructions"
+  },
+  "instructions": {
+    "title": "Instructions",
+    "items": [
+      "Left Click: select",
+      "Right Click: move / attack enemy",
+      "A: aim attack (then Left Click an enemy)",
+      "W: aim AOE (then Left Click to cast, ESC cancels)",
+      "Q/E/R: skills",
+      "S: Stop (cancel orders)",
+      "B: Recall to village (opens portal back)"
+    ]
+  },
+  "hero": {
+    "title": "Zeus",
+    "skills": "Skills",
+    "info": {
+      "level": "Level",
+      "hp": "HP",
+      "mp": "MP"
+    },
+    "assign": "Assign",
+    "pool": "Skill Pool",
+    "slot": {
+      "empty": "Empty",
+      "clear": "Clear",
+      "reset": "Reset"
+    }
+  },
+  "btn": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "start": "Start"
+  },
+  "intro": {
+    "tagline": "The thunder god awakens."
+  }
 }

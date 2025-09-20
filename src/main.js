@@ -12,6 +12,7 @@ import { EffectsManager, createGroundRing } from "./effects.js";
 import { SkillsSystem } from "./skills.js";
 import { createRaycast } from "./raycast.js";
 import { createHouse, createHeroOverheadBars } from "./meshes.js";
+import { initEnvironment } from "./environment.js";
 import { distance2D, dir2D, now, clamp01 } from "./utils.js";
 import { initPortals } from "./portals.js";
 import { initI18n, setLanguage, getLanguage, t } from "./i18n.js";
@@ -46,6 +47,21 @@ function getSkillIcon(short) {
 const { renderer, scene, camera, ground, cameraOffset, cameraShake } = initWorld();
 const ui = new UIManager();
 const effects = new EffectsManager(scene);
+
+// Load environment preferences from localStorage (persist rain + density)
+const _envPrefs = JSON.parse(localStorage.getItem("envPrefs") || "{}");
+let envRainState = !!_envPrefs.rain;
+let envDensityIndex = Number.isFinite(parseInt(_envPrefs.density, 10)) ? parseInt(_envPrefs.density, 10) : 1;
+
+// Presets used by the density slider (kept in sync with index 0..2)
+const ENV_PRESETS = [
+  { treeCount: 20, rockCount: 10, flowerCount: 60, villageCount: 1 },
+  { treeCount: 60, rockCount: 30, flowerCount: 120, villageCount: 1 },
+  { treeCount: 140, rockCount: 80, flowerCount: 300, villageCount: 2 },
+];
+
+envDensityIndex = Math.min(Math.max(0, envDensityIndex), ENV_PRESETS.length - 1);
+let env = initEnvironment(scene, Object.assign({}, ENV_PRESETS[envDensityIndex], { enableRain: envRainState }));
 
 /* Initialize splash first (shows full-screen loader), then i18n */
 initSplash();
@@ -127,6 +143,36 @@ btnCamera?.addEventListener("click", () => { setFirstPerson(!firstPerson); });
 
 langVi?.addEventListener("click", () => setLanguage("vi"));
 langEn?.addEventListener("click", () => setLanguage("en"));
+
+// Environment controls (Settings panel)
+// - #envRainToggle : checkbox to enable rain
+// - #envDensity : range [0..2] for sparse / default / dense world
+const envRainToggle = document.getElementById("envRainToggle");
+const envDensity = document.getElementById("envDensity");
+// Initialize controls from stored prefs
+if (envRainToggle) {
+  envRainToggle.checked = !!envRainState;
+  envRainToggle.addEventListener("change", (ev) => {
+    envRainState = !!ev.target.checked;
+    if (env && typeof env.toggleRain === "function") env.toggleRain(envRainState);
+    // persist
+    localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex }));
+  });
+}
+if (envDensity) {
+  // set initial slider value (clamped)
+  envDensity.value = Math.min(Math.max(0, envDensityIndex), ENV_PRESETS.length - 1);
+  envDensity.addEventListener("input", (ev) => {
+    const v = parseInt(ev.target.value, 10) || 1;
+    envDensityIndex = Math.min(Math.max(0, v), ENV_PRESETS.length - 1);
+    const preset = ENV_PRESETS[envDensityIndex];
+    // Recreate environment with new density while preserving rain state
+    try { if (env && env.root && env.root.parent) env.root.parent.remove(env.root); } catch (e) {}
+    env = initEnvironment(scene, Object.assign({}, preset, { enableRain: envRainState }));
+    // persist
+    localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex }));
+  });
+}
 
 // Selection/aim indicators
 /* Load and apply saved loadout so runtime SKILLS.Q/W/E/R reflect player's choice */
@@ -624,6 +670,7 @@ function animate() {
   skills.update(t, dt, cameraShake);
   ui.updateMinimap(player, enemies, portals);
   effects.update(t, dt);
+  if (env && typeof env.update === "function") env.update(t, dt);
   updateIndicators(dt);
   portals.update(dt);
   updateVillageRest(dt);

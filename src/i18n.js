@@ -71,7 +71,21 @@ export function loadLocale(lang) {
  */
 export function t(key) {
   const locale = LOCALES[currentLang] && LOCALES[currentLang].data;
-  const val = locale ? locale[key] : undefined;
+  if (!locale || !key) return key;
+
+  // Support nested keys using dot notation, e.g. "hero.info.level"
+  const parts = String(key).split(".");
+  let val = locale;
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
+    if (val && Object.prototype.hasOwnProperty.call(val, p)) {
+      val = val[p];
+    } else {
+      val = undefined;
+      break;
+    }
+  }
+
   return Array.isArray(val) || typeof val === "string" ? val : key;
 }
 

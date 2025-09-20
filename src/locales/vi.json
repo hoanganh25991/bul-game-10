@@ -1,24 +1,43 @@
 {
-  "settings.title": "Cài đặt",
-  "settings.language": "Ngôn ngữ",
-  "settings.instructions": "Hướng dẫn",
-  "settings.openHero": "Màn hình anh hùng",
-  "intro.tagline": "Thần sấm sét thức tỉnh.",
-  "btn.start": "Bắt đầu",
-  "btn.close": "Đóng",
-  "btn.cancel": "Hủy",
-  "hero.title": "Zeus",
-  "hero.skills": "Kỹ năng",
-  "camera.first": "Góc nhìn thứ nhất",
-  "camera.third": "Góc nhìn thứ ba",
-  "instructions.title": "Điều khiển DOTA-style",
-  "instructions.items": [
-    "Chuột trái: chọn hero/kẻ địch; xác nhận mục tiêu khi đang nhắm (W/A).",
-    "Chuột phải: di chuyển / tấn công kẻ địch được nhấn.",
-    "A: Vào chế độ nhắm tấn công; nhấp kẻ địch để tấn công hoặc mặt đất để vừa đi vừa tấn công.",
-    "W: Vào chế độ nhắm AOE; nhấp chuột để thi triển. ESC để hủy.",
-    "Q/E/R: Kỹ năng.",
-    "S: Dừng lệnh (hủy di chuyển/tự tìm mục tiêu tạm thời).",
-    "B: Gọi cổng dịch chuyển về làng, sau đó nhấp cổng để quay lại."
-  ]
+  "settings": {
+    "title": "Cài đặt",
+    "language": "Ngôn ngữ",
+    "instructions": "Hướng dẫn"
+  },
+  "instructions": {
+    "title": "Hướng dẫn",
+    "items": [
+      "Nhấp trái: chọn",
+      "Nhấp phải: di chuyển / tấn công kẻ địch",
+      "A: chuẩn bị tấn công (sau đó nhấp trái vào kẻ địch)",
+      "W: chuẩn bị AOE (sau đó nhấp trái để thi triển, ESC hủy)",
+      "Q/E/R: kỹ năng",
+      "S: Dừng (hủy lệnh)",
+      "B: Về làng (mở cổng hồi)"
+    ]
+  },
+  "hero": {
+    "title": "Zeus",
+    "skills": "Kỹ năng",
+    "info": {
+      "level": "Cấp",
+      "hp": "HP",
+      "mp": "MP"
+    },
+    "assign": "Gán",
+    "pool": "Ngân hàng kỹ năng",
+    "slot": {
+      "empty": "Trống",
+      "clear": "Xóa",
+      "reset": "Đặt lại"
+    }
+  },
+  "btn": {
+    "close": "Đóng",
+    "cancel": "Hủy",
+    "start": "Bắt đầu"
+  },
+  "intro": {
+    "tagline": "Thần sấm sét thức tỉnh."
+  }
 }
