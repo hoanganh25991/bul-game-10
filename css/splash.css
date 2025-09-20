@@ -1,0 +1,90 @@
+/* css/splash.css
+   Flash / Splash overlay styles (full-screen beautiful splash and progress)
+   Imported by css/style.css
+*/
+
+.flash{
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(800px 400px at 30% 30%,
+    rgba(255,250,230,0.95) 0%,
+    rgba(255,245,200,0.9) 40%,
+    rgba(250,240,200,0.88) 60%,
+    rgba(20,24,30,0.02) 100%);
+  z-index: 9999;
+  pointer-events: auto; /* intercept clicks while splash visible */
+}
+
+/* Hidden helper */
+.flash.hidden{ display:none; pointer-events: none; opacity: 0; transition: none; }
+
+/* Ensure screens/UI are hidden while splash active */
+.splash-active .screen,
+.splash-active .screen .screen-content,
+.splash-active #ui-root,
+.splash-active #mobileControls {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Card inside the splash for content */
+.flash .flash-card{
+  width: min(720px, 92vw);
+  max-width: 760px;
+  padding: 28px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,250,0.98), rgba(255,250,220,0.98));
+  border: 1px solid var(--system-border);
+  box-shadow: 0 24px 80px rgba(10,12,16,0.12);
+  text-align: center;
+  color: var(--system-text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+/* Title / description */
+.flash .flash-title{
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--theme-dark-blue);
+  letter-spacing: 0.6px;
+}
+.flash .flash-desc{
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: rgba(10,10,20,0.85);
+}
+
+/* Progress bar */
+.flash .progress{
+  width: 100%;
+  height: 12px;
+  background: linear-gradient(180deg, rgba(10,10,10,0.04), rgba(10,10,10,0.02));
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.04);
+}
+.flash .progress .bar{
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--theme-yellow), #ffd14d);
+  box-shadow: 0 6px 18px rgba(255,220,70,0.12), inset 0 -4px 12px rgba(255,255,255,0.12);
+  transition: width 120ms linear;
+}
+
+/* Small note under progress */
+.flash .flash-note{
+  color: rgba(10,10,20,0.6);
+  font-size: 12px;
+}

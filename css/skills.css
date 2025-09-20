@@ -1,0 +1,175 @@
+/* css/skills.css
+   Skill button & cooldown visuals, skill wheel layout, and cooldown animations.
+*/
+
+.skill{
+  width: 56px;
+  height: 56px;
+  position: relative;
+  border-radius: 10px;
+  border: 1px solid rgba(124,196,255,0.35);
+  background: linear-gradient(180deg, rgba(22,44,78,0.8), rgba(10,25,48,0.7));
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(124,196,255,0.15), 0 6px 14px rgba(0,0,0,0.4);
+  pointer-events: auto;
+}
+
+.skill .key{
+  position: absolute;
+  left: 6px;
+  top: 4px;
+  font-size: 11px;
+  color: #cfe9ff;
+  opacity: 0.85;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+}
+
+.skill .name{
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e6f4ff;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+}
+
+.skill .cooldown{
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e6f4ff;
+  font-weight: 800;
+  font-size: 12px;
+  border-radius: 10px;
+  background: none; /* set by JS using conic-gradient */
+  pointer-events: none;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+}
+
+/* Circular cooldown visuals inside round skill buttons */
+.skill-btn .cooldown{
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e6f4ff;
+  font-weight: 900;
+  font-size: 13px;
+  border-radius: 50%;
+  background: none;
+  pointer-events: none;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+}
+
+/* Key and name inside new skill buttons */
+.skill-btn .key{
+  position: absolute;
+  left: 6px;
+  top: 4px;
+  font-size: 11px;
+  color: #cfe9ff;
+  opacity: 0.85;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+}
+
+.skill-btn .name{
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e6f4ff;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+}
+
+/* Keyframes for cooldown ready / deny feedback */
+@keyframes flashPulse{
+  0%   { box-shadow: 0 0 0 0 rgba(159,216,255,0.85), 0 0 10px rgba(159,216,255,0.8); }
+  100% { box-shadow: 0 0 0 10px rgba(159,216,255,0), 0 0 0 rgba(159,216,255,0); }
+}
+
+.skill .cooldown.flash{
+  animation: flashPulse 250ms ease-out;
+  border-radius: 10px;
+}
+
+@keyframes denyPulse{
+  0%   { box-shadow: 0 0 0 0 rgba(255,80,80,0.9), 0 0 10px rgba(255,80,80,0.9); }
+  100% { box-shadow: 0 0 0 10px rgba(255,80,80,0), 0 0 0 rgba(255,80,80,0); }
+}
+@keyframes shakeX{
+  0%,100% { transform: translateX(0); }
+  25%     { transform: translateX(-2px); }
+  75%     { transform: translateX(2px); }
+}
+.skill .cooldown.deny{
+  animation: denyPulse 300ms ease-out, shakeX 200ms ease-in-out;
+  background: conic-gradient(rgba(255,80,80,0.55) 360deg, rgba(0,0,0,0) 0deg) !important;
+  color: #fff;
+  border-radius: 10px;
+}
+
+/* Skill Wheel container anchored to bottom-right (mobile controls) */
+#skillWheel{
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 260px;
+  height: 260px;
+  pointer-events: none;
+}
+
+/* Circular skill buttons */
+.skill-btn{
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(124,196,255,0.35);
+  background: linear-gradient(180deg, rgba(22,44,78,0.92), rgba(10,25,48,0.9));
+  color: #e6f4ff;
+  box-shadow: 0 10px 36px rgba(0,0,0,0.45);
+  pointer-events: auto;
+  user-select: none;
+  transition: transform 140ms cubic-bezier(.2,.9,.2,1), box-shadow 120ms ease;
+  will-change: transform;
+  text-align: center;
+  overflow: visible;
+}
+
+/* Icon inside button */
+.skill-btn .icon{
+  font-size: 26px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Bigger central Basic Attack button placed at the corner (acts as circle center) */
+.skill-btn.center{
+  right: 12px;
+  bottom: 12px;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  font-size: 22px;
+  z-index: 5;
+  box-shadow: 0 12px 44px rgba(0,0,0,0.55);
+}
+
+/* Position the four skill buttons in an arc around the basic button */
+.skill-btn.q{ right: 96px; bottom: 32px; }
+.skill-btn.w{ right: 64px; bottom: 124px; }
+.skill-btn.e{ right: 148px; bottom: 100px; }
+.skill-btn.r{ right: 208px; bottom: 24px; }
+
+/* Make cooldown visuals circular to match buttons */
+.skill-btn .cooldown{
+  border-radius: 50%;
+  inset: 0;
+}
