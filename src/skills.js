@@ -125,88 +125,219 @@ export class SkillsSystem {
   }
 
   // ----- Skills -----
-  castQ_ChainLightning() {
-    if (this.isOnCooldown("Q")) return;
-
-    // Immediate feedback even if no target
-    this.effects.spawnHandFlash(this.player);
-
-    // Find nearest enemy in range
-    let candidates = this.enemies.filter(
-      (e) => e.alive && distance2D(this.player.pos(), e.pos()) <= SKILLS.Q.range
-    );
-    if (candidates.length === 0) {
-      this.effects.showNoTargetHint(this.player, SKILLS.Q.range);
+  /**
+   * Generic skill dispatcher. Use castSkill('Q'|'W'|'E'|'R', point?)
+   * point is used for ground-targeted 'aoe' skills.
+   */
+  castSkill(key, point = null) {
+    if (!key) return;
+    if (this.isOnCooldown(key)) return;
+    const SK = SKILLS[key];
+    if (!SK) {
+      console.warn("castSkill: unknown SKILLS key", key);
       return;
     }
 
-    if (!this.player.canSpend(SKILLS.Q.mana)) return;
-    this.player.spend(SKILLS.Q.mana);
-    this.startCooldown("Q", SKILLS.Q.cd);
+    switch (SK.type) {
+      case "chain":
+        return this._castChain(key);
+      case "aoe":
+        return this._castAOE(key, point);
+      case "aura":
+        return this._castAura(key);
+      case "storm":
+        return this._castStorm(key);
+      case "beam":
+        return this._castBeam(key);
+      case "nova":
+        return this._castNova(key);
+      default:
+        // If skill definitions don't include a type (legacy), fall back to original key handlers
+        if (key === "Q") return this.castQ_ChainLightning();
+        if (key === "W") return this.castW_AOE(point);
+        if (key === "E") return this.castE_StaticField();
+        if (key === "R") return this.castR_Thunderstorm();
+    }
+  }
 
-    // Chain logic
+  // ---- Typed implementations ----
+  _castChain(key) {
+    const SK = SKILLS[key];
+    if (!SK) return;
+    if (this.isOnCooldown(key)) return;
+
+    this.effects.spawnHandFlash(this.player);
+
+    let candidates = this.enemies.filter(
+      (e) => e.alive && distance2D(this.player.pos(), e.pos()) <= SK.range
+    );
+    if (candidates.length === 0) {
+      this.effects.showNoTargetHint(this.player, SK.range);
+      return;
+    }
+
+    if (!this.player.canSpend(SK.mana)) return;
+    this.player.spend(SK.mana);
+    this.startCooldown(key, SK.cd);
+
     let current = candidates.sort(
       (a, b) =>
         distance2D(this.player.pos(), a.pos()) - distance2D(this.player.pos(), b.pos())
     )[0];
     let lastPoint = handWorldPos(this.player);
-    let jumps = SKILLS.Q.jumps + 1; // include first
+    let jumps = (SK.jumps || 0) + 1;
     while (current && jumps-- > 0) {
       const hitPoint = current.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
       this.effects.spawnElectricBeamAuto(lastPoint, hitPoint, 0x8fd3ff, 0.12);
       this.effects.spawnArcNoisePath(lastPoint, hitPoint, 0xbfe9ff, 0.08);
-      current.takeDamage(SKILLS.Q.dmg);
-      // extra impact visual
+      current.takeDamage(SK.dmg);
       this.effects.spawnStrike(current.pos(), 1.2, 0x9fd3ff);
       this.effects.spawnHitDecal(current.pos());
-      // Next hop
       lastPoint = hitPoint;
       candidates = this.enemies.filter(
         (e) =>
           e.alive &&
           e !== current &&
-          distance2D(current.pos(), e.pos()) <= SKILLS.Q.jumpRange
+          distance2D(current.pos(), e.pos()) <= (SK.jumpRange || 0)
       );
       current = candidates[0];
     }
   }
 
-  castW_AOE(point) {
-    if (!point) return;
-    if (this.isOnCooldown("W") || !this.player.canSpend(SKILLS.W.mana)) return;
+  _castAOE(key, point) {
+    const SK = SKILLS[key];
+    if (!SK || !point) return;
+    if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
 
-    this.player.spend(SKILLS.W.mana);
-    this.startCooldown("W", SKILLS.W.cd);
+    this.player.spend(SK.mana);
+    this.startCooldown(key, SK.cd);
     this.effects.spawnHandFlash(this.player);
 
     // Visual: central strike + radial
-    this.effects.spawnStrike(point, SKILLS.W.radius, 0x9fd8ff);
+    this.effects.spawnStrike(point, SK.radius, 0x9fd8ff);
 
-    // Damage enemies in radius and slow
+    // Damage enemies in radius and apply slow if present
     this.enemies.forEach((en) => {
       if (!en.alive) return;
-      if (distance2D(en.pos(), point) <= SKILLS.W.radius) {
-        en.takeDamage(SKILLS.W.dmg);
-        en.slowUntil = now() + 1.5;
-        en.slowFactor = 0.45;
+      if (distance2D(en.pos(), point) <= SK.radius) {
+        en.takeDamage(SK.dmg);
+        if (SK.slowFactor) {
+          en.slowUntil = now() + (SK.slowDuration || 1.5);
+          en.slowFactor = SK.slowFactor;
+        }
       }
     });
   }
 
-  castE_StaticField() {
-    if (this.isOnCooldown("E")) return;
+  _castAura(key) {
+    const SK = SKILLS[key];
+    if (!SK) return;
+    if (this.isOnCooldown(key)) return;
     // Toggle off if active
     if (this.player.staticField.active) {
       this.player.staticField.active = false;
       this.player.staticField.until = 0;
-      this.startCooldown("E", 4); // small lockout to prevent spam-toggle
+      this.startCooldown(key, 4); // small lockout to prevent spam-toggle
       return;
     }
-    if (!this.player.canSpend(SKILLS.E.manaPerTick * 2)) return; // need some mana to start
-    this.startCooldown("E", SKILLS.E.cd);
+    if (!this.player.canSpend((SK.manaPerTick || 0) * 2)) return; // need some mana to start
+    this.startCooldown(key, SK.cd);
     this.player.staticField.active = true;
-    this.player.staticField.until = now() + SKILLS.E.duration;
+    this.player.staticField.until = now() + (SK.duration || 10);
     this.player.staticField.nextTick = 0;
+  }
+
+  _castBeam(key) {
+    const SK = SKILLS[key];
+    if (!SK) return;
+    if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+
+    // Immediate feedback
+    this.effects.spawnHandFlash(this.player);
+
+    let candidates = this.enemies.filter(
+      (e) => e.alive && distance2D(this.player.pos(), e.pos()) <= SK.range
+    );
+    if (candidates.length === 0) {
+      this.effects.showNoTargetHint(this.player, SK.range);
+      return;
+    }
+
+    this.player.spend(SK.mana);
+    this.startCooldown(key, SK.cd);
+
+    const target = candidates.sort(
+      (a, b) =>
+        distance2D(this.player.pos(), a.pos()) - distance2D(this.player.pos(), b.pos())
+    )[0];
+
+    const from =
+      this.player === this.player && this.player.mesh.userData.handAnchor
+        ? handWorldPos(this.player)
+        : this.player.pos().clone().add(new THREE.Vector3(0, 1.6, 0));
+    const to = target.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
+    this.effects.spawnElectricBeamAuto(from, to, 0x8fd3ff, 0.12);
+    target.takeDamage(SK.dmg);
+    this.effects.spawnStrike(target.pos(), 1.0, 0x9fd3ff);
+  }
+
+  _castNova(key) {
+    const SK = SKILLS[key];
+    if (!SK) return;
+    if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+
+    this.player.spend(SK.mana);
+    this.startCooldown(key, SK.cd);
+    this.effects.spawnHandFlash(this.player);
+
+    // Radial damage around player
+    this.effects.spawnStrike(this.player.pos(), SK.radius, 0x9fd8ff);
+    this.enemies.forEach((en) => {
+      if (en.alive && distance2D(en.pos(), this.player.pos()) <= SK.radius) {
+        en.takeDamage(SK.dmg);
+      }
+    });
+  }
+
+  _castStorm(key) {
+    const SK = SKILLS[key];
+    if (!SK) return;
+    if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    this.player.spend(SK.mana);
+    this.startCooldown(key, SK.cd);
+    this.effects.spawnHandFlash(this.player);
+
+    const startT = now();
+    const endT = startT + (SK.duration || 7);
+    const center = this.player.pos().clone();
+
+    // Queue up strikes over duration
+    const strikes = [];
+    for (let i = 0; i < (SK.strikes || 8); i++) {
+      const when = startT + Math.random() * (SK.duration || 7);
+      const ang = Math.random() * Math.PI * 2;
+      const r = Math.random() * (SK.radius || 12);
+      const pt = center.clone().add(new THREE.Vector3(Math.cos(ang) * r, 0, Math.sin(ang) * r));
+      strikes.push({ when, pt });
+    }
+    this.storms.push({ strikes, end: endT });
+  }
+
+  // Backwards-compatible wrappers (preserve existing API)
+  castQ_ChainLightning() {
+    return this.castSkill("Q");
+  }
+
+  castW_AOE(point) {
+    return this.castSkill("W", point);
+  }
+
+  castE_StaticField() {
+    return this.castSkill("E");
+  }
+
+  castR_Thunderstorm() {
+    return this.castSkill("R");
   }
 
   runStaticField(dt, t) {
@@ -241,28 +372,6 @@ export class SkillsSystem {
         }
       });
     }
-  }
-
-  castR_Thunderstorm() {
-    if (this.isOnCooldown("R") || !this.player.canSpend(SKILLS.R.mana)) return;
-    this.player.spend(SKILLS.R.mana);
-    this.startCooldown("R", SKILLS.R.cd);
-    this.effects.spawnHandFlash(this.player);
-
-    const startT = now();
-    const endT = startT + SKILLS.R.duration;
-    const center = this.player.pos().clone();
-
-    // Queue up strikes over duration
-    const strikes = [];
-    for (let i = 0; i < SKILLS.R.strikes; i++) {
-      const when = startT + Math.random() * SKILLS.R.duration;
-      const ang = Math.random() * Math.PI * 2;
-      const r = Math.random() * SKILLS.R.radius;
-      const pt = center.clone().add(new THREE.Vector3(Math.cos(ang) * r, 0, Math.sin(ang) * r));
-      strikes.push({ when, pt });
-    }
-    this.storms.push({ strikes, end: endT });
   }
 
   runStorms(cameraShake) {

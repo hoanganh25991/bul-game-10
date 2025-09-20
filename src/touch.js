@@ -26,7 +26,6 @@
  */
 
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { SKILLS } from "./constants.js";
 
 export function initTouchControls({ player, skills, effects, aimPreview, attackPreview }) {
   const els = {
@@ -179,8 +178,12 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
   }
   if (els.btnQ) {
     els.btnQ.addEventListener("click", () => {
-      // Instant cast
-      skills.castQ_ChainLightning();
+      // Instant cast - prefer generic castSkill if available
+      if (typeof skills.castSkill === "function") {
+        skills.castSkill("Q");
+      } else if (typeof skills.castQ_ChainLightning === "function") {
+        skills.castQ_ChainLightning();
+      }
     });
   }
   if (els.btnW) {
@@ -188,7 +191,11 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
       if (player.aimMode && player.aimModeSkill === "W") {
         // Confirm cast at current aim (if we have a lastAimPos; else compute default ahead)
         const pos = (lastAimPos && isFinite(lastAimPos.x)) ? lastAimPos.clone() : computeAimPositionFromJoystick();
-        skills.castW_AOE(pos);
+        if (typeof skills.castSkill === "function") {
+          skills.castSkill("W", pos);
+        } else if (typeof skills.castW_AOE === "function") {
+          skills.castW_AOE(pos);
+        }
         effects?.spawnMovePing?.(pos, 0x9fd8ff);
         cancelAim();
       } else {
@@ -207,12 +214,20 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
   }
   if (els.btnE) {
     els.btnE.addEventListener("click", () => {
-      skills.castE_StaticField();
+      if (typeof skills.castSkill === "function") {
+        skills.castSkill("E");
+      } else if (typeof skills.castE_StaticField === "function") {
+        skills.castE_StaticField();
+      }
     });
   }
   if (els.btnR) {
     els.btnR.addEventListener("click", () => {
-      skills.castR_Thunderstorm();
+      if (typeof skills.castSkill === "function") {
+        skills.castSkill("R");
+      } else if (typeof skills.castR_Thunderstorm === "function") {
+        skills.castR_Thunderstorm();
+      }
     });
   }
 
