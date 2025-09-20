@@ -858,6 +858,8 @@ function updateEnemies(dt) {
           effects.spawnBeam(from, to, 0xff8080, 0.09);
           // Damage
           player.takeDamage(en.attackDamage);
+          // floating damage popup on player
+          try { effects.spawnDamagePopup(player.pos(), en.attackDamage, 0xffd0d0); } catch (e) {}
         }
       }
     } else {

@@ -188,10 +188,63 @@ export class EffectsManager {
     this.queue.push({ obj: s, until: now() + 0.12, fade: true, mat: s.material, scaleRate: 1.8 });
   }
 
+  /**
+   * Spawn a small floating damage text at world position.
+   * amount may be a number or string. Color is a hex number.
+   */
+  spawnDamagePopup(worldPos, amount, color = 0xffe1e1) {
+    if (!worldPos) return;
+    const text = String(Math.floor(Number(amount) || amount));
+    const w = 160;
+    const h = 64;
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext("2d");
+    // Background transparent
+    ctx.clearRect(0, 0, w, h);
+    // Shadow / stroke for readability
+    ctx.font = "bold 36px Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const hex = (color >>> 0).toString(16).padStart(6, "0");
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = "rgba(0,0,0,0.6)";
+    ctx.strokeText(text, w / 2, h / 2);
+    ctx.fillStyle = `#${hex}`;
+    ctx.fillText(text, w / 2, h / 2);
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.needsUpdate = true;
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: true });
+    const spr = new THREE.Sprite(mat);
+
+    // Scale sprite so it's readable in world units
+    const scaleBase = 0.8;
+    const scale = scaleBase + Math.min(2.0, text.length * 0.08);
+    spr.scale.set(scale * (w / 128), scale * (h / 64), 1);
+    spr.position.set(worldPos.x, worldPos.y + 2.4, worldPos.z);
+
+    this.transient.add(spr);
+    this.queue.push({
+      obj: spr,
+      until: now() + 1.0,
+      fade: true,
+      mat: mat,
+      velY: 0.9,
+      map: tex,
+    });
+  }
+
   // ----- Frame update -----
   update(t, dt) {
     for (let i = this.queue.length - 1; i >= 0; i--) {
       const e = this.queue[i];
+
+      // Vertical motion for popups
+      if (e.velY && e.obj && e.obj.position) {
+        e.obj.position.y += e.velY * dt;
+      }
 
       // Optional animated scaling (for pings)
       if (e.scaleRate && e.obj && e.obj.scale) {
@@ -202,13 +255,24 @@ export class EffectsManager {
       if (e.fade && e.mat) {
         e.mat.opacity = e.mat.opacity ?? 1;
         e.mat.transparent = true;
-        e.mat.opacity = Math.max(0, e.mat.opacity - dt * 4);
+        e.mat.opacity = Math.max(0, e.mat.opacity - dt * 1.8);
       }
+
       if (t >= e.until) {
         // Remove from either transient or indicators group if present
         this.transient.remove(e.obj);
         this.indicators.remove(e.obj);
+        // Dispose geometry (if any)
         if (e.obj.geometry) e.obj.geometry.dispose?.();
+        // Dispose material and texture if present
+        if (e.obj.material) {
+          try {
+            if (e.obj.material.map) e.obj.material.map.dispose?.();
+          } catch (e2) {}
+          try {
+            e.obj.material.dispose?.();
+          } catch (e3) {}
+        }
         this.queue.splice(i, 1);
       }
     }

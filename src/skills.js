@@ -121,6 +121,8 @@ export class SkillsSystem {
     this.effects.spawnElectricBeamAuto(from, to, COLOR.blue, 0.12);
     if (attacker === this.player) this.player.braceUntil = now() + 0.18;
     target.takeDamage(WORLD.basicAttackDamage);
+    // show floating damage number on the target
+    try { this.effects.spawnDamagePopup(target.pos(), WORLD.basicAttackDamage, 0xffe0e0); } catch (e) {}
     return true;
   }
 
@@ -188,11 +190,13 @@ export class SkillsSystem {
     let jumps = (SK.jumps || 0) + 1;
     while (current && jumps-- > 0) {
       const hitPoint = current.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
-      this.effects.spawnElectricBeamAuto(lastPoint, hitPoint, 0x8fd3ff, 0.12);
-      this.effects.spawnArcNoisePath(lastPoint, hitPoint, 0xbfe9ff, 0.08);
-      current.takeDamage(SK.dmg);
-      this.effects.spawnStrike(current.pos(), 1.2, 0x9fd3ff);
-      this.effects.spawnHitDecal(current.pos());
+    this.effects.spawnElectricBeamAuto(lastPoint, hitPoint, 0x8fd3ff, 0.12);
+    this.effects.spawnArcNoisePath(lastPoint, hitPoint, 0xbfe9ff, 0.08);
+    current.takeDamage(SK.dmg);
+    // popup for chain hit
+    try { this.effects.spawnDamagePopup(current.pos(), SK.dmg, 0xbfe9ff); } catch (e) {}
+    this.effects.spawnStrike(current.pos(), 1.2, 0x9fd3ff);
+    this.effects.spawnHitDecal(current.pos());
       lastPoint = hitPoint;
       candidates = this.enemies.filter(
         (e) =>
@@ -221,6 +225,7 @@ export class SkillsSystem {
       if (!en.alive) return;
       if (distance2D(en.pos(), point) <= SK.radius) {
         en.takeDamage(SK.dmg);
+        try { this.effects.spawnDamagePopup(en.pos(), SK.dmg, 0x9fd8ff); } catch (e) {}
         if (SK.slowFactor) {
           en.slowUntil = now() + (SK.slowDuration || 1.5);
           en.slowFactor = SK.slowFactor;
@@ -278,6 +283,7 @@ export class SkillsSystem {
     const to = target.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
     this.effects.spawnElectricBeamAuto(from, to, 0x8fd3ff, 0.12);
     target.takeDamage(SK.dmg);
+    try { this.effects.spawnDamagePopup(target.pos(), SK.dmg, 0x9fd3ff); } catch(e) {}
     this.effects.spawnStrike(target.pos(), 1.0, 0x9fd3ff);
   }
 
@@ -295,6 +301,7 @@ export class SkillsSystem {
     this.enemies.forEach((en) => {
       if (en.alive && distance2D(en.pos(), this.player.pos()) <= SK.radius) {
         en.takeDamage(SK.dmg);
+        try { this.effects.spawnDamagePopup(en.pos(), SK.dmg, 0x9fd8ff); } catch(e) {}
       }
     });
   }
@@ -369,6 +376,7 @@ export class SkillsSystem {
       this.enemies.forEach((en) => {
         if (en.alive && distance2D(en.pos(), this.player.pos()) <= SKILLS.E.radius) {
           en.takeDamage(SKILLS.E.dmg);
+          try { this.effects.spawnDamagePopup(en.pos(), SKILLS.E.dmg, 0x7fc7ff); } catch(e) {}
         }
       });
     }
@@ -391,6 +399,7 @@ export class SkillsSystem {
           this.enemies.forEach((en) => {
             if (en.alive && distance2D(en.pos(), st.pt) <= 3.2) {
               en.takeDamage(SKILLS.R.dmg);
+              try { this.effects.spawnDamagePopup(en.pos(), SKILLS.R.dmg, 0xbfe2ff); } catch(e) {}
             }
           });
           s.strikes.splice(j, 1);

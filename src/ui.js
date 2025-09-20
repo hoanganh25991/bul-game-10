@@ -11,6 +11,16 @@ export class UIManager {
     this.elMPText = document.getElementById("mpText");
     this.elXPText = document.getElementById("xpText");
     this.elLevelValue = document.getElementById("levelValue");
+    // Listen for level-up events to animate HUD / skill buttons
+    if (typeof window !== "undefined" && window.addEventListener) {
+      window.addEventListener("player-levelup", (e) => {
+        try {
+          this.showLevelUp && this.showLevelUp(e.detail);
+        } catch (err) {
+          // ignore
+        }
+      });
+    }
 
     // Cooldown UI containers (pass to SkillsSystem)
     this.cdUI = {
@@ -126,5 +136,59 @@ export class UIManager {
     ctx.beginPath();
     ctx.arc(pp.x, pp.y, 3, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  /**
+   * Visual feedback when player levels up.
+   * - briefly pulses the level number
+   * - adds a glow / pulse to skill buttons
+   * - shows a short center message
+   */
+  showLevelUp(detail) {
+    const level = detail?.level ?? null;
+    const gained = detail?.gained ?? 1;
+
+    // Pulse level number
+    if (this.elLevelValue) {
+      const el = this.elLevelValue;
+      const prevTrans = el.style.transition || "";
+      const prevColor = el.style.color || "";
+      el.style.transition = "transform 260ms ease, color 260ms ease";
+      el.style.transform = "scale(1.35)";
+      el.style.color = "#ffd86a";
+      setTimeout(() => {
+        el.style.transform = "";
+        el.style.color = prevColor;
+        el.style.transition = prevTrans;
+      }, 600);
+    }
+
+    // Glow skill buttons briefly
+    try {
+      const btns = document.querySelectorAll(".skill-btn");
+      btns.forEach((b) => {
+        const prevTransform = b.style.transform || "";
+        const prevBox = b.style.boxShadow || "";
+        b.style.transition = "transform 260ms ease, box-shadow 260ms ease";
+        b.style.transform = "scale(1.08)";
+        b.style.boxShadow = "0 0 18px 8px rgba(255,215,90,0.95)";
+        setTimeout(() => {
+          b.style.transform = prevTransform;
+          b.style.boxShadow = prevBox;
+        }, 900);
+      });
+    } catch (e) {
+      // ignore DOM errors
+    }
+
+    // Short center message
+    try {
+      if (this.deathMsgEl) {
+        this.setCenterMsg(`Level Up! Lv ${level}`);
+        setTimeout(() => {
+          this.clearCenterMsg();
+        }, 1200);
+      }
+    } catch (e) {}
   }
 }

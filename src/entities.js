@@ -70,9 +70,11 @@ export class Player extends Entity {
 
   gainXP(amount) {
     this.xp += amount;
+    let gained = 0;
     while (this.xp >= this.xpToLevel) {
       this.xp -= this.xpToLevel;
       this.level += 1;
+      gained += 1;
       // scale stats per level
       this.maxHP = Math.floor(this.maxHP * 1.12);
       this.maxMP = Math.floor(this.maxMP * 1.1);
@@ -81,6 +83,17 @@ export class Player extends Entity {
       this.hpRegen *= 1.08;
       this.mpRegen *= 1.06;
       this.xpToLevel = Math.floor(this.xpToLevel * 1.2);
+    }
+
+    // Dispatch a level-up event for UI to react (e.g., glow skill buttons)
+    if (gained > 0 && typeof window !== "undefined" && window.dispatchEvent) {
+      try {
+        window.dispatchEvent(
+          new CustomEvent("player-levelup", { detail: { level: this.level, gained } })
+        );
+      } catch (e) {
+        // ignore if environment does not support CustomEvent
+      }
     }
   }
 
