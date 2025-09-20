@@ -447,21 +447,23 @@ renderer.domElement.addEventListener("mousemove", (e) => {
 
 renderer.domElement.addEventListener("mousedown", (e) => {
   raycast.updateMouseNDC(e);
-  if (e.button === 2) { // Right click: move / attack
+  if (e.button === 2) { // Right click: move / select (no auto-attack/move)
     if (player.frozen) {
       portals.handleFrozenPortalClick(raycast, camera, player, clearCenterMsg);
       return;
     }
     const obj = raycast.raycastEnemyOrGround();
     if (obj && obj.type === "enemy") {
-      player.target = obj.enemy;
-      player.moveTarget = null;
+      // Select enemy manually instead of auto-targeting/auto-attacking.
+      selectedUnit = obj.enemy;
       effects.spawnTargetPing(obj.enemy);
     } else {
       const p = raycast.raycastGround();
       if (p) {
+        // Manual move order; do not enable auto-attack.
         player.moveTarget = p.clone();
         player.target = null;
+        player.attackMove = false;
         effects.spawnMovePing(p);
       }
     }
@@ -693,30 +695,39 @@ function updatePlayer(dt) {
     return;
   }
 
-  // Auto-acquire nearest enemy if idle and in range (skip briefly after Stop)
+  // Auto-acquire nearest enemy if idle and in range (disabled — manual control)
+  // Automatic target acquisition was removed so the player fully controls targeting and attacking.
+  /*
   if (!player.moveTarget && (!player.target || !player.target.alive) && (!player.holdUntil || now() >= player.holdUntil)) {
     const nearest = getNearestEnemy(player.pos(), WORLD.attackRange + 0.5, enemies);
     if (nearest) player.target = nearest;
   }
+  */
 
-  // Attack-move: while moving, if an enemy comes close, switch to attack
+  // Attack-move: user-initiated attack-move is respected but automatic acquisition/auto-attack is disabled.
   if (player.attackMove) {
-    const nearest = getNearestEnemy(player.pos(), 14, enemies);
-    if (nearest) {
-      player.target = nearest;
-      player.attackMove = false;
-    }
+    // Intentionally left blank to avoid auto-acquiring targets while attack-moving.
+    // Player must explicitly initiate attacks (e.g. press 'a' then click an enemy).
   }
 
   // Movement towards target or moveTarget
   let moveDir = null;
   if (player.target && player.target.alive) {
     const d = distance2D(player.pos(), player.target.pos());
-    if (d > WORLD.attackRange * 0.95) {
+    // Do NOT auto-move or auto-basic-attack when a target is set.
+    // If the player explicitly used attack-move (player.attackMove) then allow moving toward the target.
+    if (player.attackMove && d > WORLD.attackRange * 0.95) {
       moveDir = dir2D(player.pos(), player.target.pos());
     } else {
-      // in range: attempt basic attack
-      skills.tryBasicAttack(player, player.target);
+      // Otherwise, only auto-face the target when nearby (no auto-attack).
+      if (d <= WORLD.attackRange * 1.5) {
+        const v = dir2D(player.pos(), player.target.pos());
+        const targetYaw = Math.atan2(v.x, v.z);
+        const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, targetYaw, 0));
+        player.mesh.quaternion.slerp(q, Math.min(1, player.turnSpeed * 1.5 * dt));
+        player.lastFacingYaw = targetYaw;
+        player.lastFacingUntil = now() + 0.6;
+      }
     }
   } else if (player.moveTarget) {
     const d = distance2D(player.pos(), player.moveTarget);
