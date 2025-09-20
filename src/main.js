@@ -19,6 +19,26 @@ import { initTouchControls } from "./touch.js";
 import { SKILL_POOL, DEFAULT_LOADOUT } from "./skills_pool.js";
 import { loadOrDefault, saveLoadout, resolveLoadout } from "./loadout.js";
 
+/**
+ * Minimal skill icon helper: returns a small emoji/SVG placeholder for a skill short name.
+ * Keeps UI lightweight and avoids new asset dependencies.
+ */
+function getSkillIcon(short) {
+  if (!short) return "—";
+  const k = String(short).slice(0, 3).toLowerCase();
+  const map = {
+    chn: "⚡", // chain
+    bol: "⚡", // bolt/chain-ish
+    stc: "🔌", // static
+    str: "⛈️", // storm
+    bam: "🔋",
+    nov: "✴️",
+    aoe: "💥",
+    "n/a": "⚡"
+  };
+  return map[k] || "⚡";
+}
+
 // ------------------------------------------------------------
 // Bootstrapping world, UI, effects
 // ------------------------------------------------------------
@@ -131,6 +151,7 @@ function renderHeroScreen() {
     const skillId = currentLoadout[i];
     const skillDef = SKILL_POOL.find((s) => s.id === skillId);
     slot.innerHTML = `<div class="slot-key">${keys[i]}</div>
+                      <div class="skill-icon">${getSkillIcon(skillDef ? skillDef.short : null)}</div>
                       <div class="slot-short">${skillDef ? skillDef.short : "—"}</div>
                       <div class="slot-name">${skillDef ? skillDef.name : t("hero.slot.empty")}</div>
                       <button class="slot-clear">${t("hero.slot.clear")}</button>`;
@@ -145,7 +166,7 @@ function renderHeroScreen() {
     const el = document.createElement("div");
     el.className = "skill-pool-item";
     el.dataset.skillId = s.id;
-    el.innerHTML = `<div class="skill-short">${s.short}</div><div class="skill-name">${s.name}</div><button class="assign">${t("hero.assign")}</button>`;
+    el.innerHTML = `<div class="skill-icon">${getSkillIcon(s.short)}</div><div class="skill-name">${s.name}</div><button class="assign">${t("hero.assign")}</button>`;
     poolWrap.appendChild(el);
   });
   const poolHeader = document.createElement("div");
