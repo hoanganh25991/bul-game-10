@@ -10,6 +10,12 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
   - New: src/audio.js
   - Hooks: src/skills.js, src/main.js
 
+### Changed
+- Mobile UI scale for small screens (≤ 932px):
+  - Minimap resized to 150x150 (75% of desktop 200x200).
+  - Joystick (container/base/knob) scaled to 75% with recentered knob to reduce overlap and improve ergonomics.
+  - Files: css/hud.css, css/mobile.css.
+
 ### Removed
 - Removed 3D hero preview from Hero Screen: eliminated heroPreviewCanvas and related preview code in src/main.js.
 

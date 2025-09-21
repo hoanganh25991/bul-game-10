@@ -70,10 +70,16 @@ initSplash();
  // Initialize i18n (default Vietnamese)
 initI18n();
 
-// Audio: initialize on first user gesture and start ambient music once
+ // Audio: initialize on first user gesture and start ambient music once (external CC0 track)
 audio.startOnFirstUserGesture(document);
 const __startMusicOnce = (ev) => {
-  try { audio.startMusic(); } catch(e) {}
+  try {
+    // FreePD CC0: "Ice and Snow" — soft, atmospheric, focus-friendly
+    audio.startStreamMusic("audio/Ice and Snow.mp3", { volume: 0.35, loop: true });
+  } catch(e) {
+    // Fallback to generative if streaming fails
+    try { audio.setMusicVolume(0.35); audio.startMusic(); } catch (_) {}
+  }
   try {
     document.removeEventListener("click", __startMusicOnce, true);
     document.removeEventListener("touchstart", __startMusicOnce, true);

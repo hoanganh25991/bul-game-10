@@ -16,6 +16,11 @@ export const audio = (() => {
     musicNextTime: 0,
     musicVoices: new Set(),
     musicEnabled: true,
+    // Streaming background music (external track)
+    streamEl: null,
+    streamNode: null,
+    streamActive: false,
+    streamUsingWebAudio: false,
   };
 
   function ensureCtx() {
@@ -338,6 +343,74 @@ export const audio = (() => {
     state.musicTimer = setInterval(scheduler, 300);
   }
 
+  // Streamed music from existing URL (e.g., CC0 tracks)
+  function startStreamMusic(url, opts = {}) {
+    if (!state.musicEnabled) return;
+    ensureCtx(); resume();
+    if (!ctx) return;
+
+    // stop generative music if running
+    if (state.musicTimer) {
+      clearInterval(state.musicTimer);
+      state.musicTimer = null;
+    }
+    // stop previous stream if any
+    try { stopStreamMusic(); } catch (_) {}
+
+    const loop = opts.loop !== undefined ? !!opts.loop : true;
+    const vol = typeof opts.volume === "number" ? Math.max(0, Math.min(1, opts.volume)) : 0.3;
+
+    const el = new Audio();
+    el.src = url;
+    el.preload = "auto";
+    el.loop = loop;
+    el.crossOrigin = "anonymous";
+
+    let usingWebAudio = false;
+    try {
+      const node = ctx.createMediaElementSource(el);
+      node.connect(musicGain);
+      el.volume = 1.0; // use musicGain for volume when connected
+      state.streamNode = node;
+      usingWebAudio = true;
+    } catch (e) {
+      // Fallback to element volume control (e.g., if no CORS)
+      el.volume = vol;
+      usingWebAudio = false;
+      console.warn("[audio] MediaElementSource fallback (likely no CORS): using element volume");
+    }
+
+    state.streamEl = el;
+    state.streamUsingWebAudio = usingWebAudio;
+    state.streamActive = true;
+
+    // If using WebAudio path, set gain based on requested volume
+    if (usingWebAudio) {
+      setMusicVolume(vol);
+    }
+
+    el.play().catch(() => {
+      // Will succeed after a user gesture
+    });
+  }
+
+  function stopStreamMusic() {
+    try {
+      if (state.streamEl) {
+        try { state.streamEl.pause(); } catch (_) {}
+        try { state.streamEl.src = ""; } catch (_) {}
+      }
+      if (state.streamNode) {
+        try { state.streamNode.disconnect(); } catch (_) {}
+      }
+    } finally {
+      state.streamEl = null;
+      state.streamNode = null;
+      state.streamActive = false;
+      state.streamUsingWebAudio = false;
+    }
+  }
+
   function stopMusic() {
     if (state.musicTimer) {
       clearInterval(state.musicTimer);
@@ -360,7 +433,12 @@ export const audio = (() => {
   }
   function setMusicVolume(v) {
     ensureCtx();
-    if (musicGain) musicGain.gain.value = Math.max(0, Math.min(1, Number(v)));
+    const vol = Math.max(0, Math.min(1, Number(v)));
+    if (musicGain) musicGain.gain.value = vol;
+    // If streaming without WebAudio connection, set element volume directly
+    if (state.streamEl && !state.streamUsingWebAudio) {
+      try { state.streamEl.volume = vol; } catch(_) {}
+    }
   }
 
   return {
@@ -369,6 +447,8 @@ export const audio = (() => {
     sfx,
     startMusic,
     stopMusic,
+    startStreamMusic,
+    stopStreamMusic,
     setEnabled,
     setSfxVolume,
     setMusicVolume,
