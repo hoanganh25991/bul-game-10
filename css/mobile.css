@@ -63,21 +63,3 @@
   pointer-events: auto;
   cursor: pointer;
 }
-
-/* Skill wheel container remains non-interactive as a host; children (.skill-btn) enable pointer events */
-#skillWheel{
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  width: 260px;
-  height: 260px;
-  pointer-events: none;
-}
-
-/* Ensure mobile controls adapt on small screens */
-@media (max-width: 480px) {
-  #joystick { width: 180px; height: 180px; left: 10px; bottom: 10px; }
-  #joyBase { width: 150px; height: 150px; }
-  #joyKnob { width: 64px; height: 64px; margin-left: -32px; margin-top: -32px; }
-  #skillWheel { width: 220px; height: 220px; right: 8px; bottom: 8px; }
-}

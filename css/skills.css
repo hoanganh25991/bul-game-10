@@ -118,8 +118,6 @@
   position: absolute;
   right: 12px;
   bottom: 12px;
-  width: 260px;
-  height: 260px;
   pointer-events: none;
 }
 
@@ -168,11 +166,10 @@
    - R, W, E -> each shifted forward by one position around the arc (clockwise)
    - R now placed at the marked green position (slightly to the right of former W)
 */
-.skill-btn.q{ right: 208px; bottom: 24px; }  /* former R */
-.skill-btn.w{ right: 148px; bottom: 100px; } /* former E */
-.skill-btn.e{ right: 120px; bottom: 36px; }  /* adjusted down to avoid overlap with W */
-.skill-btn.r{ right: 32px; bottom: 148px; }  /* new 'green' slot */
-
+.skill-btn.q{ right: calc((64px + 4px) * 2); bottom: 0px; }  /* former R */
+.skill-btn.w{ right: calc((64px + 4px) * 2 - 12px); bottom: calc(140px - 68px); } /* former E */
+.skill-btn.e{ right: calc((64px + 4px) * 1); bottom: calc(140px - 16px); }  /* adjusted down to avoid overlap with W */
+.skill-btn.r{ right: 0px; bottom: 140px; }  /* new 'green' slot */
 /* Make cooldown visuals circular to match buttons */
 .skill-btn .cooldown{
   border-radius: 50%;
