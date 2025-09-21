@@ -31,7 +31,6 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
     joystick: document.getElementById("joystick"),
     joyBase: document.getElementById("joyBase"),
     joyKnob: document.getElementById("joyKnob"),
-    btnCancelAim: document.getElementById("btnCancelAim"),
     btnBasic: document.getElementById("btnBasic"),
     btnQ: document.getElementById("btnSkillQ"),
     btnW: document.getElementById("btnSkillW"),
@@ -185,15 +184,9 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
     player.aimModeSkill = null;
     if (aimPreview) aimPreview.visible = false;
     if (attackPreview) attackPreview.visible = false;
-    if (els.btnCancelAim) els.btnCancelAim.classList.add("hidden");
     try { document.body.style.cursor = "default"; } catch {}
   }
 
-  if (els.btnCancelAim) {
-    els.btnCancelAim.addEventListener("click", () => {
-      cancelAim();
-    });
-  }
 
   // Mini-joystick drag handlers for AOE placement (for whichever key is active)
   function startAoeDrag(key, e) {
@@ -330,7 +323,6 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
         // Enter aim mode for this AOE key
         player.aimMode = true;
         player.aimModeSkill = key;
-        if (els.btnCancelAim) els.btnCancelAim.classList.remove("hidden");
         const pos = computeAimPositionFromJoystick();
         lastAimPos.copy(pos);
         if (aimPreview) {
