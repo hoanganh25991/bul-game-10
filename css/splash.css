@@ -48,7 +48,7 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  max-height: 90vh;
+  max-height: min(90vh, 90dvh);
   overflow: auto;
 }
 
@@ -87,4 +87,39 @@
 .flash .flash-note{
   color: rgba(10,10,20,0.6);
   font-size: 12px;
+}
+
+/* Safe-area padding for notches (overrides default padding) */
+.flash{
+  padding: 24px;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+
+/* Start screen typography scales responsively (prevents oversized text on small screens) */
+.start-screen h2{
+  margin: 0 0 8px 0;
+  font-size: clamp(20px, 5.5vw, 28px);
+  font-weight: 800;
+  color: var(--theme-dark-blue);
+  letter-spacing: 0.6px;
+}
+.start-screen p{
+  margin: 0 0 12px 0;
+  font-size: clamp(13px, 3.8vw, 16px);
+  line-height: 1.4;
+  color: rgba(10,10,20,0.85);
+}
+.start-screen .primary{
+  font-size: clamp(14px, 4.2vw, 16px);
+  padding: 10px 16px;
+  min-width: 120px;
+}
+
+/* Tighten the card on narrow screens */
+@media (max-width: 600px){
+  .flash .flash-card{
+    width: min(640px, 94vw);
+    padding: 20px;
+    gap: 10px;
+  }
 }
