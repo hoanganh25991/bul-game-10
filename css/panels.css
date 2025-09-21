@@ -203,8 +203,28 @@
 /* System screens: ensure content fits mobile viewports */
 .system-screen .screen-content{
   width: min(900px, 96vw);
-  max-height: min(92vh, 100dvh - 24px);
-  overflow: auto;
+  height: min(96vh, 100dvh - 24px);
+  max-height: min(96vh, 100dvh - 24px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* inner content scrolls */
   padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Make the main content area inside system screens scroll */
+.system-screen .panel-content{
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Tab hover/focus polish */
+.tab-btn:hover{
+  background: linear-gradient(180deg, #fff3b5, #ffe98a);
+  box-shadow: 0 6px 16px rgba(255,217,74,0.28);
+}
+.tab-btn:focus{
+  outline: 2px solid rgba(255,217,74,0.8);
+  outline-offset: 2px;
 }
