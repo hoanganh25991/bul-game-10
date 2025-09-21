@@ -148,7 +148,7 @@ function setFirstPerson(enabled) {
  btnCloseSettings?.addEventListener("click", () => settingsPanel?.classList.add("hidden"));
 
  // Hero open/close
- btnHeroScreen?.addEventListener("click", () => { renderHeroScreen(); heroScreen?.classList.remove("hidden"); });
+ btnHeroScreen?.addEventListener("click", () => { renderHeroScreen("skills"); heroScreen?.classList.remove("hidden"); });
  btnCloseHero?.addEventListener("click", () => { heroScreen?.classList.add("hidden"); });
  btnCloseHeroIcon?.addEventListener("click", () => { heroScreen?.classList.add("hidden"); });
 
@@ -369,7 +369,7 @@ try {
  * - click a slot to select it, then click a skill to assign; or click Assign on a skill
  */
 /* Hero Screen */
-function renderHeroScreen() {
+function renderHeroScreen(initialTab = "skills") {
   // Ensure tab structure on right side
   const layout = document.querySelector("#heroScreen .hero-layout");
   const listContainer = document.getElementById("heroSkillsList");
@@ -381,29 +381,34 @@ function renderHeroScreen() {
   title.textContent = t("hero.title");
   layout.appendChild(title);
 
-  // Tab bar
+  // Tab bar (Skills first)
   const tabBar = document.createElement("div");
   tabBar.className = "tab-bar";
-  const infoBtn = document.createElement("button");
-  infoBtn.className = "tab-btn active";
-  infoBtn.setAttribute("data-i18n", "hero.tabs.info");
-  infoBtn.textContent = t("hero.tabs.info") || "Info";
   const skillsBtn = document.createElement("button");
-  skillsBtn.className = "tab-btn";
+  skillsBtn.className = "tab-btn" + (initialTab !== "info" ? " active" : "");
   skillsBtn.setAttribute("data-i18n", "hero.tabs.skills");
   skillsBtn.textContent = t("hero.tabs.skills") || "Skills";
-  tabBar.appendChild(infoBtn);
+  const infoBtn = document.createElement("button");
+  infoBtn.className = "tab-btn" + (initialTab === "info" ? " active" : "");
+  infoBtn.setAttribute("data-i18n", "hero.tabs.info");
+  infoBtn.textContent = t("hero.tabs.info") || "Info";
   tabBar.appendChild(skillsBtn);
+  tabBar.appendChild(infoBtn);
   layout.appendChild(tabBar);
 
   // Panels
   const infoPanel = document.createElement("div");
-  infoPanel.className = "tab-panel active";
+  infoPanel.className = "tab-panel" + (initialTab === "info" ? " active" : "");
   const skillsPanel = document.createElement("div");
-  skillsPanel.className = "tab-panel";
-  // Initialize visibility
-  infoPanel.style.display = "block";
-  skillsPanel.style.display = "none";
+  skillsPanel.className = "tab-panel" + (initialTab !== "info" ? " active" : "");
+  // Initialize visibility based on initialTab
+  if (initialTab === "info") {
+    infoPanel.style.display = "block";
+    skillsPanel.style.display = "none";
+  } else {
+    infoPanel.style.display = "none";
+    skillsPanel.style.display = "block";
+  }
 
   // Info content
   const info = document.createElement("div");
@@ -458,7 +463,7 @@ function renderHeroScreen() {
   resetBtn.addEventListener("click", () => {
     currentLoadout = DEFAULT_LOADOUT.slice();
     setLoadoutAndSave(currentLoadout);
-    renderHeroScreen();
+    renderHeroScreen("skills");
   });
   actions.appendChild(resetBtn);
   container.appendChild(actions);
@@ -476,7 +481,7 @@ function renderHeroScreen() {
       ev.stopPropagation();
       currentLoadout[parseInt(slotEl.dataset.slotIndex, 10)] = null;
       setLoadoutAndSave(currentLoadout);
-      renderHeroScreen();
+      renderHeroScreen("skills");
     });
   });
   poolWrap.querySelectorAll(".skill-pool-item").forEach((itemEl) => {
@@ -485,7 +490,7 @@ function renderHeroScreen() {
       const slotToAssign = selectedSlotIndex !== null ? selectedSlotIndex : 0;
       currentLoadout[slotToAssign] = skillId;
       setLoadoutAndSave(currentLoadout);
-      renderHeroScreen();
+      renderHeroScreen("skills");
     });
     const btn = itemEl.querySelector(".assign");
     btn.addEventListener("click", (ev) => {
@@ -493,7 +498,7 @@ function renderHeroScreen() {
       const slotToAssign = selectedSlotIndex !== null ? selectedSlotIndex : 0;
       currentLoadout[slotToAssign] = skillId;
       setLoadoutAndSave(currentLoadout);
-      renderHeroScreen();
+      renderHeroScreen("skills");
     });
   });
 
