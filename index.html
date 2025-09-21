@@ -1,186 +1,218 @@
 <!doctype html>
 <html lang="en" class="splash-active">
-  <head>
-    <meta charset="utf-8" />
-    <title>Zeus RPG</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="preconnect" href="https://unpkg.com" />
-    <link rel="stylesheet" href="css/style.css" />
-    <meta name="theme-color" content="#0b1a2b" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' ry='12' fill='%230b1a2b'/%3E%3Cpath d='M36 4 L12 40 h16 l-4 20 28-40 H36 Z' fill='%23ffffff'/%3E%3C/svg%3E" />
-  </head>
-  <body>
-    <!-- Three.js renderer will append its canvas to body and sit under UI -->
 
-    <!-- UI/HUD Overlay -->
-    <div id="ui-root">
-      <div id="hud">
-        <div id="stats">
-          <div class="bar hp">
-            <div class="fill" id="hpFill"></div>
-            <div class="label"><span>HP</span><span id="hpText">100/100</span></div>
-          </div>
-          <div class="bar mp">
-            <div class="fill" id="mpFill"></div>
-            <div class="label"><span>MP</span><span id="mpText">100/100</span></div>
-          </div>
-          <div class="bar xp">
-            <div class="fill" id="xpFill"></div>
-            <div class="label"><span>XP</span><span id="xpText">0/100</span></div>
-          </div>
-          <div id="level">Lv <span id="levelValue">1</span></div>
+<head>
+  <meta charset="utf-8" />
+  <title>Zeus RPG</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://unpkg.com" />
+  <link rel="stylesheet" href="css/style.css" />
+  <meta name="theme-color" content="#0b1a2b" />
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' ry='12' fill='%230b1a2b'/%3E%3Cpath d='M36 4 L12 40 h16 l-4 20 28-40 H36 Z' fill='%23ffffff'/%3E%3C/svg%3E" />
+</head>
+
+<body>
+  <!-- Three.js renderer will append its canvas to body and sit under UI -->
+
+  <!-- UI/HUD Overlay -->
+  <div id="ui-root">
+    <div id="hud">
+      <div id="stats">
+        <div class="bar hp">
+          <div class="fill" id="hpFill"></div>
+          <div class="label"><span>HP</span><span id="hpText">100/100</span></div>
         </div>
-      </div>
-
-
-      <!-- Minimap -->
-      <canvas id="minimap" width="200" height="200"></canvas>
-
-      <!-- Hints -->
-      <div id="hints" style="display:none;">
-        <div>DOTA-style controls:</div>
-        <div>- Left Click: select</div>
-        <div>- Right Click: move / attack enemy</div>
-        <div>- A: aim attack (then Left Click an enemy)</div>
-        <div>- W: aim AOE (then Left Click to cast, ESC cancels)</div>
-        <div>- Q/E/R: skills</div>
-        <div>- S: Stop (cancel orders)</div>
-        <div>- B: Recall to village (opens portal back)</div>
-      </div>
-    </div>
-
-    <div id="deathMsg" class="center-msg" style="display:none;">You died. Respawning...</div>
-
-    <!-- New Interactive UI -->
-    <!-- Settings button (top-right) -->
-    <button id="btnSettings" class="icon-btn top-right" aria-label="Settings" title="Cài đặt / Settings">⚙️</button>
-
-    <!-- Hero screen button (top-right, next to settings) -->
-    <button id="btnHeroScreen" class="icon-btn top-right" aria-label="Hero" title="Hero" style="right:64px;">🛡️</button>
-
-    <!-- Camera toggle (right side) -->
-    <button id="btnCamera" class="icon-btn top-right" aria-label="Camera Toggle" title="Camera" style="right:116px;">🎥</button>
-
-    <!-- Settings Panel (now full-screen system screen) -->
-    <div id="settingsPanel" class="screen hidden system-screen" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-      <div class="screen-content">
-        <div class="panel-header">
-          <h2 id="settingsTitle" data-i18n="settings.title">Cài đặt</h2>
-          <button id="btnCloseSettings" class="icon-btn small screen-close" aria-label="Close">✕</button>
+        <div class="bar mp">
+          <div class="fill" id="mpFill"></div>
+          <div class="label"><span>MP</span><span id="mpText">100/100</span></div>
         </div>
-        <div class="panel-content">
-          <div class="row">
-            <span class="row-label" data-i18n="settings.language">Ngôn ngữ</span>
-            <div class="lang-switch">
-              <button class="flag" id="langVi" title="Tiếng Việt" aria-label="Tiếng Việt">🇻🇳</button>
-              <button class="flag" id="langEn" title="English" aria-label="English">🇺🇸</button>
-            </div>
-          </div>
-          <div class="row">
-            <span class="row-label" data-i18n="settings.instructions">Hướng dẫn</span>
-            <div class="instructions" id="settingsInstructions"></div>
-          </div>
-
-          <div class="row">
-            <span class="row-label">Môi trường</span>
-            <div class="env-controls" style="display:flex;flex-direction:column;gap:8px;">
-              <label style="display:flex;align-items:center;gap:8px;">
-                <input type="checkbox" id="envRainToggle" /> <span>Rain</span>
-              </label>
-              <label style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:12px;color:#bfe5ff;margin-right:8px;">Density</span>
-                <input type="range" id="envDensity" min="0" max="2" step="1" value="1" />
-              </label>
-            </div>
-          </div>
+        <div class="bar xp">
+          <div class="fill" id="xpFill"></div>
+          <div class="label"><span>XP</span><span id="xpText">0/100</span></div>
         </div>
+        <div id="level">Lv <span id="levelValue">1</span></div>
       </div>
     </div>
 
 
-    <!-- Hero Screen -->
-    <div id="heroScreen" class="screen hidden system-screen">
-      <button id="btnCloseHeroIcon" class="icon-btn small screen-close" aria-label="Close">✕</button>
-      <div class="screen-content hero-layout">
-        <h2 data-i18n="hero.title">Zeus</h2>
-        <div id="heroInfo"></div>
-        <h3 data-i18n="hero.skills">Kỹ năng</h3>
-        <div id="heroSkillsList"></div>
-        <button id="btnCloseHero" class="secondary" data-i18n="btn.close">Đóng</button>
+    <!-- Minimap -->
+    <canvas id="minimap" width="200" height="200"></canvas>
+
+    <!-- Hints -->
+    <div id="hints" style="display:none;">
+      <div>DOTA-style controls:</div>
+      <div>- Left Click: select</div>
+      <div>- Right Click: move / attack enemy</div>
+      <div>- A: aim attack (then Left Click an enemy)</div>
+      <div>- W: aim AOE (then Left Click to cast, ESC cancels)</div>
+      <div>- Q/E/R: skills</div>
+      <div>- S: Stop (cancel orders)</div>
+      <div>- B: Recall to village (opens portal back)</div>
+    </div>
+  </div>
+
+  <div id="deathMsg" class="center-msg" style="display:none;">You died. Respawning...</div>
+
+  <!-- New Interactive UI -->
+  <!-- Settings button (top-right) -->
+  <button id="btnSettings" class="icon-btn top-right" aria-label="Settings" title="Cài đặt / Settings">⚙️</button>
+
+  <!-- Hero screen button (top-right, next to settings) -->
+  <button id="btnHeroScreen" class="icon-btn top-right" aria-label="Hero" title="Hero" style="right:64px;">🛡️</button>
+
+  <!-- Camera toggle (right side) -->
+  <button id="btnCamera" class="icon-btn top-right" aria-label="Camera Toggle" title="Camera"
+    style="right:116px;">🎥</button>
+
+  <!-- Settings Panel (now full-screen system screen) -->
+  <div id="settingsPanel" class="screen hidden system-screen" role="dialog" aria-modal="true"
+    aria-labelledby="settingsTitle">
+    <div class="screen-content">
+      <div class="panel-header">
+        <h2 id="settingsTitle" data-i18n="settings.title">Cài đặt</h2>
+        <button id="btnCloseSettings" class="icon-btn small screen-close" aria-label="Close">✕</button>
+      </div>
+      <div class="panel-content">
+        <div class="row">
+          <span class="row-label" data-i18n="settings.language">Ngôn ngữ</span>
+          <div class="lang-switch">
+            <button class="flag" id="langVi" title="Tiếng Việt" aria-label="Tiếng Việt">🇻🇳</button>
+            <button class="flag" id="langEn" title="English" aria-label="English">🇺🇸</button>
+          </div>
+        </div>
+        <div class="row">
+          <span class="row-label" data-i18n="settings.instructions">Hướng dẫn</span>
+          <div class="instructions" id="settingsInstructions"></div>
+        </div>
+
+        <div class="row">
+          <span class="row-label">Môi trường</span>
+          <div class="env-controls" style="display:flex;flex-direction:column;gap:8px;">
+            <label style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="envRainToggle" /> <span>Rain</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;color:#bfe5ff;margin-right:8px;">Density</span>
+              <input type="range" id="envDensity" min="0" max="2" step="1" value="1" />
+            </label>
+          </div>
+        </div>
       </div>
     </div>
+  </div>
 
-    <!-- Flash overlay (visible by default to ensure coverage before JS runs) -->
-    <div id="flashOverlay" class="flash" style="display: grid;">
-      <div class="flash-card" role="status" aria-live="polite" aria-busy="true">
-        <h2 class="flash-title" data-i18n="flash.title">Đang tải Zeus RPG</h2>
-        <p class="flash-desc" data-i18n="flash.desc">Chuẩn bị trải nghiệm sấm sét…</p>
-        <div class="progress" aria-hidden="false">
-          <div class="bar" id="flashProgressBar" style="width: 0%" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
-        </div>
-        <div class="flash-note" style="margin-top:10px;font-size:12px;color:rgba(10,10,10,0.5)" data-i18n="flash.note">Loading modules…</div>
 
-        <!-- Start screen (shown after splash completes) -->
-        <div id="startScreen" class="start-screen" style="display:none; margin-top:12px;">
-          <h2 id="startTitle" data-i18n="start.title">Hành trình của Thần Sấm</h2>
-          <p id="startStory" data-i18n="start.story">Thế giới chìm trong u ám. Những bóng đêm tỉnh dậy, và chỉ một vị thần có thể gọi sấm sét trở lại. Hãy dẫn Zeus — vị thần sấm — qua rừng hoang, làng mạc đổ nát và chiến trường, tiêu diệt lũ quái và khôi phục trật tự.</p>
-          <button id="btnStartGame" class="primary" data-i18n="btn.start">Bắt đầu</button>
-        </div>
+  <!-- Hero Screen -->
+  <div id="heroScreen" class="screen hidden system-screen">
+    <button id="btnCloseHeroIcon" class="icon-btn small screen-close" aria-label="Close">✕</button>
+    <div class="screen-content hero-layout">
+      <h2 data-i18n="hero.title">Zeus</h2>
+      <div id="heroInfo"></div>
+      <h3 data-i18n="hero.skills">Kỹ năng</h3>
+      <div id="heroSkillsList"></div>
+      <button id="btnCloseHero" class="secondary" data-i18n="btn.close">Đóng</button>
+    </div>
+  </div>
+
+  <!-- Flash overlay (visible by default to ensure coverage before JS runs) -->
+  <div id="flashOverlay" class="flash" style="display: grid;">
+    <div class="flash-card" role="status" aria-live="polite" aria-busy="true">
+      <h2 class="flash-title" data-i18n="flash.title">Đang tải Zeus RPG</h2>
+      <p class="flash-desc" data-i18n="flash.desc">Chuẩn bị trải nghiệm sấm sét…</p>
+      <div class="progress" aria-hidden="false">
+        <div class="bar" id="flashProgressBar" style="width: 0%" role="progressbar" aria-valuemin="0"
+          aria-valuemax="100" aria-valuenow="0"></div>
+      </div>
+      <div class="flash-note" style="margin-top:10px;font-size:12px;color:rgba(10,10,10,0.5)" data-i18n="flash.note">
+        Loading modules…</div>
+
+      <!-- Start screen (shown after splash completes) -->
+      <div id="startScreen" class="start-screen" style="display:none; margin-top:12px;">
+        <h2 id="startTitle" data-i18n="start.title">Hành trình của Thần Sấm</h2>
+        <p id="startStory" data-i18n="start.story">Thế giới chìm trong u ám. Những bóng đêm tỉnh dậy, và chỉ một vị thần
+          có thể gọi sấm sét trở lại. Hãy dẫn Zeus — vị thần sấm — qua rừng hoang, làng mạc đổ nát và chiến trường, tiêu
+          diệt lũ quái và khôi phục trật tự.</p>
+        <button id="btnStartGame" class="primary" data-i18n="btn.start">Bắt đầu</button>
       </div>
     </div>
+  </div>
 
-      <!-- Mobile Touch Controls -->
-      <div id="mobileControls">
-        <!-- Joystick (bottom-left) -->
-        <div id="joystick">
-          <div id="joyBase"></div>
-          <div id="joyKnob"></div>
-        </div>
-        <!-- Skill wheel (bottom-right quarter circle) -->
-        <div id="skillWheel">
-          <button id="btnBasic" class="skill-btn center" title="Basic">
-            <span class="icon">⚡</span>
-            <div class="cooldown" id="cdBasic"></div>
-          </button>
+  <!-- Mobile Touch Controls -->
+  <div id="mobileControls">
+    <!-- Joystick (bottom-left) -->
+    <div id="joystick">
+      <div id="joyBase"></div>
+      <div id="joyKnob"></div>
+    </div>
+    <!-- Skill wheel (bottom-right quarter circle) -->
+    <div id="skillWheel">
+      <button id="btnBasic" class="skill-btn center" title="Basic">
+        <span class="icon">⚡</span>
+        <div class="cooldown" id="cdBasic"></div>
+      </button>
 
-          <button id="btnSkillQ" class="skill-btn q" title="Q">
-            <span class="icon"></span>
-            <span class="key">Q</span>
-            <span class="name"></span>
-            <div class="cooldown" id="cdQ"></div>
-          </button>
+      <button id="btnSkillQ" class="skill-btn q" title="Q">
+        <span class="icon"></span>
+        <span class="key">Q</span>
+        <span class="name"></span>
+        <div class="cooldown" id="cdQ"></div>
+      </button>
 
-          <button id="btnSkillW" class="skill-btn w" title="W">
-            <span class="icon"></span>
-            <span class="key">W</span>
-            <span class="name"></span>
-            <div class="cooldown" id="cdW"></div>
-          </button>
+      <button id="btnSkillW" class="skill-btn w" title="W">
+        <span class="icon"></span>
+        <span class="key">W</span>
+        <span class="name"></span>
+        <div class="cooldown" id="cdW"></div>
+      </button>
 
-          <button id="btnSkillE" class="skill-btn e" title="E">
-            <span class="icon"></span>
-            <span class="key">E</span>
-            <span class="name"></span>
-            <div class="cooldown" id="cdE"></div>
-          </button>
+      <button id="btnSkillE" class="skill-btn e" title="E">
+        <span class="icon"></span>
+        <span class="key">E</span>
+        <span class="name"></span>
+        <div class="cooldown" id="cdE"></div>
+      </button>
 
-          <button id="btnSkillR" class="skill-btn r" title="R">
-            <span class="icon"></span>
-            <span class="key">R</span>
-            <span class="name"></span>
-            <div class="cooldown" id="cdR"></div>
-          </button>
-        </div>
-      </div>
+      <button id="btnSkillR" class="skill-btn r" title="R">
+        <span class="icon"></span>
+        <span class="key">R</span>
+        <span class="name"></span>
+        <div class="cooldown" id="cdR"></div>
+      </button>
+    </div>
+  </div>
 
-    <!-- Module game code -->
-    <script type="importmap">
+  <!-- Dynamic initial-scale -->
+  <script>
+    (function () {
+      try {
+        var ua = navigator.userAgent || "";
+        var isMobileUA = /Android|webOS|iPhone|iPod|iPad|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+        var isTouch = (navigator.maxTouchPoints || 0) > 1;
+        var isMobile = isMobileUA || (isTouch && !/Macintosh/.test(ua));
+        var scale = isMobile ? 0.75 : 1;
+        var meta = document.querySelector('meta[name="viewport"]');
+        if (meta) {
+          meta.setAttribute('content', 'width=device-width, initial-scale=' + scale);
+        } else {
+          var m = document.createElement('meta');
+          m.name = 'viewport';
+          m.content = 'width=device-width, initial-scale=' + scale;
+          document.head.appendChild(m);
+        }
+      } catch (_) { }
+    })();
+  </script>
+
+  <!-- Module game code -->
+  <script type="importmap">
     {
       "imports": {
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
       }
     }
     </script>
-    <script type="module" src="src/main.js"></script>
-  </body>
+  <script type="module" src="src/main.js"></script>
+</body>
+
 </html>
