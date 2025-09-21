@@ -265,26 +265,67 @@ export function createBillboardHPBar() {
 
 // Portal geometry; returns group and ring so caller can animate ring rotation
 export function createPortalMesh(color = COLOR.portal) {
+  // Outer ring (vertical gate)
   const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(1.2, 0.15, 10, 32),
+    new THREE.TorusGeometry(1.2, 0.15, 16, 40),
     new THREE.MeshStandardMaterial({
       color,
       emissive: color,
-      emissiveIntensity: 0.8,
-      metalness: 0.2,
-      roughness: 0.3,
+      emissiveIntensity: 1.1,
+      metalness: 0.35,
+      roughness: 0.25
     })
   );
+
+  // Inner swirl (rotating disc to feel like a gate)
+  const swirl = new THREE.Mesh(
+    new THREE.CircleGeometry(1.0, 48),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.35,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    })
+  );
+  swirl.position.z = 0.02;
+
+  // Soft glow backing
+  const glow = new THREE.Mesh(
+    new THREE.CircleGeometry(1.25, 48),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.18,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    })
+  );
+  glow.position.z = -0.02;
+
+  // Base pedestal
   const base = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.9, 1.1, 0.2, 16),
+    new THREE.CylinderGeometry(0.9, 1.1, 0.2, 24),
     new THREE.MeshStandardMaterial({ color: 0x0e1e38, metalness: 0.3, roughness: 0.6 })
   );
   base.position.y = -1.1;
 
+  // Portal group
   const group = new THREE.Group();
   group.add(ring);
+  group.add(glow);
+  group.add(swirl);
   group.add(base);
-  return { group, ring };
+
+  // Decorative point light for aura
+  const light = new THREE.PointLight(color, 0.9, 12, 2);
+  light.position.set(0, 0.4, 0);
+  group.add(light);
+
+  // Expose parts for animation
+  return { group, ring, swirl, glow };
 }
 
 // Simple house composed of a base and roof

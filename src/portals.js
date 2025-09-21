@@ -35,23 +35,42 @@ export function initPortals(scene) {
   }
 
   function recallToVillage(player, setCenterMsg) {
-    // Create/refresh return portal where player stands (no instant teleport)
+    // Create/refresh return portal where player stands and auto-teleport after countdown
     const here = player.pos().clone();
     if (!returnPortal) {
-      const pm = createPortalMesh(COLOR.portal);
+      const pm = createPortalMesh(COLOR.village);
       scene.add(pm.group);
       returnPortal = { ...pm, linkTo: null, radius: 2.2 };
+    } else {
+      // cancel any existing countdown on refresh
+      if (returnPortal.__countTimers && Array.isArray(returnPortal.__countTimers)) {
+        returnPortal.__countTimers.forEach((t) => { try { clearTimeout(t); } catch (_) {} });
+        returnPortal.__countTimers = null;
+      }
     }
     returnPortal.group.position.copy(here).add(new THREE.Vector3(0, 1, 0));
-    returnPortal.ring.rotation.x = Math.PI / 2;
+    // ensure vertical orientation (no horizontal flip)
+    try { returnPortal.ring.rotation.x = 0; } catch (_) {}
 
     // Link portals
     returnPortal.linkTo = villagePortal;
     villagePortal.linkTo = returnPortal;
 
-    // Freeze player until clicking the portal
+    // Freeze and start a 3-2-1 countdown, then auto-teleport
     player.frozen = true;
-    setCenterMsg && setCenterMsg("Click the portal to travel to the village");
+    const msg = (k) => `Dịch chuyển sau ${k}… • Teleporting in ${k}…`;
+    setCenterMsg && setCenterMsg(msg(3));
+
+    const timers = [];
+    timers.push(setTimeout(() => { setCenterMsg && setCenterMsg(msg(2)); }, 1000));
+    timers.push(setTimeout(() => { setCenterMsg && setCenterMsg(msg(1)); }, 2000));
+    timers.push(setTimeout(() => {
+      try { teleportToPortal(villagePortal, player); } catch (_) {}
+      player.frozen = false;
+      try { setCenterMsg && setCenterMsg("Đã dịch chuyển • Teleported"); } catch (_) {}
+      setTimeout(() => { try { setCenterMsg && setCenterMsg(""); } catch (_) {} }, 600);
+    }, 3000));
+    returnPortal.__countTimers = timers;
   }
 
   /**
@@ -69,6 +88,13 @@ export function initPortals(scene) {
     const nearPortal =
       p && distance2D(p, returnPortal.group.position) <= (returnPortal.radius + 0.8);
     if (hitPortal || nearPortal) {
+      // cancel any pending countdown and teleport immediately
+      try {
+        if (returnPortal.__countTimers && Array.isArray(returnPortal.__countTimers)) {
+          returnPortal.__countTimers.forEach((t) => { try { clearTimeout(t); } catch (_) {} });
+          returnPortal.__countTimers = null;
+        }
+      } catch (_) {}
       teleportToPortal(villagePortal, player);
       player.frozen = false;
       clearCenterMsg && clearCenterMsg();
@@ -83,7 +109,22 @@ export function initPortals(scene) {
     if (villagePortal) arr.push(villagePortal);
     arr.forEach((p) => {
       if (!p) return;
-      p.ring.rotation.z += dt * 0.8;
+      // vertical gate spin
+      try { p.ring.rotation.y += dt * 0.8; } catch (_) {}
+      // inner swirl animation and subtle glow pulse
+      try {
+        const tnow = now();
+        if (p.swirl) {
+          p.swirl.rotation.z -= dt * 1.6;
+          const s = 1 + Math.sin(tnow * 3.2) * 0.05;
+          p.swirl.scale.set(s, s, 1);
+          if (p.swirl.material) p.swirl.material.opacity = 0.26 + 0.12 * (0.5 + 0.5 * Math.sin(tnow * 2.2));
+        }
+        if (p.glow) {
+          const gs = 1.05 + 0.07 * Math.sin(tnow * 1.6);
+          p.glow.scale.set(gs, gs, 1);
+        }
+      } catch (_) {}
     });
   }
 
