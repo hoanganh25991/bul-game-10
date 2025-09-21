@@ -266,8 +266,27 @@ export class SkillsSystem {
 
   _castAOE(key, point) {
     const SK = SKILLS[key];
-    if (!SK || !point) return;
-    if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    if (!SK) return;
+    if (this.isOnCooldown(key)) return;
+
+    // Auto-select point if none provided: choose nearest enemy within effective cast range
+    if (!point) {
+      const effRange = Math.max(WORLD.attackRange * (WORLD.attackRangeMult || 1), (SK.radius || 0) + 10);
+      let candidates = this.enemies.filter(
+        (e) => e.alive && distance2D(this.player.pos(), e.pos()) <= effRange + (SK.radius || 0)
+      );
+      if (candidates.length === 0) {
+        // No nearby enemies; do not cast
+        try { this.effects.showNoTargetHint?.(this.player, effRange); } catch (_) {}
+        return;
+      }
+      candidates.sort(
+        (a, b) => distance2D(this.player.pos(), a.pos()) - distance2D(this.player.pos(), b.pos())
+      );
+      point = candidates[0].pos().clone();
+    }
+
+    if (!this.player.canSpend(SK.mana)) return;
 
     this.player.spend(SK.mana);
     this.startCooldown(key, SK.cd);
@@ -507,6 +526,25 @@ export class SkillsSystem {
     this.runStorms(cameraShake);
     // Cooldown UI every frame
     this.updateCooldownUI();
+
+    // Auto-cast: remove aiming and auto-trigger skills when off cooldown
+    try {
+      const ppos = this.player.pos();
+      const anyEnemyNear = this.enemies.some((e) => e.alive && distance2D(ppos, e.pos()) <= 80);
+
+      // Keep aura up automatically if not active
+      if (!this.player.staticField.active && !this.isOnCooldown("E")) {
+        this.castSkill("E");
+      }
+
+      if (anyEnemyNear) {
+        if (!this.isOnCooldown("Q")) this.castSkill("Q");
+        if (!this.isOnCooldown("W")) this.castSkill("W"); // AOE picks a point automatically
+        if (!this.isOnCooldown("R")) this.castSkill("R");
+      }
+    } catch (e) {
+      // ignore auto-cast errors
+    }
   }
 }
 

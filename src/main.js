@@ -526,13 +526,9 @@ function renderHeroScreen() {
 applyLoadoutToSKILLS(currentLoadout);
 updateSkillBarLabels();
 
-const aimPreview = createGroundRing(SKILLS.W.radius - 0.15, SKILLS.W.radius + 0.15, 0x9fd8ff, 0.35);
-aimPreview.visible = false;
-effects.indicators.add(aimPreview);
+const aimPreview = null;
 
-const attackPreview = createGroundRing(0.55, 0.75, 0xffb3b3, 0.6);
-attackPreview.visible = false;
-effects.indicators.add(attackPreview);
+const attackPreview = null;
 
 const selectionRing = createGroundRing(0.9, 1.05, 0x7cc4ff, 0.55);
 selectionRing.visible = true;
@@ -735,16 +731,7 @@ renderer.domElement.addEventListener("mousemove", (e) => {
   const p = raycast.raycastGround();
   if (p) {
     lastMouseGroundPoint.copy(p);
-    if (player.aimMode && player.aimModeSkill === "W") {
-      aimPreview.visible = true;
-      aimPreview.position.set(p.x, 0.02, p.z);
-    }
-  } else if (player.aimMode && player.aimModeSkill === "W") {
-    aimPreview.visible = false;
   }
-
-  // Attack aim removed — always hide attackPreview
-  attackPreview.visible = false;
 });
 
 renderer.domElement.addEventListener("mousedown", (e) => {
@@ -769,7 +756,7 @@ renderer.domElement.addEventListener("mousedown", (e) => {
         effects.spawnMovePing(p);
       }
     }
-  } else if (e.button === 0) { // Left click: select or aim-confirm
+  } else if (e.button === 0) { // Left click: select
     const obj = raycast.raycastPlayerOrEnemyOrGround();
 
     if (player.frozen) {
@@ -777,36 +764,20 @@ renderer.domElement.addEventListener("mousedown", (e) => {
       return;
     }
 
-    if (player.aimMode) {
-      // Aim confirm for targeted skills (only W remains)
-      if (player.aimModeSkill === "W") {
-        const p = raycast.raycastGround();
-        if (p) {
-          skills.castSkill("W", p);
-          effects.spawnMovePing(p, 0x9fd8ff);
-        }
+    // Standard select logic
+    if (obj && obj.type === "player") {
+      selectedUnit = player;
+    } else if (obj && obj.type === "enemy") {
+      selectedUnit = obj.enemy;
+    } else if (obj && obj.type === "ground" && DEBUG && obj.point) {
+      selectedUnit = player;
+      if (!player.frozen) {
+        player.moveTarget = obj.point.clone();
+        player.target = null;
+        effects.spawnMovePing(obj.point);
       }
-      aimPreview.visible = false;
-      attackPreview.visible = false;
-      renderer.domElement.style.cursor = "default";
-      player.aimMode = false;
-      player.aimModeSkill = null;
     } else {
-      // Standard select logic
-      if (obj && obj.type === "player") {
-        selectedUnit = player;
-      } else if (obj && obj.type === "enemy") {
-        selectedUnit = obj.enemy;
-      } else if (obj && obj.type === "ground" && DEBUG && obj.point) {
-        selectedUnit = player;
-        if (!player.frozen) {
-          player.moveTarget = obj.point.clone();
-          player.target = null;
-          effects.spawnMovePing(obj.point);
-        }
-      } else {
-        selectedUnit = player;
-      }
+      selectedUnit = player;
     }
   }
 });
@@ -847,13 +818,7 @@ window.addEventListener("keydown", (e) => {
   } else if (k === "q") {
     skills.castSkill("Q");
   } else if (k === "w") {
-    player.aimMode = true;
-    player.aimModeSkill = "W";
-    aimPreview.visible = true;
-    if (lastMouseGroundPoint) {
-      aimPreview.position.set(lastMouseGroundPoint.x, 0.02, lastMouseGroundPoint.z);
-    }
-    renderer.domElement.style.cursor = "crosshair";
+    skills.castSkill("W");
   } else if (k === "e") {
     skills.castSkill("E");
   } else if (k === "r") {
@@ -863,11 +828,7 @@ window.addEventListener("keydown", (e) => {
   } else if (k === "s") {
     stopPlayer();
   } else if (k === "escape") {
-    // Cancel aim mode
-    player.aimMode = false;
-    player.aimModeSkill = null;
-    aimPreview.visible = false;
-    renderer.domElement.style.cursor = "default";
+    // no-op (aiming removed)
   }
 });
 
@@ -1073,14 +1034,16 @@ function stopPlayer() {
   player.moveTarget = null;
   player.attackMove = false;
   player.target = null;
-  // cancel aim modes
-  if (player.aimMode) {
-    player.aimMode = false;
-    player.aimModeSkill = null;
-    aimPreview.visible = false;
-    attackPreview.visible = false;
+
+  // ensure no aim-related UI or state (aiming removed)
+  player.aimMode = false;
+  player.aimModeSkill = null;
+  try {
+    if (aimPreview) aimPreview.visible = false;
+    if (attackPreview) attackPreview.visible = false;
     renderer.domElement.style.cursor = "default";
-  }
+  } catch (_) {}
+
   // brief hold to prevent instant re-acquire
   player.holdUntil = now() + 0.4;
 }
@@ -1302,12 +1265,6 @@ function updateIndicators(dt) {
   }
 
   // Subtle rotation for aim ring for feedback
-  if (aimPreview.visible) {
-    aimPreview.rotation.z += dt * 0.6;
-  }
-  if (attackPreview.visible) {
-    attackPreview.rotation.z += dt * 0.6;
-  }
 
   // Slow debuff indicator rings
   const t = now();

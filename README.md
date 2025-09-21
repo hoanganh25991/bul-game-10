@@ -34,21 +34,16 @@ Then open:
 ## Controls
 
 Mouse
-- Left Click: Select hero or enemy. In debug mode, left‑click ground to move (when not aiming and not frozen).
+- Left Click: Select hero or enemy. In debug mode, left‑click ground to move.
 - Right Click: Move to ground or attack a clicked enemy.
-- While Aiming:
-  - Press A: Attack aim mode. Left‑click an enemy to attack or ground to attack‑move.
-  - Press W: Shows AOE aim ring; left‑click a ground point to cast.
 
 Keyboard
 - Q: Chain Lightning
-- W: Lightning Bolt (AOE aim)
+- W: Lightning Bolt (AOE auto-cast)
 - E: Static Field (toggle aura)
 - R: Thunderstorm (duration strikes)
-- A: Attack aim mode (target or attack‑move)
 - B: Recall (spawn return portal; click portal to travel to village)
 - S: Stop (clear orders and briefly suppress re‑acquire)
-- Esc: Cancel aim mode
 
 ## Audio
 

@@ -26,8 +26,6 @@ export function createInputService({
   skills,
   WORLD,
   DEBUG,
-  aimPreview,
-  attackPreview,
 }) {
   // ---- Internal State ----
   const state = {
@@ -82,13 +80,7 @@ export function createInputService({
     return best;
   }
 
-  function cancelAim() {
-    player.aimMode = false;
-    player.aimModeSkill = null;
-    if (aimPreview) aimPreview.visible = false;
-    if (attackPreview) attackPreview.visible = false;
-    try { renderer.domElement.style.cursor = "default"; } catch (_) {}
-  }
+  function cancelAim() { /* no-op: aiming removed */ }
 
   // ---- Adapters (Capture-phase) ----
   function onKeyDownCapture(e) {
@@ -122,14 +114,7 @@ export function createInputService({
 
     if (k === "w") {
       e.preventDefault(); e.stopImmediatePropagation();
-      player.aimMode = true;
-      player.aimModeSkill = "W";
-      if (aimPreview) {
-        aimPreview.visible = true;
-        const p = state.lastMouseGroundPoint;
-        aimPreview.position.set(p.x, 0.02, p.z);
-      }
-      try { renderer.domElement.style.cursor = "crosshair"; } catch (_) {}
+      try { skills.castSkill("W"); } catch(_) {}
       return;
     }
 
@@ -177,14 +162,8 @@ export function createInputService({
     const p = raycast.raycastGround?.();
     if (p) {
       state.lastMouseGroundPoint.copy(p);
-      if (player.aimMode && player.aimModeSkill === "W" && aimPreview) {
-        aimPreview.visible = true;
-        aimPreview.position.set(p.x, 0.02, p.z);
-      }
-    } else if (player.aimMode && player.aimModeSkill === "W" && aimPreview) {
-      aimPreview.visible = false;
     }
-    if (attackPreview) attackPreview.visible = false;
+    // Aiming removed
     // Capture only updates state; do not stopPropagation to allow hover elsewhere
   }
 
@@ -226,29 +205,14 @@ export function createInputService({
       e.preventDefault(); e.stopImmediatePropagation();
       try {
         const obj = raycast.raycastPlayerOrEnemyOrGround?.();
-        if (player.aimMode) {
-          if (player.aimModeSkill === "W") {
-            const p = raycast.raycastGround?.();
-            if (p) {
-              skills.castSkill("W", p);
-              effects.spawnMovePing(p, 0x9fd8ff);
-            }
-          }
-          if (aimPreview) aimPreview.visible = false;
-          if (attackPreview) attackPreview.visible = false;
-          try { renderer.domElement.style.cursor = "default"; } catch (_) {}
-          player.aimMode = false;
-          player.aimModeSkill = null;
-        } else {
-          // Selection only (no auto-attack/move)
-          if (obj && obj.type === "enemy") {
-            effects.spawnTargetPing(obj.enemy);
-          } else if (obj && obj.type === "ground" && DEBUG && obj.point) {
-            if (!player.frozen) {
-              player.moveTarget = obj.point.clone();
-              player.target = null;
-              effects.spawnMovePing(obj.point);
-            }
+        // Selection only (no auto-attack/move)
+        if (obj && obj.type === "enemy") {
+          effects.spawnTargetPing(obj.enemy);
+        } else if (obj && obj.type === "ground" && DEBUG && obj.point) {
+          if (!player.frozen) {
+            player.moveTarget = obj.point.clone();
+            player.target = null;
+            effects.spawnMovePing(obj.point);
           }
         }
       } catch (_) {}
@@ -307,7 +271,7 @@ export function createInputService({
     let moved = false;
     if (state.touch && typeof state.touch.getMoveDir === "function") {
       const joy = state.touch.getMoveDir();
-      if (joy.active && !player.frozen && !player.aimMode) {
+      if (joy.active && !player.frozen) {
         const ahead = 26;
         const px = player.pos().x + joy.x * ahead;
         const pz = player.pos().z + joy.y * ahead;
@@ -319,7 +283,7 @@ export function createInputService({
     }
     if (!moved) {
       const km = getKeyMoveDir();
-      if (km.active && !player.frozen && !player.aimMode) {
+      if (km.active && !player.frozen) {
         const ahead = 26;
         const px = player.pos().x + km.x * ahead;
         const pz = player.pos().z + km.y * ahead;

@@ -307,38 +307,15 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
       if (downAt[key] && nowTs - downAt[key] > 250) { downAt[key] = 0; return; }
       downAt[key] = 0;
 
-      const aoe = isAOE(key);
-      if (player.aimMode && player.aimModeSkill === key && aoe) {
-        // Confirm cast at current aim (if we have a lastAimPos; else compute default ahead)
-        const pos = (lastAimPos && isFinite(lastAimPos.x)) ? lastAimPos.clone() : computeAimPositionFromJoystick();
-        if (typeof skills.castSkill === "function") {
-          skills.castSkill(key, pos);
-        } else if (typeof skills.castW_AOE === "function" && key === "W") {
-          // legacy fallback
-          skills.castW_AOE(pos);
-        }
-        effects?.spawnMovePing?.(pos, 0x9fd8ff);
-        cancelAim();
-      } else if (aoe) {
-        // Enter aim mode for this AOE key
-        player.aimMode = true;
-        player.aimModeSkill = key;
-        const pos = computeAimPositionFromJoystick();
-        lastAimPos.copy(pos);
-        if (aimPreview) {
-          aimPreview.visible = true;
-          aimPreview.position.set(pos.x, 0.02, pos.z);
-        }
+      // Instant cast (no aim). AOE skills auto-select target point in skills._castAOE when point is omitted.
+      if (typeof skills.castSkill === "function") {
+        skills.castSkill(key);
       } else {
-        // Non-AOE skills: instant cast
-        if (typeof skills.castSkill === "function") {
-          skills.castSkill(key);
-        } else {
-          // legacy fallbacks
-          if (key === "Q" && typeof skills.castQ_ChainLightning === "function") return skills.castQ_ChainLightning();
-          if (key === "E" && typeof skills.castE_StaticField === "function") return skills.castE_StaticField();
-          if (key === "R" && typeof skills.castR_Thunderstorm === "function") return skills.castR_Thunderstorm();
-        }
+        // Legacy fallbacks
+        if (key === "Q" && typeof skills.castQ_ChainLightning === "function") return skills.castQ_ChainLightning();
+        if (key === "W" && typeof skills.castW_AOE === "function") return skills.castW_AOE();
+        if (key === "E" && typeof skills.castE_StaticField === "function") return skills.castE_StaticField();
+        if (key === "R" && typeof skills.castR_Thunderstorm === "function") return skills.castR_Thunderstorm();
       }
     });
   }
