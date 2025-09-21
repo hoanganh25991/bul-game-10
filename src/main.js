@@ -773,8 +773,8 @@ function animate() {
 
     // Position camera slightly behind the hands (negative forward)
     // and bias framing so the visible model sits near the center-bottom of the screen
-    const fpBack = 0.65;      // how far behind the hands the camera sits (increase to see more forward)
-    const fpUp = 0.02;        // minimal vertical raise of camera to avoid occlusion
+    const fpBack = 4.5;      // how far behind the hands the camera sits (increase to see more forward)
+    const fpUp = 2.0;        // minimal vertical raise of camera to avoid occlusion
     const fpLookAhead = 3.0;  // look further ahead so enemies occupy the center
     const fpLookUp = 1.1;     // tilt camera upward more so hands/model sit lower in the frame
 
