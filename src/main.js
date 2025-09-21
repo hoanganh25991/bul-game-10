@@ -1115,8 +1115,10 @@ function updatePlayer(dt) {
   }
 
   if (moveDir) {
-    player.mesh.position.x += moveDir.x * player.speed * dt;
-    player.mesh.position.z += moveDir.z * player.speed * dt;
+    const spMul = (player.speedBoostUntil && now() < player.speedBoostUntil && player.speedBoostMul) ? player.speedBoostMul : 1;
+    const effSpeed = player.speed * spMul;
+    player.mesh.position.x += moveDir.x * effSpeed * dt;
+    player.mesh.position.z += moveDir.z * effSpeed * dt;
 
     // Rotate towards movement direction smoothly
     const targetYaw = Math.atan2(moveDir.x, moveDir.z);

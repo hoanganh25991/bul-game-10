@@ -42,20 +42,28 @@ export class SkillsSystem {
     this.cooldowns = { Q: 0, W: 0, E: 0, R: 0, Basic: 0 };
     this.cdState = { Q: 0, W: 0, E: 0, R: 0, Basic: 0 }; // for ready flash timing
     this.storms = []; // queued thunderstorm strikes
+    // Temporary damage buff (applies to basic + skills)
+    this.damageBuffUntil = 0;
+    this.damageBuffMult = 1;
+    // Clone-like scheduled strikes (thunder image)
+    this.clones = [];
   }
 
   // ----- Damage scaling helpers -----
   getBasicDamage(attacker) {
+    let base = WORLD.basicAttackDamage;
     if (attacker && typeof attacker.baseDamage === "number") {
-      return Math.max(1, Math.floor(attacker.baseDamage));
+      base = Math.max(1, Math.floor(attacker.baseDamage));
     }
-    return WORLD.basicAttackDamage;
+    const activeBuff = this.damageBuffUntil && now() < this.damageBuffUntil ? this.damageBuffMult || 1 : 1;
+    return Math.max(1, Math.floor(base * activeBuff));
   }
 
   scaleSkillDamage(base) {
     const lvl = Math.max(1, (this.player && this.player.level) || 1);
-    const mult = Math.pow(SCALING.hero.skillDamageGrowth, lvl - 1);
-    return Math.max(1, Math.floor((base || 0) * mult));
+    const levelMult = Math.pow(SCALING.hero.skillDamageGrowth, lvl - 1);
+    const buffMult = this.damageBuffUntil && now() < this.damageBuffUntil ? this.damageBuffMult || 1 : 1;
+    return Math.max(1, Math.floor((base || 0) * levelMult * buffMult));
   }
 
   // ----- Cooldowns -----
@@ -200,6 +208,18 @@ export class SkillsSystem {
         return this._castBeam(key);
       case "nova":
         return this._castNova(key);
+      case "heal":
+        return this._castHeal(key);
+      case "mana":
+        return this._castMana(key);
+      case "buff":
+        return this._castBuff(key);
+      case "blink":
+        return this._castBlink(key, point);
+      case "dash":
+        return this._castDash(key);
+      case "clone":
+        return this._castClone(key);
       default:
         // If skill definitions don't include a type (legacy), fall back to original key handlers
         if (key === "Q") return this.castQ_ChainLightning();
@@ -433,6 +453,103 @@ export class SkillsSystem {
     this.storms.push({ strikes, end: endT });
   }
 
+  // ----- Utility new skill types -----
+  _castHeal(key) {
+    const SK = SKILLS[key]; if (!SK) return;
+    if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    this.player.spend(SK.mana);
+    this.startCooldown(key, SK.cd);
+    const amt = Math.max(1, SK.heal || SK.amount || 30);
+    this.player.hp = Math.min(this.player.maxHP, this.player.hp + amt);
+    try { this.effects.spawnHandFlash(this.player); audio.sfx("aura_on"); } catch (e) {}
+    try { this.effects.spawnStrike(this.player.pos(), 5, 0x9fd8ff); } catch (_) {}
+  }
+
+  _castMana(key) {
+    const SK = SKILLS[key]; if (!SK) return;
+    if (this.isOnCooldown(key)) return; // mana restore often no cost
+    // Spend if defined (some designs use 0)
+    if (typeof SK.mana === "number" && SK.mana > 0) {
+      if (!this.player.canSpend(SK.mana)) return;
+      this.player.spend(SK.mana);
+    }
+    this.startCooldown(key, SK.cd);
+    const amt = Math.max(1, SK.restore || SK.manaRestore || 25);
+    this.player.mp = Math.min(this.player.maxMP, this.player.mp + amt);
+    try { this.effects.spawnHandFlash(this.player, true); audio.sfx("cast_chain"); } catch (e) {}
+    try { this.effects.spawnStrike(this.player.pos(), 4, 0xbfe9ff); } catch (_) {}
+  }
+
+  _castBuff(key) {
+    const SK = SKILLS[key]; if (!SK) return;
+    if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    this.player.spend(SK.mana);
+    this.startCooldown(key, SK.cd);
+    // Damage buff (applies to basic + skills via getBasicDamage/scaleSkillDamage)
+    const mult = Math.max(1.05, SK.buffMult || 1.3);
+    const dur = Math.max(1, SK.buffDuration || 8);
+    this.damageBuffMult = mult;
+    this.damageBuffUntil = now() + dur;
+    // Optional speed boost stored on player for movement system
+    if (SK.speedMult) {
+      this.player.speedBoostMul = Math.max(1.0, SK.speedMult);
+      this.player.speedBoostUntil = now() + dur;
+    }
+    try {
+      this.effects.spawnHandFlash(this.player);
+      this.effects.spawnStrike(this.player.pos(), 6, 0x9fd8ff);
+      audio.sfx("cast_nova");
+    } catch (e) {}
+  }
+
+  _castBlink(key, point = null) {
+    const SK = SKILLS[key]; if (!SK) return;
+    if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    const dist = Math.max(4, SK.range || SK.distance || 20);
+    // Determine direction
+    let dir = new THREE.Vector3(0,0,1).applyQuaternion(this.player.mesh.quaternion).normalize();
+    if (point && point.x !== undefined) {
+      dir = point.clone().sub(this.player.pos()).setY(0).normalize();
+      if (!isFinite(dir.lengthSq()) || dir.lengthSq() === 0) dir.set(0,0,1).applyQuaternion(this.player.mesh.quaternion).normalize();
+    }
+    const to = this.player.pos().clone().add(dir.multiplyScalar(dist));
+    if (!this.player.canSpend(SK.mana)) return;
+    this.player.spend(SK.mana);
+    this.startCooldown(key, SK.cd);
+    try { this.effects.spawnStrike(this.player.pos(), 3, 0x9fd8ff); audio.sfx("storm_start"); } catch (e) {}
+    this.player.mesh.position.set(to.x, this.player.mesh.position.y, to.z);
+    try { this.effects.spawnStrike(this.player.pos(), 3, 0x9fd8ff); } catch (e) {}
+    this.player.moveTarget = null; this.player.target = null;
+  }
+
+  _castDash(key) {
+    const SK = SKILLS[key]; if (!SK) return;
+    if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    const dist = Math.max(4, SK.distance || 14);
+    let dir = new THREE.Vector3(0,0,1).applyQuaternion(this.player.mesh.quaternion).normalize();
+    const to = this.player.pos().clone().add(dir.multiplyScalar(dist));
+    this.player.spend(SK.mana);
+    this.startCooldown(key, SK.cd);
+    try { this.effects.spawnHandLink(this.player, 0.06); audio.sfx("cast_beam"); } catch (e) {}
+    this.player.mesh.position.set(to.x, this.player.mesh.position.y, to.z);
+    this.player.moveTarget = null; this.player.target = null;
+  }
+
+  _castClone(key) {
+    const SK = SKILLS[key]; if (!SK) return;
+    if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    this.player.spend(SK.mana);
+    this.startCooldown(key, SK.cd);
+    const duration = Math.max(3, SK.duration || 7);
+    const rate = Math.max(0.2, SK.rate || 0.5);
+    const radius = Math.max(10, SK.radius || 26);
+    const dmg = this.scaleSkillDamage(SK.dmg || 16);
+    // schedule a thunder image that periodically zaps nearby enemies
+    this.clones.push({ until: now() + duration, next: 0, rate, radius, dmg });
+    try { this.effects.spawnHandFlash(this.player); audio.sfx("aura_on"); } catch(e) {}
+    try { this.effects.spawnStrike(this.player.pos(), 5, 0xbfe9ff); } catch(e) {}
+  }
+
   // Backwards-compatible wrappers (preserve existing API)
   castQ_ChainLightning() {
     return this.castSkill("Q");
@@ -518,12 +635,43 @@ export class SkillsSystem {
     }
   }
 
+  // Shadow clone processing (periodic zaps near player while active)
+  runClones() {
+    const t = now();
+    for (let i = this.clones.length - 1; i >= 0; i--) {
+      const c = this.clones[i];
+      if (t >= c.until) { this.clones.splice(i, 1); continue; }
+      if (!c.next || t >= c.next) {
+        // find a nearby enemy
+        const near = this.enemies.filter(e => e.alive && distance2D(this.player.pos(), e.pos()) <= c.radius);
+        if (near.length) {
+          const target = near[Math.floor(Math.random() * near.length)];
+          // fake clone position (offset from player)
+          const ang = Math.random() * Math.PI * 2;
+          const off = new THREE.Vector3(Math.cos(ang) * 1.6, 1.4, Math.sin(ang) * 1.6);
+          const from = this.player.pos().clone().add(off);
+          const to = target.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
+          try {
+            this.effects.spawnElectricBeamAuto(from, to, 0x8fd3ff, 0.12);
+            this.effects.spawnArcNoisePath(from, to, 0xbfe9ff, 0.08);
+            audio.sfx("chain_hit");
+            this.effects.spawnStrike(target.pos(), 0.9, 0x9fd3ff);
+          } catch (e) {}
+          target.takeDamage(c.dmg);
+        }
+        c.next = t + c.rate;
+      }
+    }
+  }
+
   // ----- Per-frame update -----
   update(t, dt, cameraShake) {
     // Static Field tick
     this.runStaticField(dt, now());
     // Thunderstorm processing
     this.runStorms(cameraShake);
+    // Shadow clone processing
+    this.runClones();
     // Cooldown UI every frame
     this.updateCooldownUI();
 

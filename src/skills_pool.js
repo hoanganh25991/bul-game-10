@@ -245,6 +245,65 @@ export const SKILL_POOL = [
     duration: 9,
     manaPerTick: 3,
   },
+  {
+    id: "thunder_mend",
+    name: "Thunder Mend",
+    short: "Heal",
+    type: "heal",
+    cd: 14,
+    mana: 24,
+    heal: 55
+  },
+  {
+    id: "storm_sip",
+    name: "Storm Sip",
+    short: "Mana",
+    type: "mana",
+    cd: 12,
+    mana: 0,
+    restore: 40
+  },
+  {
+    id: "overload_buff",
+    name: "Overload",
+    short: "Buff",
+    type: "buff",
+    cd: 20,
+    mana: 30,
+    buffMult: 1.4,
+    buffDuration: 8,
+    speedMult: 1.35
+  },
+  {
+    id: "lightning_dash",
+    name: "Lightning Dash",
+    short: "Dash",
+    type: "dash",
+    cd: 7,
+    mana: 16,
+    distance: 14
+  },
+  {
+    id: "blink_strike",
+    name: "Blink Strike",
+    short: "Blink",
+    type: "blink",
+    cd: 12,
+    mana: 24,
+    range: 24
+  },
+  {
+    id: "thunder_image",
+    name: "Thunder Image",
+    short: "Clone",
+    type: "clone",
+    cd: 22,
+    mana: 40,
+    duration: 7,
+    rate: 0.5,
+    radius: 26,
+    dmg: 18
+  },
 ];
 
 /**
