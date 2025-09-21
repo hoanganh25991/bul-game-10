@@ -170,7 +170,7 @@
 */
 .skill-btn.q{ right: 208px; bottom: 24px; }  /* former R */
 .skill-btn.w{ right: 148px; bottom: 100px; } /* former E */
-.skill-btn.e{ right: 120px; bottom: 48px; }  /* former Q */
+.skill-btn.e{ right: 120px; bottom: 36px; }  /* adjusted down to avoid overlap with W */
 .skill-btn.r{ right: 32px; bottom: 148px; }  /* new 'green' slot */
 
 /* Make cooldown visuals circular to match buttons */
