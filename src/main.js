@@ -488,7 +488,7 @@ const portals = initPortals(scene);
 const skills = new SkillsSystem(player, enemies, effects, ui.getCooldownElements());
 
 // Touch controls (joystick + skill wheel)
-const touch = initTouchControls({ player, skills, effects, aimPreview, attackPreview, enemies, getNearestEnemy, WORLD });
+const touch = initTouchControls({ player, skills, effects, aimPreview, attackPreview, enemies, getNearestEnemy, WORLD, SKILLS });
 
 // ------------------------------------------------------------
 // Raycasting

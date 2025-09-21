@@ -286,12 +286,19 @@ export function createInputService({
       const hold = state.touch.getHoldState();
       if (hold) {
         if (hold.basic) attemptAutoBasic();
-        if (hold.skillQ) { try { skills.castSkill("Q"); } catch (_) {} }
-        if (hold.skillE) { try { skills.castSkill("E"); } catch (_) {} }
-        if (hold.skillR) { try { skills.castSkill("R"); } catch (_) {} }
-        if (hold.skillW) {
-          const pos = hold.wPoint || state.lastMouseGroundPoint || player.pos().clone().add(new THREE.Vector3(0, 0, 10));
-          try { skills.castSkill("W", pos); } catch (_) {}
+
+        // Unified continuous casting for skills:
+        // - If a held skill is AOE, touch.getHoldState() provides { aoeKey, aoePoint }.
+        // - Non-AOE held skills cast instantly each frame (respecting internal cooldowns).
+        const keys = ["Q", "W", "E", "R"];
+        for (const k of keys) {
+          if (!hold["skill" + k]) continue;
+          if (hold.aoeKey === k) {
+            const pos = hold.aoePoint || state.lastMouseGroundPoint || player.pos().clone().add(new THREE.Vector3(0, 0, 10));
+            try { skills.castSkill(k, pos); } catch (_) {}
+          } else {
+            try { skills.castSkill(k); } catch (_) {}
+          }
         }
       }
     }
