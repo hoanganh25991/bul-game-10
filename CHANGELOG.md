@@ -9,8 +9,10 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 - Removed 3D hero preview from Hero Screen: eliminated heroPreviewCanvas and related preview code in src/main.js.
 
 ### Fixed
-- Hero Screen layout on mobile (e.g., iPhone 14 Pro Max): .hero-layout now fits and scrolls properly.
+- Hero Screen layout on mobile (e.g., iPhone 14 Pro Max): .hero-right now fits and scrolls properly.
   - css/hero.css: made .screen-content.hero-layout a grid to avoid flex constraints, enabled -webkit-overflow-scrolling for inner panels, wrapped/stacked loadout slots on small screens.
+- Skill wheel: adjusted Q button placement to prevent overlap with the central Basic Attack button.
+  - css/skills.css: moved .skill-btn.q to right:120px; bottom:48px; ensuring adequate center-to-center spacing at default (260px) and compact (220px) wheel sizes.
 
 ## [0.2.0] - 2025-09-20
 ### Changed

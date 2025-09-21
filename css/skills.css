@@ -162,11 +162,16 @@
   box-shadow: 0 12px 44px rgba(0,0,0,0.55);
 }
 
-/* Position the four skill buttons in an arc around the basic button */
-.skill-btn.q{ right: 96px; bottom: 32px; }
-.skill-btn.w{ right: 64px; bottom: 124px; }
-.skill-btn.e{ right: 148px; bottom: 100px; }
-.skill-btn.r{ right: 208px; bottom: 24px; }
+/* Position the four skill buttons in an arc around the basic button
+   Mapping updated:
+   - Q -> moved to former R position
+   - R, W, E -> each shifted forward by one position around the arc (clockwise)
+   - R now placed at the marked green position (slightly to the right of former W)
+*/
+.skill-btn.q{ right: 208px; bottom: 24px; }  /* former R */
+.skill-btn.w{ right: 148px; bottom: 100px; } /* former E */
+.skill-btn.e{ right: 120px; bottom: 48px; }  /* former Q */
+.skill-btn.r{ right: 32px; bottom: 148px; }  /* new 'green' slot */
 
 /* Make cooldown visuals circular to match buttons */
 .skill-btn .cooldown{
