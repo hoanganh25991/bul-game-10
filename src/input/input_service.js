@@ -97,6 +97,32 @@ export function createInputService({
       return;
     }
 
+    // Space: cast all skills (Q, W, E, R)
+    if (e.code === "Space" || kraw === " " || k === " " || k === "space" || kraw === "Spacebar") {
+      e.preventDefault(); e.stopImmediatePropagation();
+      try {
+        // Choose AOE point: mouse ground point > nearest enemy > forward of player
+        let point = null;
+        if (state.lastMouseGroundPoint && Number.isFinite(state.lastMouseGroundPoint.x)) {
+          point = state.lastMouseGroundPoint.clone();
+        } else {
+          const nearest = getNearestEnemy(player.pos(), 9999, enemies);
+          if (nearest) {
+            point = nearest.pos().clone();
+          } else {
+            const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(player.mesh.quaternion);
+            point = player.pos().clone().add(forward.multiplyScalar(10));
+          }
+        }
+        try { skills.castSkill("Q"); } catch (_) {}
+        try { skills.castSkill("W", point); } catch (_) {}
+        // Only turn aura on; avoid toggling it off if already active
+        if (!player.staticField?.active) { try { skills.castSkill("E"); } catch (_) {} }
+        try { skills.castSkill("R"); } catch (_) {}
+      } catch (_) {}
+      return;
+    }
+
     if (k === "a") {
       e.preventDefault(); e.stopImmediatePropagation();
       state.holdA = true;
