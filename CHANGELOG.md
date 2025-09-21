@@ -11,8 +11,9 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 ### Fixed
 - Hero Screen layout on mobile (e.g., iPhone 14 Pro Max): .hero-right now fits and scrolls properly.
   - css/hero.css: made .screen-content.hero-layout a grid to avoid flex constraints, enabled -webkit-overflow-scrolling for inner panels, wrapped/stacked loadout slots on small screens.
-- Skill wheel: adjusted Q button placement to prevent overlap with the central Basic Attack button.
-  - css/skills.css: moved .skill-btn.q to right:120px; bottom:48px; ensuring adequate center-to-center spacing at default (260px) and compact (220px) wheel sizes.
+- Skill wheel: remapped positions and spacing to improve ergonomics and prevent overlap.
+  - css/skills.css: Q → former R (right:208px; bottom:24px), R → top-right slot (right:32px; bottom:148px), W → former E (right:148px; bottom:100px), E → adjusted (right:120px; bottom:36px).
+- Camera button placement: moved Camera toggle to the top-right cluster with Settings and Hero (index.html).
 
 ## [0.2.0] - 2025-09-20
 ### Changed
