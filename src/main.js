@@ -11,7 +11,7 @@ import { Player, Enemy, getNearestEnemy, handWorldPos } from "./entities.js";
 import { EffectsManager, createGroundRing } from "./effects.js";
 import { SkillsSystem } from "./skills.js";
 import { createRaycast } from "./raycast.js";
-import { createHouse, createHeroOverheadBars, createZeusMesh } from "./meshes.js";
+import { createHouse, createHeroOverheadBars } from "./meshes.js";
 import { initEnvironment } from "./environment.js";
 import { distance2D, dir2D, now, clamp01 } from "./utils.js";
 import { initPortals } from "./portals.js";
@@ -128,8 +128,8 @@ function setFirstPerson(enabled) {
 
  // Hero open/close
  btnHeroScreen?.addEventListener("click", () => { renderHeroScreen(); heroScreen?.classList.remove("hidden"); });
- btnCloseHero?.addEventListener("click", () => { try { teardownHeroPreview(); } catch(e) {} heroScreen?.classList.add("hidden"); });
- btnCloseHeroIcon?.addEventListener("click", () => { try { teardownHeroPreview(); } catch(e) {} heroScreen?.classList.add("hidden"); });
+ btnCloseHero?.addEventListener("click", () => { heroScreen?.classList.add("hidden"); });
+ btnCloseHeroIcon?.addEventListener("click", () => { heroScreen?.classList.add("hidden"); });
 
  // Generic top-right screen-close icons (ensure any element with .screen-close closes its parent .screen)
  document.querySelectorAll(".screen-close").forEach((b) => {
@@ -347,76 +347,18 @@ try {
  * - shows hero info, current 4-slot loadout, and the full skill pool
  * - click a slot to select it, then click a skill to assign; or click Assign on a skill
  */
-/* Hero Screen: tabbed layout and 3D hero preview */
-let heroPreview = null;
-function initHeroPreview() {
-  if (heroPreview) return;
-  const fig = document.querySelector("#heroScreen .hero-figure");
-  if (!fig) return;
-
-  const canvas = document.createElement("canvas");
-  canvas.id = "heroPreviewCanvas";
-  canvas.style.width = "100%";
-  canvas.style.height = "100%";
-  fig.appendChild(canvas);
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true, canvas, alpha: true });
-  const scene = new THREE.Scene();
-  const cam = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
-  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-  const dir = new THREE.DirectionalLight(0xffffff, 0.9);
-  dir.position.set(2, 4, 3);
-  scene.add(ambient, dir);
-
-  const mesh = createZeusMesh();
-  mesh.position.set(0, 0, 0);
-  scene.add(mesh);
-
-  cam.position.set(0, 2.2, 4.8);
-  cam.lookAt(new THREE.Vector3(0, 1.4, 0));
-
-  function resize() {
-    const rect = fig.getBoundingClientRect();
-    const w = Math.max(1, Math.floor(rect.width));
-    const h = Math.max(1, Math.floor(rect.height));
-    renderer.setSize(w, h, false);
-    cam.aspect = w / h;
-    cam.updateProjectionMatrix();
-  }
-  resize();
-  window.addEventListener("resize", resize);
-
-  let raf = 0;
-  function loop() {
-    raf = requestAnimationFrame(loop);
-    if (mesh) mesh.rotation.y += 0.01;
-    renderer.render(scene, cam);
-  }
-  loop();
-
-  heroPreview = { renderer, scene, cam, mesh, raf, resize, canvas, cleanup: () => {
-    try { cancelAnimationFrame(raf); } catch(e) {}
-    try { window.removeEventListener("resize", resize); } catch(e) {}
-    try { renderer.dispose(); } catch(e) {}
-    try { canvas.remove(); } catch(e) {}
-    heroPreview = null;
-  }};
-}
-function teardownHeroPreview() {
-  if (heroPreview && heroPreview.cleanup) heroPreview.cleanup();
-}
-
+/* Hero Screen */
 function renderHeroScreen() {
   // Ensure tab structure on right side
-  const right = document.querySelector("#heroScreen .hero-right");
+  const layout = document.querySelector("#heroScreen .hero-layout");
   const listContainer = document.getElementById("heroSkillsList");
-  if (!right || !listContainer) return;
-  right.innerHTML = "";
+  if (!layout || !listContainer) return;
+  layout.innerHTML = "";
 
   const title = document.createElement("h2");
   title.setAttribute("data-i18n", "hero.title");
   title.textContent = t("hero.title");
-  right.appendChild(title);
+  layout.appendChild(title);
 
   // Tab bar
   const tabBar = document.createElement("div");
@@ -431,7 +373,7 @@ function renderHeroScreen() {
   skillsBtn.textContent = t("hero.tabs.skills") || "Skills";
   tabBar.appendChild(infoBtn);
   tabBar.appendChild(skillsBtn);
-  right.appendChild(tabBar);
+  layout.appendChild(tabBar);
 
   // Panels
   const infoPanel = document.createElement("div");
@@ -535,8 +477,8 @@ function renderHeroScreen() {
   });
 
   // Append panels
-  right.appendChild(infoPanel);
-  right.appendChild(skillsPanel);
+  layout.appendChild(infoPanel);
+  layout.appendChild(skillsPanel);
 
   // Tab switching
   function activate(panel) {
@@ -555,8 +497,6 @@ function renderHeroScreen() {
   infoBtn.addEventListener("click", () => activate("info"));
   skillsBtn.addEventListener("click", () => activate("skills"));
 
-  // Mount hero 3D preview
-  initHeroPreview();
 
   try { window.applyTranslations && window.applyTranslations(document.getElementById("heroScreen")); } catch(e) {}
 }

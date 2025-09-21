@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
 ## [Unreleased]
+### Removed
+- Removed 3D hero preview from Hero Screen: eliminated heroPreviewCanvas and related preview code in src/main.js.
+
+### Fixed
+- Hero Screen layout on mobile (e.g., iPhone 14 Pro Max): .hero-layout now fits and scrolls properly.
+  - css/hero.css: made .screen-content.hero-layout a grid to avoid flex constraints, enabled -webkit-overflow-scrolling for inner panels, wrapped/stacked loadout slots on small screens.
 
 ## [0.2.0] - 2025-09-20
 ### Changed
