@@ -242,6 +242,14 @@ function setLoadoutAndSave(ids) {
   applyLoadoutToSKILLS(currentLoadout);
   saveLoadout(currentLoadout);
   updateSkillBarLabels();
+try {
+  console.info("[WORLD]", {
+    attackRange: WORLD.attackRange,
+    attackRangeMult: WORLD.attackRangeMult,
+    basicAttackCooldown: WORLD.basicAttackCooldown,
+    basicAttackDamage: WORLD.basicAttackDamage
+  });
+} catch (e) {}
 }
 
 /**
@@ -363,6 +371,12 @@ effects.indicators.add(selectionRing);
 // Center message helpers wired to UI
 const setCenterMsg = (t) => ui.setCenterMsg(t);
 const clearCenterMsg = () => ui.clearCenterMsg();
+try {
+  if (DEBUG) {
+    setCenterMsg(`ATK rng=${WORLD.attackRange} x${WORLD.attackRangeMult} dmg=${WORLD.basicAttackDamage}`);
+    setTimeout(() => clearCenterMsg(), 1800);
+  }
+} catch (e) {}
 
 // ------------------------------------------------------------
 // Entities and Game State
@@ -495,6 +509,29 @@ const raycast = createRaycast({
 // ------------------------------------------------------------
 renderer.domElement.addEventListener("contextmenu", (e) => e.preventDefault());
 
+let keyHoldA = false;
+
+/* Autofire helper: attempt immediate auto-basic attack on nearest enemy within effective range.
+   Respects cooldown in skills.tryBasicAttack, and enables attackMove if target is beyond range. */
+function attemptAutoBasic() {
+  if (!player.alive || player.frozen) return;
+  try {
+    const effRange = WORLD.attackRange * (WORLD.attackRangeMult || 1);
+    const nearest = getNearestEnemy(player.pos(), effRange, enemies);
+    if (!nearest) return;
+    player.target = nearest;
+    player.moveTarget = null;
+    try {
+      const d = distance2D(player.pos(), nearest.pos());
+      player.attackMove = d > effRange * 0.95;
+    } catch (err) {
+      player.attackMove = false;
+    }
+    effects.spawnTargetPing(nearest);
+    skills.tryBasicAttack(player, nearest);
+  } catch (e) {}
+}
+
 let lastMouseGroundPoint = new THREE.Vector3();
 renderer.domElement.addEventListener("mousemove", (e) => {
   raycast.updateMouseNDC(e);
@@ -590,6 +627,7 @@ window.addEventListener("keydown", (e) => {
       try { e.stopImmediatePropagation?.(); e.stopPropagation?.(); } catch (err) {}
       // Debug: log capture invocation to help diagnose legacy handlers
       try { console.debug && console.debug("[input] A pressed (capture)"); } catch (err) {}
+      keyHoldA = true;
       // Defensive cancel any aim-mode UI that may have been set elsewhere
       try {
         player.aimMode = false;
@@ -636,6 +674,7 @@ window.addEventListener("keydown", (e) => {
       renderer.domElement.style.cursor = "default";
     } catch (e) {}
 
+    keyHoldA = true; // enable autofire while held
     // Auto-select nearest enemy and attempt basic attack.
     const nearest = getNearestEnemy(player.pos(), WORLD.attackRange * (WORLD.attackRangeMult || 1), enemies);
     if (nearest) {
@@ -681,6 +720,13 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
+window.addEventListener("keyup", (e) => {
+  const k = (e.key || "").toLowerCase();
+  if (k === "a") {
+    keyHoldA = false;
+  }
+});
+
 // ------------------------------------------------------------
 // Systems Update Loop
 // ------------------------------------------------------------
@@ -705,6 +751,24 @@ function animate() {
       player.moveTarget = new THREE.Vector3(px, 0, pz);
       player.attackMove = false;
       player.target = null;
+    }
+  }
+
+  // Continuous input holds (keyboard and touch)
+  if (keyHoldA) {
+    attemptAutoBasic();
+  }
+  if (typeof touch !== "undefined" && touch?.getHoldState) {
+    const hold = touch.getHoldState();
+    if (hold) {
+      if (hold.basic) attemptAutoBasic();
+      if (hold.skillQ) { try { skills.castSkill("Q"); } catch (e) {} }
+      if (hold.skillE) { try { skills.castSkill("E"); } catch (e) {} }
+      if (hold.skillR) { try { skills.castSkill("R"); } catch (e) {} }
+      if (hold.skillW) {
+        const pos = hold.wPoint || lastMouseGroundPoint || player.pos().clone().add(new THREE.Vector3(0,0,10));
+        try { skills.castSkill("W", pos); } catch (e) {}
+      }
     }
   }
 

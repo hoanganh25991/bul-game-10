@@ -57,6 +57,17 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
 
   let lastAimPos = new THREE.Vector3(); // stores last computed aim position
 
+  // Hold-to-cast state for touch buttons
+  const holdState = { basic: false, skillQ: false, skillW: false, skillE: false, skillR: false };
+  let wDownAt = 0;
+  function clearHolds() {
+    holdState.basic = holdState.skillQ = holdState.skillW = holdState.skillE = holdState.skillR = false;
+    wDownAt = 0;
+  }
+  window.addEventListener("pointerup", clearHolds);
+  window.addEventListener("pointercancel", clearHolds);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) clearHolds(); });
+
   // Initialize geometry for joystick base
   function computeBase() {
     if (!els.joyBase) return;
@@ -167,6 +178,23 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
     });
   }
 
+  // Hold (continuous cast) bindings for touch buttons
+  if (els.btnBasic) {
+    els.btnBasic.addEventListener("pointerdown", () => { holdState.basic = true; });
+  }
+  if (els.btnQ) {
+    els.btnQ.addEventListener("pointerdown", () => { holdState.skillQ = true; });
+  }
+  if (els.btnW) {
+    els.btnW.addEventListener("pointerdown", () => { holdState.skillW = true; wDownAt = performance.now ? performance.now() : Date.now(); });
+  }
+  if (els.btnE) {
+    els.btnE.addEventListener("pointerdown", () => { holdState.skillE = true; });
+  }
+  if (els.btnR) {
+    els.btnR.addEventListener("pointerdown", () => { holdState.skillR = true; });
+  }
+
   // Skill wheel actions
   if (els.btnBasic) {
     els.btnBasic.addEventListener("click", () => {
@@ -208,6 +236,11 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
   }
   if (els.btnW) {
     els.btnW.addEventListener("click", () => {
+      // If this was a hold (long press), skip toggling aim to avoid conflict with continuous cast
+      const nowTs = performance.now ? performance.now() : Date.now();
+      if (wDownAt && nowTs - wDownAt > 250) { wDownAt = 0; return; }
+      wDownAt = 0;
+
       if (player.aimMode && player.aimModeSkill === "W") {
         // Confirm cast at current aim (if we have a lastAimPos; else compute default ahead)
         const pos = (lastAimPos && isFinite(lastAimPos.x)) ? lastAimPos.clone() : computeAimPositionFromJoystick();
@@ -256,5 +289,15 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
       return { active: joyState.active, x: joyState.x, y: joyState.y }; // map to world (x, z)
     },
     cancelAim,
+    getHoldState() {
+      if (!holdState.basic && !holdState.skillQ && !holdState.skillW && !holdState.skillE && !holdState.skillR) return null;
+      const state = Object.assign({}, holdState);
+      if (holdState.skillW) {
+        // Provide a target point for W casts while holding
+        const pos = (lastAimPos && isFinite(lastAimPos.x)) ? lastAimPos.clone() : computeAimPositionFromJoystick();
+        state.wPoint = pos;
+      }
+      return state;
+    }
   };
 }
