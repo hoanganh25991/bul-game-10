@@ -218,6 +218,11 @@ function ensureSettingsTabs(){
     controlsPanel.appendChild(r);
   }
 
+  // Initialize panel visibility
+  generalPanel.style.display = "block";
+  envPanel.style.display = "none";
+  controlsPanel.style.display = "none";
+
   // Tab buttons
   const tabBar = document.createElement("div");
   tabBar.className = "tab-bar";
@@ -226,16 +231,22 @@ function ensureSettingsTabs(){
     { key: "environment", labelKey: "settings.tabs.environment", panel: envPanel },
     { key: "controls", labelKey: "settings.tabs.controls", panel: controlsPanel },
   ];
-  tabs.forEach((t, idx) => {
+  // IMPORTANT: avoid shadowing the i18n function t by renaming the loop variable
+  tabs.forEach((tabDef, idx) => {
     const btn = document.createElement("button");
     btn.className = "tab-btn" + (idx === 0 ? " active" : "");
-    btn.setAttribute("data-i18n", t.labelKey);
-    btn.textContent = (typeof t.labelKey === "string" ? t.labelKey : "") || "";
+    btn.setAttribute("data-i18n", tabDef.labelKey);
+    // Render translated label immediately; data-i18n keeps it updated when language changes
+    try { btn.textContent = t(tabDef.labelKey); } catch(_) { btn.textContent = tabDef.labelKey; }
     btn.addEventListener("click", () => {
       tabBar.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      [generalPanel, envPanel, controlsPanel].forEach((p) => p.classList.remove("active"));
-      t.panel.classList.add("active");
+      [generalPanel, envPanel, controlsPanel].forEach((p) => {
+        p.classList.remove("active");
+        p.style.display = "none";
+      });
+      tabDef.panel.classList.add("active");
+      tabDef.panel.style.display = "block";
     });
     tabBar.appendChild(btn);
   });
@@ -427,6 +438,9 @@ function renderHeroScreen() {
   infoPanel.className = "tab-panel active";
   const skillsPanel = document.createElement("div");
   skillsPanel.className = "tab-panel";
+  // Initialize visibility
+  infoPanel.style.display = "block";
+  skillsPanel.style.display = "none";
 
   // Info content
   const info = document.createElement("div");
@@ -527,9 +541,16 @@ function renderHeroScreen() {
   // Tab switching
   function activate(panel) {
     [infoBtn, skillsBtn].forEach((b) => b.classList.remove("active"));
-    [infoPanel, skillsPanel].forEach((p) => p.classList.remove("active"));
-    if (panel === "info") { infoBtn.classList.add("active"); infoPanel.classList.add("active"); }
-    else { skillsBtn.classList.add("active"); skillsPanel.classList.add("active"); }
+    [infoPanel, skillsPanel].forEach((p) => { p.classList.remove("active"); p.style.display = "none"; });
+    if (panel === "info") {
+      infoBtn.classList.add("active");
+      infoPanel.classList.add("active");
+      infoPanel.style.display = "block";
+    } else {
+      skillsBtn.classList.add("active");
+      skillsPanel.classList.add("active");
+      skillsPanel.style.display = "block";
+    }
   }
   infoBtn.addEventListener("click", () => activate("info"));
   skillsBtn.addEventListener("click", () => activate("skills"));
