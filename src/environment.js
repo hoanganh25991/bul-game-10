@@ -307,21 +307,50 @@ export function initEnvironment(scene, options = {}) {
     villageCenters.push(c);
   }
 
-  // Build curved, connected road network between villages
+  // Build curved, connected road network between villages using MST (minimal, fully connected)
   try {
     if (villageCenters.length >= 2) {
       const roadsGroup = new THREE.Group();
       roadsGroup.name = "roads";
-      // connect in a loop for connectivity
-      for (let i = 0; i < villageCenters.length; i++) {
-        const a = villageCenters[i].clone(); a.y = 0.0;
-        const b = villageCenters[(i + 1) % villageCenters.length].clone(); b.y = 0.0;
+
+      // Prepare 2D points (y = 0)
+      const pts = villageCenters.map(v => v.clone().setY(0));
+      const n = pts.length;
+
+      // Prim's algorithm for MST
+      const inTree = new Array(n).fill(false);
+      const d = new Array(n).fill(Infinity);
+      const parent = new Array(n).fill(-1);
+
+      inTree[0] = true;
+      for (let j = 1; j < n; j++) {
+        d[j] = pts[0].distanceTo(pts[j]);
+        parent[j] = 0;
+      }
+      for (let k = 1; k < n; k++) {
+        let m = -1, best = Infinity;
+        for (let j = 0; j < n; j++) {
+          if (!inTree[j] && d[j] < best) { best = d[j]; m = j; }
+        }
+        if (m < 0) break;
+        inTree[m] = true;
+        for (let j = 0; j < n; j++) {
+          if (!inTree[j]) {
+            const nd = pts[m].distanceTo(pts[j]);
+            if (nd < d[j]) { d[j] = nd; parent[j] = m; }
+          }
+        }
+      }
+
+      // Create a curved road segment for each MST edge
+      for (let i = 1; i < n; i++) {
+        const a = pts[i];
+        const b = pts[parent[i]];
         const mid = a.clone().lerp(b, 0.5);
-        // perpendicular control for curvature
         const dir = b.clone().sub(a).setY(0);
         const len = Math.max(1, dir.length());
         dir.normalize();
-        const perp = new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0), dir).normalize();
+        const perp = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), dir).normalize();
         const curveAmt = Math.min(30, len * 0.25);
         const ctrl = mid.clone().addScaledVector(perp, (i % 2 === 0 ? 1 : -1) * curveAmt);
         ctrl.y = 0.0;
@@ -329,6 +358,7 @@ export function initEnvironment(scene, options = {}) {
         const road = createCurvedRoad([a, ctrl, b], 6, 140, 0x2b2420);
         roadsGroup.add(road);
       }
+
       root.add(roadsGroup);
     }
   } catch (e) {

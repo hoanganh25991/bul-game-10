@@ -1184,7 +1184,8 @@ function updateEnemies(dt) {
     if (toPlayer < WORLD.aiAggroRadius) {
       // chase player
       const d = toPlayer;
-      if (d > WORLD.aiAttackRange) {
+      const ar = en.attackRange || WORLD.aiAttackRange;
+      if (d > ar) {
         const v = dir2D(en.pos(), player.pos());
         const spMul = en.slowUntil && now() < en.slowUntil ? en.slowFactor || 0.5 : 1;
         // Tentative next position
@@ -1208,11 +1209,22 @@ function updateEnemies(dt) {
         // Attack
         const t = now();
         if (t >= (en.nextAttackReady || 0)) {
-          en.nextAttackReady = t + WORLD.aiAttackCooldown;
-          // Visual
+          const cd = en.attackCooldown || WORLD.aiAttackCooldown;
+          en.nextAttackReady = t + cd;
+          // Visual / Effect per enemy kind
           const from = en.pos().clone().add(new THREE.Vector3(0, 1.4, 0));
           const to = player.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
-          effects.spawnBeam(from, to, 0xff8080, 0.09);
+          try {
+            if (en.attackEffect === "melee") {
+              // impact strike at player
+              effects.spawnStrike(player.pos(), 0.9, 0xff9955);
+            } else if (en.attackEffect === "electric") {
+              effects.spawnElectricBeamAuto(from, to, en.beamColor || 0x9fd8ff, 0.1);
+            } else {
+              // default beam (archer/others)
+              effects.spawnBeam(from, to, en.beamColor || 0xff8080, 0.09);
+            }
+          } catch (e) {}
           // Damage
           player.takeDamage(en.attackDamage);
           // SFX: player hit by enemy

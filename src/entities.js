@@ -150,6 +150,53 @@ export class Enemy extends Entity {
     const levelDmgMul = Math.pow(SCALING.enemy.dmgGrowthPerLevel, Math.max(0, (level || 1) - 1));
     this.attackDamage = Math.max(1, Math.floor(WORLD.aiAttackDamage * dmgMult[tier] * levelDmgMul));
 
+    // Kind/species: melee or ranged with distinct size/speed/range/effects
+    const kr = Math.random();
+    let kind = "brute"; // default melee heavy
+    if (kr < 0.25) kind = "brute";
+    else if (kr < 0.5) kind = "raider";
+    else if (kr < 0.75) kind = "archer";
+    else kind = "shocker";
+    this.kind = kind;
+
+    if (kind === "brute") {
+      // Big melee
+      this.attackRange = 2.4;
+      this.attackCooldown = (WORLD.aiAttackCooldown || 1.6) * 0.95;
+      this.attackEffect = "melee";
+      this.beamColor = 0xff8844;
+      this.speed *= 0.9;
+      this.attackDamage = Math.floor(this.attackDamage * 1.2);
+      this.mesh.scale.multiplyScalar(1.25);
+    } else if (kind === "raider") {
+      // Fast melee
+      this.attackRange = 2.2;
+      this.attackCooldown = (WORLD.aiAttackCooldown || 1.6) * 0.85;
+      this.attackEffect = "melee";
+      this.beamColor = 0xffaa66;
+      this.speed *= 1.15;
+      this.attackDamage = Math.floor(this.attackDamage * 0.9);
+      this.mesh.scale.multiplyScalar(1.05);
+    } else if (kind === "archer") {
+      // Ranged physical
+      this.attackRange = 18;
+      this.attackCooldown = (WORLD.aiAttackCooldown || 1.6) * 1.1;
+      this.attackEffect = "beam";
+      this.beamColor = 0xffcc88;
+      this.speed *= 1.0;
+      this.attackDamage = Math.floor(this.attackDamage * 1.0);
+      this.mesh.scale.multiplyScalar(0.95);
+    } else if (kind === "shocker") {
+      // Ranged electric
+      this.attackRange = 24;
+      this.attackCooldown = (WORLD.aiAttackCooldown || 1.6) * 1.25;
+      this.attackEffect = "electric";
+      this.beamColor = 0x9fd8ff;
+      this.speed *= 0.95;
+      this.attackDamage = Math.floor(this.attackDamage * 0.95);
+      this.mesh.scale.multiplyScalar(1.1);
+    }
+
     // XP reward scales with HP so killing stronger enemies is rewarding
     this.xpOnDeath = Math.max(8, Math.floor(this.maxHP / 10));
 
