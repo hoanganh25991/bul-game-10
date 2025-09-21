@@ -527,24 +527,6 @@ export class SkillsSystem {
     // Cooldown UI every frame
     this.updateCooldownUI();
 
-    // Auto-cast: remove aiming and auto-trigger skills when off cooldown
-    try {
-      const ppos = this.player.pos();
-      const anyEnemyNear = this.enemies.some((e) => e.alive && distance2D(ppos, e.pos()) <= 80);
-
-      // Keep aura up automatically if not active
-      if (!this.player.staticField.active && !this.isOnCooldown("E")) {
-        this.castSkill("E");
-      }
-
-      if (anyEnemyNear) {
-        if (!this.isOnCooldown("Q")) this.castSkill("Q");
-        if (!this.isOnCooldown("W")) this.castSkill("W"); // AOE picks a point automatically
-        if (!this.isOnCooldown("R")) this.castSkill("R");
-      }
-    } catch (e) {
-      // ignore auto-cast errors
-    }
   }
 }
 
