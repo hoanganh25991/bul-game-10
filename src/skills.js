@@ -123,7 +123,7 @@ export class SkillsSystem {
     }
 
     const dist = distance2D(attacker.pos(), target.pos());
-    if (dist > WORLD.attackRange) return false;
+    if (dist > WORLD.attackRange * (WORLD.attackRangeMult || 1)) return false;
 
     attacker.nextBasicReady = time + WORLD.basicAttackCooldown;
     const from =
@@ -183,11 +183,12 @@ export class SkillsSystem {
 
     this.effects.spawnHandFlash(this.player);
 
+    const effRange = Math.max(SK.range || 0, WORLD.attackRange * (WORLD.attackRangeMult || 1));
     let candidates = this.enemies.filter(
-      (e) => e.alive && distance2D(this.player.pos(), e.pos()) <= SK.range
+      (e) => e.alive && distance2D(this.player.pos(), e.pos()) <= effRange
     );
     if (candidates.length === 0) {
-      this.effects.showNoTargetHint(this.player, SK.range);
+      this.effects.showNoTargetHint(this.player, effRange);
       return;
     }
 
@@ -273,11 +274,12 @@ export class SkillsSystem {
     // Immediate feedback
     this.effects.spawnHandFlash(this.player);
 
+    const effRange = Math.max(SK.range || 0, WORLD.attackRange * (WORLD.attackRangeMult || 1));
     let candidates = this.enemies.filter(
-      (e) => e.alive && distance2D(this.player.pos(), e.pos()) <= SK.range
+      (e) => e.alive && distance2D(this.player.pos(), e.pos()) <= effRange
     );
     if (candidates.length === 0) {
-      this.effects.showNoTargetHint(this.player, SK.range);
+      this.effects.showNoTargetHint(this.player, effRange);
       return;
     }
 

@@ -174,13 +174,18 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
       if (player.frozen) return;
       try {
         const nearest = (typeof getNearestEnemy === "function")
-          ? getNearestEnemy(player.pos(), WORLD.attackRange * 3, enemies)
+          ? getNearestEnemy(player.pos(), WORLD.attackRange * (WORLD.attackRangeMult || 1), enemies)
           : null;
         if (nearest) {
           // select and perform basic attack immediately
           player.target = nearest;
           player.moveTarget = null;
-          player.attackMove = false;
+          try {
+            const d = Math.hypot(player.pos().x - nearest.pos().x, player.pos().z - nearest.pos().z);
+            player.attackMove = d > (WORLD.attackRange * (WORLD.attackRangeMult || 1)) * 0.95;
+          } catch (err) {
+            player.attackMove = false;
+          }
           effects?.spawnTargetPing?.(nearest);
           try { skills.tryBasicAttack(player, nearest); } catch (err) { /* ignore */ }
         } else {

@@ -600,7 +600,7 @@ window.addEventListener("keydown", (e) => {
       } catch (err) {}
       // Attempt immediate auto-attack
       try {
-        const nearest = getNearestEnemy(player.pos(), WORLD.attackRange * 3, enemies);
+        const nearest = getNearestEnemy(player.pos(), WORLD.attackRange * (WORLD.attackRangeMult || 1), enemies);
         if (nearest) {
           try { console.debug && console.debug("[input] A auto-attack target found", nearest); } catch (err) {}
           player.target = nearest;
@@ -608,7 +608,7 @@ window.addEventListener("keydown", (e) => {
           // If target is outside immediate attack range, enable attackMove so the player moves toward and auto-attacks when close enough.
           try {
             const d = distance2D(player.pos(), nearest.pos());
-            player.attackMove = d > WORLD.attackRange * 0.95;
+            player.attackMove = d > (WORLD.attackRange * (WORLD.attackRangeMult || 1)) * 0.95;
           } catch (err) {
             player.attackMove = false;
           }
@@ -637,14 +637,14 @@ window.addEventListener("keydown", (e) => {
     } catch (e) {}
 
     // Auto-select nearest enemy and attempt basic attack.
-    const nearest = getNearestEnemy(player.pos(), WORLD.attackRange * 3, enemies);
+    const nearest = getNearestEnemy(player.pos(), WORLD.attackRange * (WORLD.attackRangeMult || 1), enemies);
     if (nearest) {
       // select and perform basic attack immediately
       player.target = nearest;
       player.moveTarget = null;
       try {
         const d = distance2D(player.pos(), nearest.pos());
-        player.attackMove = d > WORLD.attackRange * 0.95;
+        player.attackMove = d > (WORLD.attackRange * (WORLD.attackRangeMult || 1)) * 0.95;
       } catch (err) {
         player.attackMove = false;
       }
@@ -732,12 +732,22 @@ function animate() {
     const mid = left.clone().add(right).multiplyScalar(0.5);
     const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(player.mesh.quaternion).normalize();
 
-    // Position camera slightly behind the hands (negative forward) so both hands are visible in front
-    const desiredPos = mid.clone().add(forward.clone().multiplyScalar(-0.45)).add(new THREE.Vector3(0, 0.05, 0));
+    // Position camera slightly behind the hands (negative forward)
+    // and bias framing so the visible model sits near the center-bottom of the screen
+    const fpBack = 0.5;       // how far behind the hands the camera sits
+    const fpUp = 0.05;        // slight vertical raise of camera
+    const fpLookAhead = 2.2;  // look further ahead so enemies occupy the center
+    const fpLookUp = 0.6;     // tilt camera upward so hands sit lower in the frame
+
+    const desiredPos = mid.clone()
+      .add(forward.clone().multiplyScalar(-fpBack))
+      .add(new THREE.Vector3(0, fpUp, 0));
     camera.position.lerp(desiredPos, 1 - Math.pow(0.001, dt));
 
-    // Look ahead a bit so view feels natural
-    const lookTarget = mid.clone().add(forward.clone().multiplyScalar(1.5));
+    // Look ahead and slightly upward to push the hands/model toward bottom-center of the view
+    const lookTarget = mid.clone()
+      .add(forward.clone().multiplyScalar(fpLookAhead))
+      .add(new THREE.Vector3(0, fpLookUp, 0));
     camera.lookAt(lookTarget);
   } else {
     updateCamera(camera, player, lastMoveDir, dt, cameraOffset, cameraShake);
@@ -840,11 +850,11 @@ function updatePlayer(dt) {
     const d = distance2D(player.pos(), player.target.pos());
     // Do NOT auto-move or auto-basic-attack when a target is set.
     // If the player explicitly used attack-move (player.attackMove) then allow moving toward the target.
-    if (player.attackMove && d > WORLD.attackRange * 0.95) {
+    if (player.attackMove && d > (WORLD.attackRange * (WORLD.attackRangeMult || 1)) * 0.95) {
       moveDir = dir2D(player.pos(), player.target.pos());
     } else {
       // Otherwise, only auto-face the target when nearby (no auto-attack).
-      if (d <= WORLD.attackRange * 1.5) {
+      if (d <= (WORLD.attackRange * (WORLD.attackRangeMult || 1)) * 1.5) {
         const v = dir2D(player.pos(), player.target.pos());
         const targetYaw = Math.atan2(v.x, v.z);
         const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, targetYaw, 0));
