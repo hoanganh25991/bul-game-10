@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
 ## [Unreleased]
+### Added
+- Procedural audio system (WebAudio, no external assets): SFX for basic attack, skill casts (type-specific), aura ticks, storm strikes, enemy death, and player hit; plus a relaxing generative background music loop that starts after the first user interaction (autoplay-safe).
+  - New: src/audio.js
+  - Hooks: src/skills.js, src/main.js
+
 ### Removed
 - Removed 3D hero preview from Hero Screen: eliminated heroPreviewCanvas and related preview code in src/main.js.
 

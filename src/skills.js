@@ -3,6 +3,7 @@ import { WORLD, SKILLS, COLOR, VILLAGE_POS, REST_RADIUS } from "./constants.js";
 import { distance2D, now } from "./utils.js";
 import { handWorldPos } from "./entities.js";
 import { createGroundRing } from "./effects.js";
+import { audio } from "./audio.js";
 
 /**
  * SkillsSystem centralizes cooldowns, basic attack, Q/W/E/R skills,
@@ -136,6 +137,7 @@ export class SkillsSystem {
         : attacker.pos().clone().add(new THREE.Vector3(0, 1.6, 0));
     const to = target.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
     this.effects.spawnElectricBeamAuto(from, to, COLOR.blue, 0.12);
+    audio.sfx("basic");
     // FP hand VFX for basic attack
     try {
       this.effects.spawnHandFlash(this.player);
@@ -198,6 +200,7 @@ export class SkillsSystem {
     if (!SK) return;
     if (this.isOnCooldown(key)) return;
 
+    audio.sfx("cast_chain");
     this.effects.spawnHandFlash(this.player);
     try {
       this.effects.spawnHandLink(this.player, 0.06);
@@ -229,6 +232,7 @@ export class SkillsSystem {
     this.effects.spawnElectricBeamAuto(lastPoint, hitPoint, 0x8fd3ff, 0.12);
     this.effects.spawnArcNoisePath(lastPoint, hitPoint, 0xbfe9ff, 0.08);
     current.takeDamage(SK.dmg);
+    audio.sfx("chain_hit");
     // popup for chain hit
     try { this.effects.spawnDamagePopup(current.pos(), SK.dmg, 0xbfe9ff); } catch (e) {}
     this.effects.spawnStrike(current.pos(), 1.2, 0x9fd3ff);
@@ -251,6 +255,7 @@ export class SkillsSystem {
 
     this.player.spend(SK.mana);
     this.startCooldown(key, SK.cd);
+    audio.sfx("cast_aoe");
     this.effects.spawnHandFlash(this.player);
     try {
       this.effects.spawnHandLink(this.player, 0.06);
@@ -260,6 +265,7 @@ export class SkillsSystem {
 
     // Visual: central strike + radial
     this.effects.spawnStrike(point, SK.radius, 0x9fd8ff);
+    audio.sfx("boom");
 
     // Damage enemies in radius and apply slow if present
     this.enemies.forEach((en) => {
@@ -284,10 +290,12 @@ export class SkillsSystem {
       this.player.staticField.active = false;
       this.player.staticField.until = 0;
       this.startCooldown(key, 4); // small lockout to prevent spam-toggle
+      audio.sfx("aura_off");
       return;
     }
     if (!this.player.canSpend((SK.manaPerTick || 0) * 2)) return; // need some mana to start
     this.startCooldown(key, SK.cd);
+    audio.sfx("aura_on");
     this.player.staticField.active = true;
     this.player.staticField.until = now() + (SK.duration || 10);
     this.player.staticField.nextTick = 0;
@@ -299,6 +307,7 @@ export class SkillsSystem {
     if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
 
     // Immediate feedback
+    audio.sfx("cast_beam");
     this.effects.spawnHandFlash(this.player);
     try {
       this.effects.spawnHandLink(this.player, 0.06);
@@ -329,6 +338,7 @@ export class SkillsSystem {
         : this.player.pos().clone().add(new THREE.Vector3(0, 1.6, 0));
     const to = target.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
     this.effects.spawnElectricBeamAuto(from, to, 0x8fd3ff, 0.12);
+    audio.sfx("beam");
     target.takeDamage(SK.dmg);
     try { this.effects.spawnDamagePopup(target.pos(), SK.dmg, 0x9fd3ff); } catch(e) {}
     this.effects.spawnStrike(target.pos(), 1.0, 0x9fd3ff);
@@ -341,6 +351,7 @@ export class SkillsSystem {
 
     this.player.spend(SK.mana);
     this.startCooldown(key, SK.cd);
+    audio.sfx("cast_nova");
     this.effects.spawnHandFlash(this.player);
     try {
       this.effects.spawnHandLink(this.player, 0.06);
@@ -350,6 +361,7 @@ export class SkillsSystem {
 
     // Radial damage around player
     this.effects.spawnStrike(this.player.pos(), SK.radius, 0x9fd8ff);
+    audio.sfx("boom");
     this.enemies.forEach((en) => {
       if (en.alive && distance2D(en.pos(), this.player.pos()) <= SK.radius) {
         en.takeDamage(SK.dmg);
@@ -365,6 +377,7 @@ export class SkillsSystem {
     this.player.spend(SK.mana);
     this.startCooldown(key, SK.cd);
     this.effects.spawnHandFlash(this.player);
+    audio.sfx("storm_start");
 
     const startT = now();
     const endT = startT + (SK.duration || 7);
@@ -415,6 +428,7 @@ export class SkillsSystem {
 
       // Visual ring and zap
       this.effects.spawnStrike(this.player.pos(), SKILLS.E.radius, 0x7fc7ff);
+      audio.sfx("aura_tick");
       // Pulse ring for aura tick (color shifts each pulse)
       const phase = Math.sin(now() * 8);
       const col = phase > 0 ? 0xbfe9ff : 0x7fc7ff;
@@ -443,6 +457,7 @@ export class SkillsSystem {
         const st = s.strikes[j];
         if (t >= st.when) {
           this.effects.spawnStrike(st.pt, 3, 0xb5e2ff);
+          audio.sfx("strike");
           // camera shake on big strikes
           if (cameraShake) {
             cameraShake.mag = Math.max(cameraShake.mag, 0.4);

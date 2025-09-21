@@ -12,6 +12,7 @@ Documentation:
 - Technical Architecture (modular index): docs/technical/index.md
 - ADRs: docs/adr/
 - Changelog: CHANGELOG.md
+- Audio System: docs/technical/audio.md
 
 ## Quick Start
 
@@ -49,6 +50,15 @@ Keyboard
 - S: Stop (clear orders and briefly suppress re‑acquire)
 - Esc: Cancel aim mode
 
+## Audio
+
+- Background music: relaxing, generative loop (focus-friendly). Starts after first user interaction (autoplay-safe).
+- SFX events: basic attack, cast skill (type-specific), skill effects (chain hits, beam impact, boom for AOE/Nova, aura ticks, storm strikes), enemy death, and player hit.
+- Controls (DevTools console):
+  - `audio.setMusicVolume(0..1)`, `audio.setSfxVolume(0..1)`, `audio.setEnabled(true|false)`
+  - `audio.startMusic()`, `audio.stopMusic()`
+- Implementation: `src/audio.js` (procedural WebAudio; no external assets). See docs/technical/audio.md.
+
 ## Gameplay Overview
 
 - Player (Zeus) moves with RTS‑style orders and auto‑attacks when in range.
@@ -79,6 +89,7 @@ Keyboard
 - src/portals.js — initPortals (recall flow, portal spin, teleport)
 - src/ui.js — UIManager (HUD, cooldown overlays, minimap, center messages)
 - src/world.js — initWorld, updateCamera, updateGridFollow, addResizeHandler
+- src/audio.js — WebAudio helper (procedural SFX + music)
 
 Documentation (by module):
 - See docs/requirements/ and docs/technical/ for per‑system pages and indices.

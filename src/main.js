@@ -21,6 +21,7 @@ import { initTouchControls } from "./touch.js";
 import { createInputService } from "./input/service.js";
 import { SKILL_POOL, DEFAULT_LOADOUT } from "./skills_pool.js";
 import { loadOrDefault, saveLoadout, resolveLoadout } from "./loadout.js";
+import { audio } from "./audio.js";
 
 /**
  * Minimal skill icon helper: returns a small emoji/SVG placeholder for a skill short name.
@@ -66,8 +67,22 @@ let env = initEnvironment(scene, Object.assign({}, ENV_PRESETS[envDensityIndex],
 
 /* Initialize splash first (shows full-screen loader), then i18n */
 initSplash();
-// Initialize i18n (default Vietnamese)
+ // Initialize i18n (default Vietnamese)
 initI18n();
+
+// Audio: initialize on first user gesture and start ambient music once
+audio.startOnFirstUserGesture(document);
+const __startMusicOnce = (ev) => {
+  try { audio.startMusic(); } catch(e) {}
+  try {
+    document.removeEventListener("click", __startMusicOnce, true);
+    document.removeEventListener("touchstart", __startMusicOnce, true);
+    document.removeEventListener("keydown", __startMusicOnce, true);
+  } catch (_) {}
+};
+document.addEventListener("click", __startMusicOnce, true);
+document.addEventListener("touchstart", __startMusicOnce, true);
+document.addEventListener("keydown", __startMusicOnce, true);
 
 // Settings and overlay elements
 const btnSettings = document.getElementById("btnSettings");
@@ -1194,6 +1209,8 @@ function updateEnemies(dt) {
           effects.spawnBeam(from, to, 0xff8080, 0.09);
           // Damage
           player.takeDamage(en.attackDamage);
+          // SFX: player hit by enemy
+          try { audio.sfx("player_hit"); } catch (e) {}
           // floating damage popup on player
           try { effects.spawnDamagePopup(player.pos(), en.attackDamage, 0xffd0d0); } catch (e) {}
         }
@@ -1220,8 +1237,9 @@ function updateEnemies(dt) {
     // Update HP bar
     en.updateHPBar();
 
-    // Death cleanup and XP grant
+    // Death cleanup, SFX, and XP grant
     if (!en.alive && !en._xpGranted) {
+      try { audio.sfx("enemy_die"); } catch (e) {}
       en._xpGranted = true;
       player.gainXP(en.xpOnDeath);
     }
