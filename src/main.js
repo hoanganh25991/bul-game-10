@@ -18,6 +18,7 @@ import { initPortals } from "./portals.js";
 import { initI18n, setLanguage, getLanguage, t } from "./i18n.js";
 import { initSplash } from "./splash.js";
 import { initTouchControls } from "./touch.js";
+import { createInputService } from "./input/service.js";
 import { SKILL_POOL, DEFAULT_LOADOUT } from "./skills_pool.js";
 import { loadOrDefault, saveLoadout, resolveLoadout } from "./loadout.js";
 
@@ -500,6 +501,23 @@ const raycast = createRaycast({
   playerMesh: player.mesh,
 });
 
+const inputService = createInputService({
+  renderer,
+  raycast,
+  camera,
+  portals,
+  player,
+  enemies,
+  effects,
+  skills,
+  WORLD,
+  DEBUG,
+  aimPreview,
+  attackPreview
+});
+inputService.attachCaptureListeners();
+if (typeof touch !== "undefined" && touch) inputService.setTouchAdapter(touch);
+
 // ------------------------------------------------------------
 // UI: cooldowns are updated by skills; HUD and minimap updated in loop
 // ------------------------------------------------------------
@@ -624,52 +642,6 @@ renderer.domElement.addEventListener("mousedown", (e) => {
   }
 });
 
-/* Defensive capture handler for 'A' key
-   Runs in capture phase to intercept any legacy handlers that may still enable aim-mode.
-   Stops propagation so the existing non-capture handler won't re-enable aim.
-*/
-window.addEventListener("keydown", (e) => {
-  try {
-    if (e.repeat) return;
-    const kk = (e.key || "").toLowerCase();
-    if (kk === "a") {
-      try { e.preventDefault(); } catch (err) {}
-      try { e.stopImmediatePropagation?.(); e.stopPropagation?.(); } catch (err) {}
-      // Debug: log capture invocation to help diagnose legacy handlers
-      try { console.debug && console.debug("[input] A pressed (capture)"); } catch (err) {}
-      keyHoldA = true;
-      // Defensive cancel any aim-mode UI that may have been set elsewhere
-      try {
-        player.aimMode = false;
-        player.aimModeSkill = null;
-        if (aimPreview) aimPreview.visible = false;
-        if (attackPreview) attackPreview.visible = false;
-        renderer.domElement.style.cursor = "default";
-      } catch (err) {}
-      // Attempt immediate auto-attack
-      try {
-        const nearest = getNearestEnemy(player.pos(), WORLD.attackRange * (WORLD.attackRangeMult || 1), enemies);
-        if (nearest) {
-          try { console.debug && console.debug("[input] A auto-attack target found", nearest); } catch (err) {}
-          player.target = nearest;
-          player.moveTarget = null;
-          // If target is outside immediate attack range, enable attackMove so the player moves toward and auto-attacks when close enough.
-          try {
-            const d = distance2D(player.pos(), nearest.pos());
-            player.attackMove = d > (WORLD.attackRange * (WORLD.attackRangeMult || 1)) * 0.95;
-          } catch (err) {
-            player.attackMove = false;
-          }
-          effects.spawnTargetPing(nearest);
-          try { skills.tryBasicAttack(player, nearest); } catch (err) {}
-        } else {
-          try { console.debug && console.debug("[input] A auto-attack no target"); } catch (err) {}
-        }
-      } catch (err) {}
-      return;
-    }
-  } catch (err) {}
-}, true);
 
 window.addEventListener("keydown", (e) => {
   if (e.repeat) return;
@@ -772,58 +744,8 @@ function animate() {
 
   
 
-  // Mobile joystick drive movement
-  if (typeof touch !== "undefined" && touch?.getMoveDir) {
-    const joy = touch.getMoveDir();
-    if (joy.active && !player.frozen && !player.aimMode) {
-      const ahead = 26;
-      const px = player.pos().x + joy.x * ahead;
-      const pz = player.pos().z + joy.y * ahead;
-      player.moveTarget = new THREE.Vector3(px, 0, pz);
-      player.attackMove = false;
-      player.target = null;
-    } else {
-      // Keyboard arrows drive movement when joystick is not active
-      const km = getKeyMoveDir();
-      if (km.active && !player.frozen && !player.aimMode) {
-        const ahead = 26;
-        const px = player.pos().x + km.x * ahead;
-        const pz = player.pos().z + km.y * ahead;
-        player.moveTarget = new THREE.Vector3(px, 0, pz);
-        player.attackMove = false;
-        player.target = null;
-      }
-    }
-  } else {
-    // No touch controls available: allow keyboard arrows
-    const km = getKeyMoveDir();
-    if (km.active && !player.frozen && !player.aimMode) {
-      const ahead = 26;
-      const px = player.pos().x + km.x * ahead;
-      const pz = player.pos().z + km.y * ahead;
-      player.moveTarget = new THREE.Vector3(px, 0, pz);
-      player.attackMove = false;
-      player.target = null;
-    }
-  }
-
-  // Continuous input holds (keyboard and touch)
-  if (keyHoldA) {
-    attemptAutoBasic();
-  }
-  if (typeof touch !== "undefined" && touch?.getHoldState) {
-    const hold = touch.getHoldState();
-    if (hold) {
-      if (hold.basic) attemptAutoBasic();
-      if (hold.skillQ) { try { skills.castSkill("Q"); } catch (e) {} }
-      if (hold.skillE) { try { skills.castSkill("E"); } catch (e) {} }
-      if (hold.skillR) { try { skills.castSkill("R"); } catch (e) {} }
-      if (hold.skillW) {
-        const pos = hold.wPoint || lastMouseGroundPoint || player.pos().clone().add(new THREE.Vector3(0,0,10));
-        try { skills.castSkill("W", pos); } catch (e) {}
-      }
-    }
-  }
+  // Unified input (Hexagonal service): movement, holds, skills
+  inputService.update(t, dt);
 
   updatePlayer(dt);
   updateEnemies(dt);
