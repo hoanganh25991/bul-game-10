@@ -36,6 +36,7 @@ export const WORLD = {
   aiAttackRange: 10,
   aiAttackCooldown: 1.2,
   aiAttackDamage: 14,
+  enemyRespawnDelay: 8,
 };
 
 export const STATS_BASE = {
@@ -55,7 +56,28 @@ export const SKILLS = {
   E: { name: "Static Field (Aura)", cd: 12, mana: 0, radius: 18, tick: 0.6, dmg: 18, duration: 12, manaPerTick: 3 },
   R: { name: "Thunderstorm", cd: 18, mana: 70, radius: 36, strikes: 40, dmg: 90, duration: 8 },
 };
-
+ 
+// Progression and balancing knobs (tweak for desired pacing)
+export const SCALING = {
+  // XP curve multiplier applied to xpToLevel each time the hero levels up
+  xpGrowth: 1.2,
+  hero: {
+    // Multiplicative per-level growth factors
+    hpGrowth: 1.12,
+    mpGrowth: 1.10,
+    hpRegenGrowth: 1.08,
+    mpRegenGrowth: 1.06,
+    // Damage scaling
+    baseDamageGrowth: 1.12,   // basic attack
+    skillDamageGrowth: 1.10,  // skills
+  },
+  enemy: {
+    // Per-hero-level growth factors for enemies
+    hpGrowthPerLevel: 1.09,
+    dmgGrowthPerLevel: 1.06,
+  },
+};
+ 
 // Village and recall/portals
 export const VILLAGE_POS = new THREE.Vector3(0, 0, 0);
 export const REST_RADIUS = 20;

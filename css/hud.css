@@ -99,7 +99,7 @@
 #minimap{
   position: absolute;
   right: 12px;
-  top: 64px;
+  top: 12px;
   width: 200px;
   height: 200px;
   background: radial-gradient(220px 220px at 50% 50%, rgba(24,48,80,0.55) 0%, rgba(10,20,40,0.55) 60%, rgba(5,10,18,0.6) 100%);
@@ -137,5 +137,5 @@
 /* Small responsive tweak for HUD */
 @media (max-width: 720px) {
   #hud { width: 90vw; left: 6px; top: 8px; padding: 8px; }
-  #minimap { right: 8px; top: 56px; width: 160px; height: 160px; }
+  #minimap { right: 8px; top: 8px; width: 160px; height: 160px; }
 }

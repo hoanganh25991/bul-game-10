@@ -1,5 +1,5 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { WORLD, SKILLS, COLOR, VILLAGE_POS, REST_RADIUS } from "./constants.js";
+import { WORLD, SKILLS, COLOR, VILLAGE_POS, REST_RADIUS, SCALING } from "./constants.js";
 import { distance2D, now } from "./utils.js";
 import { handWorldPos } from "./entities.js";
 import { createGroundRing } from "./effects.js";
@@ -42,6 +42,20 @@ export class SkillsSystem {
     this.cooldowns = { Q: 0, W: 0, E: 0, R: 0, Basic: 0 };
     this.cdState = { Q: 0, W: 0, E: 0, R: 0, Basic: 0 }; // for ready flash timing
     this.storms = []; // queued thunderstorm strikes
+  }
+
+  // ----- Damage scaling helpers -----
+  getBasicDamage(attacker) {
+    if (attacker && typeof attacker.baseDamage === "number") {
+      return Math.max(1, Math.floor(attacker.baseDamage));
+    }
+    return WORLD.basicAttackDamage;
+  }
+
+  scaleSkillDamage(base) {
+    const lvl = Math.max(1, (this.player && this.player.level) || 1);
+    const mult = Math.pow(SCALING.hero.skillDamageGrowth, lvl - 1);
+    return Math.max(1, Math.floor((base || 0) * mult));
   }
 
   // ----- Cooldowns -----
@@ -152,9 +166,10 @@ export class SkillsSystem {
       this.effects.spawnHandCrackle(this.player, true, 1.2);
     } catch (e) {}
     if (attacker === this.player) this.player.braceUntil = now() + 0.18;
-    target.takeDamage(WORLD.basicAttackDamage);
+    const dmg = this.getBasicDamage(attacker);
+    target.takeDamage(dmg);
     // show floating damage number on the target
-    try { this.effects.spawnDamagePopup(target.pos(), WORLD.basicAttackDamage, 0xffe0e0); } catch (e) {}
+    try { this.effects.spawnDamagePopup(target.pos(), dmg, 0xffe0e0); } catch (e) {}
     return true;
   }
 
@@ -231,10 +246,11 @@ export class SkillsSystem {
       const hitPoint = current.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
     this.effects.spawnElectricBeamAuto(lastPoint, hitPoint, 0x8fd3ff, 0.12);
     this.effects.spawnArcNoisePath(lastPoint, hitPoint, 0xbfe9ff, 0.08);
-    current.takeDamage(SK.dmg);
+    const dmgHit = this.scaleSkillDamage(SK.dmg || 0);
+    current.takeDamage(dmgHit);
     audio.sfx("chain_hit");
     // popup for chain hit
-    try { this.effects.spawnDamagePopup(current.pos(), SK.dmg, 0xbfe9ff); } catch (e) {}
+    try { this.effects.spawnDamagePopup(current.pos(), dmgHit, 0xbfe9ff); } catch (e) {}
     this.effects.spawnStrike(current.pos(), 1.2, 0x9fd3ff);
     this.effects.spawnHitDecal(current.pos());
       lastPoint = hitPoint;
@@ -271,8 +287,9 @@ export class SkillsSystem {
     this.enemies.forEach((en) => {
       if (!en.alive) return;
       if (distance2D(en.pos(), point) <= SK.radius) {
-        en.takeDamage(SK.dmg);
-        try { this.effects.spawnDamagePopup(en.pos(), SK.dmg, 0x9fd8ff); } catch (e) {}
+        const dmg = this.scaleSkillDamage(SK.dmg || 0);
+        en.takeDamage(dmg);
+        try { this.effects.spawnDamagePopup(en.pos(), dmg, 0x9fd3ff); } catch (e) {}
         if (SK.slowFactor) {
           en.slowUntil = now() + (SK.slowDuration || 1.5);
           en.slowFactor = SK.slowFactor;
@@ -339,8 +356,9 @@ export class SkillsSystem {
     const to = target.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
     this.effects.spawnElectricBeamAuto(from, to, 0x8fd3ff, 0.12);
     audio.sfx("beam");
-    target.takeDamage(SK.dmg);
-    try { this.effects.spawnDamagePopup(target.pos(), SK.dmg, 0x9fd3ff); } catch(e) {}
+    const dmg = this.scaleSkillDamage(SK.dmg || 0);
+    target.takeDamage(dmg);
+    try { this.effects.spawnDamagePopup(target.pos(), dmg, 0x9fd3ff); } catch(e) {}
     this.effects.spawnStrike(target.pos(), 1.0, 0x9fd3ff);
   }
 
@@ -364,8 +382,9 @@ export class SkillsSystem {
     audio.sfx("boom");
     this.enemies.forEach((en) => {
       if (en.alive && distance2D(en.pos(), this.player.pos()) <= SK.radius) {
-        en.takeDamage(SK.dmg);
-        try { this.effects.spawnDamagePopup(en.pos(), SK.dmg, 0x9fd8ff); } catch(e) {}
+        const dmg = this.scaleSkillDamage(SK.dmg || 0);
+        en.takeDamage(dmg);
+        try { this.effects.spawnDamagePopup(en.pos(), dmg, 0x9fd3ff); } catch(e) {}
       }
     });
   }
@@ -439,10 +458,11 @@ export class SkillsSystem {
       // queue for fade/scale cleanup
       this.effects.queue.push({ obj: pulse, until: now() + 0.22, fade: true, mat: pulse.material, scaleRate: 0.6 });
 
+      const dmg = this.scaleSkillDamage(SKILLS.E.dmg || 0);
       this.enemies.forEach((en) => {
         if (en.alive && distance2D(en.pos(), this.player.pos()) <= SKILLS.E.radius) {
-          en.takeDamage(SKILLS.E.dmg);
-          try { this.effects.spawnDamagePopup(en.pos(), SKILLS.E.dmg, 0x7fc7ff); } catch(e) {}
+          en.takeDamage(dmg);
+          try { this.effects.spawnDamagePopup(en.pos(), dmg, 0x7fc7ff); } catch(e) {}
         }
       });
     }
@@ -463,10 +483,11 @@ export class SkillsSystem {
             cameraShake.mag = Math.max(cameraShake.mag, 0.4);
             cameraShake.until = now() + 0.18;
           }
+          const dmg = this.scaleSkillDamage(SKILLS.R.dmg || 0);
           this.enemies.forEach((en) => {
             if (en.alive && distance2D(en.pos(), st.pt) <= 3.2) {
-              en.takeDamage(SKILLS.R.dmg);
-              try { this.effects.spawnDamagePopup(en.pos(), SKILLS.R.dmg, 0xbfe2ff); } catch(e) {}
+              en.takeDamage(dmg);
+              try { this.effects.spawnDamagePopup(en.pos(), dmg, 0xbfe2ff); } catch(e) {}
             }
           });
           s.strikes.splice(j, 1);

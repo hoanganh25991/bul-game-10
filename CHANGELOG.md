@@ -10,11 +10,19 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
   - New: src/audio.js
   - Hooks: src/skills.js, src/main.js
 
+- Leveling and progression system: hero gains XP from kills, levels up with stat growth (HP, MP, regen) and base damage scaling. Configurable via SCALING in src/constants.js.
+- Enemy scaling and respawn: enemies scale HP/damage per hero level and respawn after WORLD.enemyRespawnDelay to maintain density. Spawns respect village boundary.
+- HUD level-up feedback and dynamic XP/Level display (already present); dispatches player-levelup event for animations.
+- Documentation: docs/technical/leveling.md
+
 ### Changed
 - Mobile UI scale for small screens (≤ 932px):
   - Minimap resized to 150x150 (75% of desktop 200x200).
   - Joystick (container/base/knob) scaled to 75% with recentered knob to reduce overlap and improve ergonomics.
-  - Files: css/hud.css, css/mobile.css.
+   - Files: css/hud.css, css/mobile.css.
+
+- Basic attack now scales with hero level via Player.baseDamage; Q (Chain) and Beam skills scale with level; AOE/Nova/Aura/Storm remain fixed for pacing.
+- Introduced SCALING knobs in src/constants.js (hero/enemy growth, xp growth, skill scaling toggle) and WORLD.enemyRespawnDelay.
 
 ### Removed
 - Removed 3D hero preview from Hero Screen: eliminated heroPreviewCanvas and related preview code in src/main.js.

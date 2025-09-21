@@ -578,7 +578,7 @@ for (let i = 0; i < WORLD.enemyCount; i++) {
     0,
     VILLAGE_POS.z + Math.sin(angle) * r
   );
-  const e = new Enemy(pos);
+  const e = new Enemy(pos, player.level);
   e.mesh.userData.enemyRef = e;
   scene.add(e.mesh);
   enemies.push(e);
@@ -1041,9 +1041,24 @@ function animate() {
 }
 animate();
 
-// ------------------------------------------------------------
+ // ------------------------------------------------------------
 // Helpers and per-system updates
 // ------------------------------------------------------------
+
+// Pick a random valid spawn position for enemies around the village ring.
+// Ensures spawns are outside the village rest radius and within the world enemy spawn radius.
+function randomEnemySpawnPos() {
+  const angle = Math.random() * Math.PI * 2;
+  // keep away from village by adding a minimum band
+  const minR = Math.max(REST_RADIUS + 5, WORLD.enemySpawnRadius * 0.4);
+  const r = minR + Math.random() * (WORLD.enemySpawnRadius - minR);
+  return new THREE.Vector3(
+    VILLAGE_POS.x + Math.cos(angle) * r,
+    0,
+    VILLAGE_POS.z + Math.sin(angle) * r
+  );
+}
+
 function teleportToPortal(dest) {
   if (!dest) return;
   const to = dest.group.position.clone();
@@ -1179,7 +1194,22 @@ function updatePlayer(dt) {
 
 function updateEnemies(dt) {
   enemies.forEach((en) => {
-    if (!en.alive) return;
+    if (!en.alive) {
+      // Death cleanup, SFX, and XP grant + schedule respawn
+      if (!en._xpGranted) {
+        try { audio.sfx("enemy_die"); } catch (e) {}
+        en._xpGranted = true;
+        player.gainXP(en.xpOnDeath);
+        // schedule respawn to maintain density
+        en._respawnAt = now() + (WORLD.enemyRespawnDelay || 8);
+      }
+      // Handle respawn to maintain enemy density; scale stats with current hero level
+      if (en._respawnAt && now() >= en._respawnAt) {
+        const pos = randomEnemySpawnPos();
+        en.respawn(pos, player.level);
+      }
+      return;
+    }
     const toPlayer = player.alive ? distance2D(en.pos(), player.pos()) : Infinity;
     if (toPlayer < WORLD.aiAggroRadius) {
       // chase player
@@ -1243,11 +1273,18 @@ function updateEnemies(dt) {
     // Update HP bar
     en.updateHPBar();
 
-    // Death cleanup, SFX, and XP grant
+    // Death cleanup, SFX, and XP grant + schedule respawn
     if (!en.alive && !en._xpGranted) {
       try { audio.sfx("enemy_die"); } catch (e) {}
       en._xpGranted = true;
       player.gainXP(en.xpOnDeath);
+      // schedule respawn to maintain density
+      en._respawnAt = now() + (WORLD.enemyRespawnDelay || 8);
+    }
+    // Handle respawn to maintain enemy density; scale stats with current hero level
+    if (!en.alive && en._respawnAt && now() >= en._respawnAt) {
+      const pos = randomEnemySpawnPos();
+      en.respawn(pos, player.level);
     }
   });
 }

@@ -37,7 +37,7 @@
   border-radius: 8px;
 }
 
-.icon-btn.top-right{ right: 12px; top: 12px; }
+.icon-btn.top-right{ right: 12px; top: 224px; }
 .icon-btn.right-center{ right: 12px; top: 50%; transform: translateY(-50%); }
 
 /* Panels (Settings) */

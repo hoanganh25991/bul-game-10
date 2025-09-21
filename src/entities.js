@@ -1,5 +1,5 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { COLOR, WORLD, STATS_BASE } from "./constants.js";
+import { COLOR, WORLD, STATS_BASE, SCALING } from "./constants.js";
 import { createZeusMesh, createEnemyMesh, createBillboardHPBar } from "./meshes.js";
 import { distance2D, now } from "./utils.js";
 
@@ -42,6 +42,7 @@ export class Player extends Entity {
     this.mp = this.maxMP;
     this.hpRegen = STATS_BASE.hpRegen;
     this.mpRegen = STATS_BASE.mpRegen;
+    this.baseDamage = WORLD.basicAttackDamage;
 
     this.moveTarget = null;
     this.speed = WORLD.playerSpeed;
@@ -75,14 +76,15 @@ export class Player extends Entity {
       this.xp -= this.xpToLevel;
       this.level += 1;
       gained += 1;
-      // scale stats per level
-      this.maxHP = Math.floor(this.maxHP * 1.12);
-      this.maxMP = Math.floor(this.maxMP * 1.1);
+      // scale stats per level (configurable via SCALING)
+      this.maxHP = Math.floor(this.maxHP * SCALING.hero.hpGrowth);
+      this.maxMP = Math.floor(this.maxMP * SCALING.hero.mpGrowth);
       this.hp = this.maxHP;
       this.mp = this.maxMP;
-      this.hpRegen *= 1.08;
-      this.mpRegen *= 1.06;
-      this.xpToLevel = Math.floor(this.xpToLevel * 1.2);
+      this.hpRegen *= SCALING.hero.hpRegenGrowth;
+      this.mpRegen *= SCALING.hero.mpRegenGrowth;
+      this.baseDamage = Math.floor(this.baseDamage * SCALING.hero.baseDamageGrowth);
+      this.xpToLevel = Math.floor(this.xpToLevel * SCALING.xpGrowth);
     }
 
     // Dispatch a level-up event for UI to react (e.g., glow skill buttons)
@@ -106,7 +108,7 @@ export class Player extends Entity {
 }
 
 export class Enemy extends Entity {
-  constructor(position) {
+  constructor(position, level = 1) {
     // Determine tier for visual variety and scaling (normal, tough, elite, boss)
     const r = Math.random();
     let tier = "normal";
@@ -135,7 +137,8 @@ export class Enemy extends Entity {
     // HP scaled by tier so stronger tiers are noticeably tougher
     const tierMult = { normal: 1, tough: 3, elite: 8, boss: 30 };
     const baseHP = randBetween(60, 120);
-    this.maxHP = Math.max(8, Math.floor(baseHP * tierMult[tier]));
+    const levelHpMul = Math.pow(SCALING.enemy.hpGrowthPerLevel, Math.max(0, (level || 1) - 1));
+    this.maxHP = Math.max(8, Math.floor(baseHP * tierMult[tier] * levelHpMul));
     this.hp = this.maxHP;
 
     this.moveTarget = null;
@@ -144,7 +147,8 @@ export class Enemy extends Entity {
 
     // Attack damage scales with tier (used in combat)
     const dmgMult = { normal: 1, tough: 1.8, elite: 3.2, boss: 6 };
-    this.attackDamage = Math.max(1, Math.floor(WORLD.aiAttackDamage * dmgMult[tier]));
+    const levelDmgMul = Math.pow(SCALING.enemy.dmgGrowthPerLevel, Math.max(0, (level || 1) - 1));
+    this.attackDamage = Math.max(1, Math.floor(WORLD.aiAttackDamage * dmgMult[tier] * levelDmgMul));
 
     // XP reward scales with HP so killing stronger enemies is rewarding
     this.xpOnDeath = Math.max(8, Math.floor(this.maxHP / 10));
@@ -166,6 +170,34 @@ export class Enemy extends Entity {
     };
     if (this.hpBar && this.hpBar.fill && this.hpBar.fill.material) {
       this.hpBar.fill.material.color.setHex(BAR_COLOR[tier]);
+    }
+  }
+
+  respawn(position, level = 1) {
+    // Reset core state
+    this.alive = true;
+    this.mesh.visible = true;
+    this.moveTarget = null;
+    this.nextAttackReady = 0;
+    this.slowUntil = 0;
+    this.slowFactor = 1;
+    if (position) this.mesh.position.copy(position);
+
+    // Recalculate stats based on tier and current hero level
+    const tierMult = { normal: 1, tough: 3, elite: 8, boss: 30 };
+    const dmgMult = { normal: 1, tough: 1.8, elite: 3.2, boss: 6 };
+    const baseHP = randBetween(60, 120);
+    const levelHpMul = Math.pow(SCALING.enemy.hpGrowthPerLevel, Math.max(0, (level || 1) - 1));
+    const levelDmgMul = Math.pow(SCALING.enemy.dmgGrowthPerLevel, Math.max(0, (level || 1) - 1));
+    this.maxHP = Math.max(8, Math.floor(baseHP * tierMult[this.tier] * levelHpMul));
+    this.hp = this.maxHP;
+    this.attackDamage = Math.max(1, Math.floor(WORLD.aiAttackDamage * dmgMult[this.tier] * levelDmgMul));
+    this.xpOnDeath = Math.max(8, Math.floor(this.maxHP / 10));
+    this._xpGranted = false;
+
+    // Refresh HP bar visual
+    if (this.hpBar && this.hpBar.fill) {
+      this.hpBar.fill.scale.x = 1;
     }
   }
 
