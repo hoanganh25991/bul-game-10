@@ -1,7 +1,7 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import { COLOR } from "./constants.js";
 import { now } from "./utils.js";
-import { handWorldPos } from "./entities.js";
+import { handWorldPos, leftHandWorldPos } from "./entities.js";
 
 // Standalone ring factory (used by UI modules and effects)
 export function createGroundRing(innerR, outerR, color, opacity = 0.6) {
@@ -177,8 +177,8 @@ export class EffectsManager {
     }
   }
 
-  spawnHandFlash(player) {
-    const p = handWorldPos(player);
+  spawnHandFlash(player, left = false) {
+    const p = left ? leftHandWorldPos(player) : handWorldPos(player);
     const s = new THREE.Mesh(
       new THREE.SphereGeometry(0.28, 12, 12),
       new THREE.MeshBasicMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.9 })
@@ -234,6 +234,27 @@ export class EffectsManager {
       velY: 0.9,
       map: tex,
     });
+  }
+
+  // Hand crackle sparks around hand anchor
+  spawnHandCrackle(player, left = false, strength = 1) {
+    if (!player) return;
+    const origin = left ? leftHandWorldPos(player) : handWorldPos(player);
+    const count = Math.max(1, Math.round(2 + Math.random() * 2 * strength));
+    for (let i = 0; i < count; i++) {
+      const dir = new THREE.Vector3((Math.random() - 0.5), (Math.random() - 0.2), (Math.random() - 0.5)).normalize();
+      const len = 0.35 + Math.random() * 0.5 * strength;
+      const to = origin.clone().add(dir.multiplyScalar(len));
+      this.spawnElectricBeam(origin.clone(), to, 0x9fd8ff, 0.06);
+    }
+  }
+
+  // Short arc connecting both hands
+  spawnHandLink(player, life = 0.08) {
+    if (!player) return;
+    const a = handWorldPos(player);
+    const b = leftHandWorldPos(player);
+    this.spawnElectricBeamAuto(a, b, 0x9fd8ff, life);
   }
 
   // ----- Frame update -----

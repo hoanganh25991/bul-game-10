@@ -136,6 +136,19 @@ export class SkillsSystem {
         : attacker.pos().clone().add(new THREE.Vector3(0, 1.6, 0));
     const to = target.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
     this.effects.spawnElectricBeamAuto(from, to, COLOR.blue, 0.12);
+    // FP hand VFX for basic attack
+    try {
+      this.effects.spawnHandFlash(this.player);
+    try {
+      this.effects.spawnHandLink(this.player, 0.06);
+      this.effects.spawnHandCrackle(this.player, false, 1.0);
+      this.effects.spawnHandCrackle(this.player, true, 1.0);
+    } catch (e) {}
+      this.effects.spawnHandFlash(this.player, true);
+      this.effects.spawnHandLink(this.player, 0.08);
+      this.effects.spawnHandCrackle(this.player, false, 1.2);
+      this.effects.spawnHandCrackle(this.player, true, 1.2);
+    } catch (e) {}
     if (attacker === this.player) this.player.braceUntil = now() + 0.18;
     target.takeDamage(WORLD.basicAttackDamage);
     // show floating damage number on the target
@@ -186,6 +199,11 @@ export class SkillsSystem {
     if (this.isOnCooldown(key)) return;
 
     this.effects.spawnHandFlash(this.player);
+    try {
+      this.effects.spawnHandLink(this.player, 0.06);
+      this.effects.spawnHandCrackle(this.player, false, 1.0);
+      this.effects.spawnHandCrackle(this.player, true, 1.0);
+    } catch (e) {}
 
     const effRange = Math.max(SK.range || 0, WORLD.attackRange * (WORLD.attackRangeMult || 1));
     let candidates = this.enemies.filter(
@@ -234,6 +252,11 @@ export class SkillsSystem {
     this.player.spend(SK.mana);
     this.startCooldown(key, SK.cd);
     this.effects.spawnHandFlash(this.player);
+    try {
+      this.effects.spawnHandLink(this.player, 0.06);
+      this.effects.spawnHandCrackle(this.player, false, 1.0);
+      this.effects.spawnHandCrackle(this.player, true, 1.0);
+    } catch (e) {}
 
     // Visual: central strike + radial
     this.effects.spawnStrike(point, SK.radius, 0x9fd8ff);
@@ -277,6 +300,11 @@ export class SkillsSystem {
 
     // Immediate feedback
     this.effects.spawnHandFlash(this.player);
+    try {
+      this.effects.spawnHandLink(this.player, 0.06);
+      this.effects.spawnHandCrackle(this.player, false, 1.0);
+      this.effects.spawnHandCrackle(this.player, true, 1.0);
+    } catch (e) {}
 
     const effRange = Math.max(SK.range || 0, WORLD.attackRange * (WORLD.attackRangeMult || 1));
     let candidates = this.enemies.filter(
@@ -314,6 +342,11 @@ export class SkillsSystem {
     this.player.spend(SK.mana);
     this.startCooldown(key, SK.cd);
     this.effects.spawnHandFlash(this.player);
+    try {
+      this.effects.spawnHandLink(this.player, 0.06);
+      this.effects.spawnHandCrackle(this.player, false, 1.0);
+      this.effects.spawnHandCrackle(this.player, true, 1.0);
+    } catch (e) {}
 
     // Radial damage around player
     this.effects.spawnStrike(this.player.pos(), SK.radius, 0x9fd8ff);

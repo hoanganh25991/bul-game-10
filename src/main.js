@@ -771,6 +771,57 @@ function animate() {
     const mid = left.clone().add(right).multiplyScalar(0.5);
     const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(player.mesh.quaternion).normalize();
 
+    // FP hand VFX and gestures (two hands, thunder-in-hand, move/attack animations)
+    try {
+      const ud = player.mesh.userData || {};
+      const speed = lastMoveDir.length();
+      const tnow = now();
+
+      // Movement/idle crackle scheduling around hands
+      if (!ud.nextCrackleT || tnow >= ud.nextCrackleT) {
+        const strength = 0.6 + speed * 2.0;
+        effects.spawnHandCrackle(player, false, strength);
+        effects.spawnHandCrackle(player, true, strength * 0.8);
+        ud.nextCrackleT = tnow + (speed > 0.1 ? 0.18 + Math.random() * 0.2 : 0.55 + Math.random() * 0.35);
+      }
+
+      // Boost orb/light intensity based on movement and a small flicker
+      const flick = Math.sin(tnow * 10) * 0.2;
+      if (ud.thunderOrb && ud.thunderOrb.material) {
+        ud.thunderOrb.material.emissiveIntensity = 2.1 + speed * 0.6 + flick;
+      }
+      if (ud.leftThunderOrb && ud.leftThunderOrb.material) {
+        ud.leftThunderOrb.material.emissiveIntensity = 1.9 + speed * 0.5 + flick * 0.8;
+      }
+      if (ud.handLight) ud.handLight.intensity = 1.2 + speed * 0.8;
+      if (ud.leftHandLight) ud.leftHandLight.intensity = 1.0 + speed * 0.7;
+
+      // Randomized gesture wobble while moving or idle, plus brace lift when attacking
+      const rArm = ud.rightArm, lArm = ud.leftArm;
+      if (rArm && lArm) {
+        const moveAmp = 0.12 * Math.min(1, speed * 3);
+        const idleAmp = 0.06;
+        const phase = tnow * 6 + Math.random() * 0.05; // slight desync
+        const amp = (speed > 0.02 ? moveAmp : idleAmp);
+        const braceN = player.braceUntil && tnow < player.braceUntil ? Math.max(0, (player.braceUntil - tnow) / 0.18) : 0;
+
+        // Base pose + sinusoidal bob + brace squash
+        rArm.rotation.x = -Math.PI * 0.12 + Math.sin(phase) * amp - braceN * 0.15;
+        lArm.rotation.x =  Math.PI * 0.12 + Math.cos(phase) * amp - braceN * 0.12;
+
+        // Subtle sway and random micro-gestures
+        rArm.rotation.y = 0.02 + Math.sin(phase * 0.5) * amp * 0.5 + (Math.random() - 0.5) * 0.01;
+        lArm.rotation.y = -0.02 + Math.cos(phase * 0.5) * amp * 0.5 + (Math.random() - 0.5) * 0.01;
+
+        // Occasional quick gesture twitch
+        if (!ud.nextGestureT || tnow >= ud.nextGestureT) {
+          rArm.rotation.z += (Math.random() - 0.5) * 0.08;
+          lArm.rotation.z += (Math.random() - 0.5) * 0.08;
+          ud.nextGestureT = tnow + 0.35 + Math.random() * 0.5;
+        }
+      }
+    } catch (e) {}
+
     // Position camera slightly behind the hands (negative forward)
     // and bias framing so the visible model sits near the center-bottom of the screen
     const fpBack = 4.5;      // how far behind the hands the camera sits (increase to see more forward)

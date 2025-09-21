@@ -219,3 +219,17 @@ export function handWorldPos(player) {
   }
   return player.pos().clone().add(new THREE.Vector3(0, 1.6, 0));
 }
+
+/**
+ * World position of Zeus's left hand.
+ * @param {Player} player
+ * @returns {THREE.Vector3}
+ */
+export function leftHandWorldPos(player) {
+  if (player && player.mesh && player.mesh.userData && player.mesh.userData.leftHandAnchor) {
+    const v = new THREE.Vector3();
+    player.mesh.userData.leftHandAnchor.getWorldPosition(v);
+    return v;
+  }
+  return player.pos().clone().add(new THREE.Vector3(-0.4, 1.6, 0.25));
+}

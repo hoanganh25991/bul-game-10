@@ -81,6 +81,15 @@ export function createZeusMesh() {
   leftHandAnchor.position.set(-0.85, 1.15, 0.25);
   root.add(leftHandAnchor);
 
+  // Left hand thunder orb + light (for FP two-hands effect)
+  const leftThunderOrb = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(0.2, 0),
+    new THREE.MeshStandardMaterial({ color: COLOR.blue, emissive: 0x2da0ff, emissiveIntensity: 2.0, roughness: 0.15, metalness: 0.1 })
+  );
+  leftHandAnchor.add(leftThunderOrb);
+  const leftHandLight = new THREE.PointLight(0x66b3ff, 1.0, 18, 2);
+  leftHandAnchor.add(leftHandLight);
+
   const thunderOrb = new THREE.Mesh(
     new THREE.IcosahedronGeometry(0.2, 0),
     new THREE.MeshStandardMaterial({ color: COLOR.blue, emissive: 0x2da0ff, emissiveIntensity: 2.2, roughness: 0.15, metalness: 0.1 })
@@ -92,6 +101,9 @@ export function createZeusMesh() {
   // expose for idle pulse control
   root.userData.handLight = handLight;
   root.userData.thunderOrb = thunderOrb;
+  // expose left-hand VFX too
+  root.userData.leftHandLight = leftHandLight;
+  root.userData.leftThunderOrb = leftThunderOrb;
 
   // Left arm (symmetric)
   const armL = new THREE.Mesh(
@@ -101,6 +113,9 @@ export function createZeusMesh() {
   armL.position.set(-0.65, 1.3, 0.15);
   armL.rotation.z = Math.PI * 0.25;
   root.add(armL);
+  // expose arms for FP gesture animation
+  root.userData.rightArm = arm;
+  root.userData.leftArm = armL;
 
   // Biceps bulges
   const bicepR = new THREE.Mesh(
@@ -149,8 +164,22 @@ export function createZeusMesh() {
   root.userData = root.userData || {};
   root.userData.handAnchor = handAnchor;
   root.userData.leftHandAnchor = leftHandAnchor;
-  // parts to hide when entering first-person (torso/head/cloak) so hands remain visible
-  root.userData.fpHide = [ body ];
+  // parts to hide when entering first-person so only two hands are visible
+  root.userData.fpHide = [
+    body,
+    head,
+    cloak,
+    tunic,
+    belt,
+    shoulderL,
+    shoulderR,
+    bicepR,
+    bicepL,
+    beard,
+    crown,
+    hairCap,
+    pony
+  ];
 
   // Assemble placeholder into root
   root.add(body);
