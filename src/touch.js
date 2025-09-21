@@ -231,7 +231,8 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
 
     // Map drag distance to world distance (cap to ~20 units)
     const maxWorld = 20;
-    const worldDist = (clamped / aoeDrag.radiusPx) * maxWorld;
+    // Increase sensitivity to 3x so smaller drags move the AOE farther (but still clamp to maxWorld)
+    const worldDist = (clamped / aoeDrag.radiusPx) * maxWorld * 3;
 
     const aim = computeAimPositionFromVector(nx, nz, worldDist);
     lastAimPos.copy(aim);
