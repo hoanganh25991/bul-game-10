@@ -409,24 +409,50 @@ const houses = [
   (() => { const h = createHouse(); h.position.set(-16, 0, -12); scene.add(h); return h; })(),
 ];
 
-/* Village fence: replace the flat ring with a visual fence made of posts,
-   and keep the logical VILLAGE_POS/REST_RADIUS for gameplay checks. */
+/* Village fence: posts + connecting rails (multi-line) for a stronger visual barrier.
+   The logical VILLAGE_POS/REST_RADIUS remain the authoritative gameplay boundary. */
 const fenceGroup = new THREE.Group();
 const FENCE_POSTS = 28;
 const fenceRadius = REST_RADIUS - 0.2;
+
+// create posts
+const postGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.6, 8);
+const postMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2a });
+const postPositions = [];
 for (let i = 0; i < FENCE_POSTS; i++) {
   const ang = (i / FENCE_POSTS) * Math.PI * 2;
   const px = VILLAGE_POS.x + Math.cos(ang) * fenceRadius;
   const pz = VILLAGE_POS.z + Math.sin(ang) * fenceRadius;
-  const postGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.6, 8);
-  const postMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2a });
   const post = new THREE.Mesh(postGeo, postMat);
   post.position.set(px, 0.8, pz);
   post.rotation.y = -ang;
   post.receiveShadow = true;
   post.castShadow = true;
   fenceGroup.add(post);
+  postPositions.push({ x: px, z: pz });
 }
+
+// connecting rails (three horizontal lines)
+const railMat = new THREE.MeshStandardMaterial({ color: 0x4b3620 });
+const railHeights = [0.45, 0.9, 1.35]; // y positions for rails
+for (let i = 0; i < FENCE_POSTS; i++) {
+  const a = postPositions[i];
+  const b = postPositions[(i + 1) % FENCE_POSTS];
+  const dx = b.x - a.x;
+  const dz = b.z - a.z;
+  const len = Math.hypot(dx, dz);
+  const angle = Math.atan2(dz, dx);
+  for (const h of railHeights) {
+    const railGeo = new THREE.BoxGeometry(len, 0.06, 0.06);
+    const rail = new THREE.Mesh(railGeo, railMat);
+    rail.position.set((a.x + b.x) / 2, h, (a.z + b.z) / 2);
+    rail.rotation.y = -angle;
+    rail.receiveShadow = true;
+    rail.castShadow = false;
+    fenceGroup.add(rail);
+  }
+}
+
 // Low translucent ground ring for visual guidance (subtle)
 const fenceRing = new THREE.Mesh(
   new THREE.RingGeometry(fenceRadius - 0.08, fenceRadius + 0.08, 64),
