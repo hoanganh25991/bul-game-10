@@ -54,6 +54,18 @@ export function initSplash() {
         if (cur >= 100) {
           clearInterval(interval);
 
+          // Hide loader UI (title, desc, progress, note) now that loading is complete
+          try {
+            const titleEl = overlay.querySelector(".flash-title");
+            const descEl = overlay.querySelector(".flash-desc");
+            const progressWrap = overlay.querySelector(".progress");
+            const noteEl = overlay.querySelector(".flash-note");
+            if (titleEl) titleEl.style.display = "none";
+            if (descEl) descEl.style.display = "none";
+            if (progressWrap) progressWrap.style.display = "none";
+            if (noteEl) noteEl.style.display = "none";
+          } catch (e) {}
+
           // Reveal the start screen (keeps overlay visible) and wait for player to click Start.
           const startScreen = document.getElementById("startScreen");
           const startBtn = document.getElementById("btnStartGame");

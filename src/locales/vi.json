@@ -42,7 +42,8 @@
   },
   "flash": {
     "title": "Đang tải Zeus RPG",
-    "desc": "Chuẩn bị trải nghiệm sấm sét…"
+    "desc": "Chuẩn bị trải nghiệm sấm sét…",
+    "note": "Đang tải mô-đun…"
   },
   "start": {
     "title": "Hành trình của Thần Sấm",

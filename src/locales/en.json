@@ -42,7 +42,8 @@
   },
   "flash": {
     "title": "Loading Zeus RPG",
-    "desc": "Preparing thunderous experience…"
+    "desc": "Preparing thunderous experience…",
+    "note": "Loading modules…"
   },
   "start": {
     "title": "Journey of the Thunder God",
