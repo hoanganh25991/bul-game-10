@@ -2,7 +2,12 @@
   "settings": {
     "title": "Cài đặt",
     "language": "Ngôn ngữ",
-    "instructions": "Hướng dẫn"
+    "instructions": "Hướng dẫn",
+    "tabs": {
+      "general": "Chung",
+      "environment": "Môi trường",
+      "controls": "Điều khiển"
+    }
   },
   "instructions": {
     "title": "Hướng dẫn",
@@ -19,6 +24,10 @@
   "hero": {
     "title": "Zeus",
     "skills": "Kỹ năng",
+    "tabs": {
+      "info": "Thông tin",
+      "skills": "Kỹ năng"
+    },
     "info": {
       "level": "Cấp",
       "hp": "HP",

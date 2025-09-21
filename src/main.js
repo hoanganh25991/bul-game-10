@@ -11,7 +11,7 @@ import { Player, Enemy, getNearestEnemy, handWorldPos } from "./entities.js";
 import { EffectsManager, createGroundRing } from "./effects.js";
 import { SkillsSystem } from "./skills.js";
 import { createRaycast } from "./raycast.js";
-import { createHouse, createHeroOverheadBars } from "./meshes.js";
+import { createHouse, createHeroOverheadBars, createZeusMesh } from "./meshes.js";
 import { initEnvironment } from "./environment.js";
 import { distance2D, dir2D, now, clamp01 } from "./utils.js";
 import { initPortals } from "./portals.js";
@@ -75,6 +75,7 @@ const btnCloseSettings = document.getElementById("btnCloseSettings");
 const settingsPanel = document.getElementById("settingsPanel");
 const btnHeroScreen = document.getElementById("btnHeroScreen");
 const btnCloseHero = document.getElementById("btnCloseHero");
+const btnCloseHeroIcon = document.getElementById("btnCloseHeroIcon");
 const heroScreen = document.getElementById("heroScreen");
 const introScreen = document.getElementById("introScreen");
 const btnStart = document.getElementById("btnStart");
@@ -122,12 +123,13 @@ function setFirstPerson(enabled) {
 }
 
  // Settings handlers
- btnSettings?.addEventListener("click", () => settingsPanel?.classList.toggle("hidden"));
+ btnSettings?.addEventListener("click", () => { try { ensureSettingsTabs(); } catch(e) {} settingsPanel?.classList.toggle("hidden"); });
  btnCloseSettings?.addEventListener("click", () => settingsPanel?.classList.add("hidden"));
 
  // Hero open/close
  btnHeroScreen?.addEventListener("click", () => { renderHeroScreen(); heroScreen?.classList.remove("hidden"); });
- btnCloseHero?.addEventListener("click", () => heroScreen?.classList.add("hidden"));
+ btnCloseHero?.addEventListener("click", () => { try { teardownHeroPreview(); } catch(e) {} heroScreen?.classList.add("hidden"); });
+ btnCloseHeroIcon?.addEventListener("click", () => { try { teardownHeroPreview(); } catch(e) {} heroScreen?.classList.add("hidden"); });
 
  // Generic top-right screen-close icons (ensure any element with .screen-close closes its parent .screen)
  document.querySelectorAll(".screen-close").forEach((b) => {
@@ -174,6 +176,82 @@ if (envDensity) {
     localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex }));
   });
 }
+
+// Setup Settings tabs (General / Environment / Controls)
+function ensureSettingsTabs(){
+  if (!settingsPanel || settingsPanel.dataset.tabsReady === "1") return;
+  const content = settingsPanel.querySelector(".panel-content");
+  if (!content) return;
+
+  // Collect existing rows
+  const rows = Array.from(content.querySelectorAll(".row"));
+  const generalPanel = document.createElement("div");
+  generalPanel.className = "tab-panel active";
+  const envPanel = document.createElement("div");
+  envPanel.className = "tab-panel";
+  const controlsPanel = document.createElement("div");
+  controlsPanel.className = "tab-panel";
+
+  // Move rows by detecting known elements
+  rows.forEach((row) => {
+    if (row.querySelector("#langVi") || row.querySelector("#settingsInstructions")) {
+      generalPanel.appendChild(row);
+    } else if (row.querySelector("#envRainToggle") || row.querySelector("#envDensity")) {
+      envPanel.appendChild(row);
+    } else {
+      generalPanel.appendChild(row);
+    }
+  });
+
+  if (!controlsPanel.innerHTML) {
+    const r = document.createElement("div");
+    r.className = "row";
+    const lbl = document.createElement("span");
+    lbl.className = "row-label";
+    lbl.setAttribute("data-i18n", "settings.tabs.controls");
+    const val = document.createElement("div");
+    val.style.fontSize = "12px";
+    val.style.opacity = "0.75";
+    val.textContent = "—";
+    r.appendChild(lbl);
+    r.appendChild(val);
+    controlsPanel.appendChild(r);
+  }
+
+  // Tab buttons
+  const tabBar = document.createElement("div");
+  tabBar.className = "tab-bar";
+  const tabs = [
+    { key: "general", labelKey: "settings.tabs.general", panel: generalPanel },
+    { key: "environment", labelKey: "settings.tabs.environment", panel: envPanel },
+    { key: "controls", labelKey: "settings.tabs.controls", panel: controlsPanel },
+  ];
+  tabs.forEach((t, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "tab-btn" + (idx === 0 ? " active" : "");
+    btn.setAttribute("data-i18n", t.labelKey);
+    btn.textContent = (typeof t.labelKey === "string" ? t.labelKey : "") || "";
+    btn.addEventListener("click", () => {
+      tabBar.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      [generalPanel, envPanel, controlsPanel].forEach((p) => p.classList.remove("active"));
+      t.panel.classList.add("active");
+    });
+    tabBar.appendChild(btn);
+  });
+
+  // Rebuild content
+  content.innerHTML = "";
+  content.appendChild(tabBar);
+  content.appendChild(generalPanel);
+  content.appendChild(envPanel);
+  content.appendChild(controlsPanel);
+  settingsPanel.dataset.tabsReady = "1";
+
+  try { window.applyTranslations && window.applyTranslations(settingsPanel); } catch (e) {}
+}
+// Build once on load (in case user opens immediately)
+try { ensureSettingsTabs(); } catch(e) {}
 
 // Selection/aim indicators
 /* Load and apply saved loadout so runtime SKILLS.Q/W/E/R reflect player's choice */
@@ -258,16 +336,108 @@ try {
  * - shows hero info, current 4-slot loadout, and the full skill pool
  * - click a slot to select it, then click a skill to assign; or click Assign on a skill
  */
-function renderHeroScreen() {
-  const container = document.getElementById("heroSkillsList");
-  if (!container) return;
-  container.innerHTML = "";
+/* Hero Screen: tabbed layout and 3D hero preview */
+let heroPreview = null;
+function initHeroPreview() {
+  if (heroPreview) return;
+  const fig = document.querySelector("#heroScreen .hero-figure");
+  if (!fig) return;
 
-  // Hero basic info
+  const canvas = document.createElement("canvas");
+  canvas.id = "heroPreviewCanvas";
+  canvas.style.width = "100%";
+  canvas.style.height = "100%";
+  fig.appendChild(canvas);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, canvas, alpha: true });
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+  dir.position.set(2, 4, 3);
+  scene.add(ambient, dir);
+
+  const mesh = createZeusMesh();
+  mesh.position.set(0, 0, 0);
+  scene.add(mesh);
+
+  cam.position.set(0, 2.2, 4.8);
+  cam.lookAt(new THREE.Vector3(0, 1.4, 0));
+
+  function resize() {
+    const rect = fig.getBoundingClientRect();
+    const w = Math.max(1, Math.floor(rect.width));
+    const h = Math.max(1, Math.floor(rect.height));
+    renderer.setSize(w, h, false);
+    cam.aspect = w / h;
+    cam.updateProjectionMatrix();
+  }
+  resize();
+  window.addEventListener("resize", resize);
+
+  let raf = 0;
+  function loop() {
+    raf = requestAnimationFrame(loop);
+    if (mesh) mesh.rotation.y += 0.01;
+    renderer.render(scene, cam);
+  }
+  loop();
+
+  heroPreview = { renderer, scene, cam, mesh, raf, resize, canvas, cleanup: () => {
+    try { cancelAnimationFrame(raf); } catch(e) {}
+    try { window.removeEventListener("resize", resize); } catch(e) {}
+    try { renderer.dispose(); } catch(e) {}
+    try { canvas.remove(); } catch(e) {}
+    heroPreview = null;
+  }};
+}
+function teardownHeroPreview() {
+  if (heroPreview && heroPreview.cleanup) heroPreview.cleanup();
+}
+
+function renderHeroScreen() {
+  // Ensure tab structure on right side
+  const right = document.querySelector("#heroScreen .hero-right");
+  const listContainer = document.getElementById("heroSkillsList");
+  if (!right || !listContainer) return;
+  right.innerHTML = "";
+
+  const title = document.createElement("h2");
+  title.setAttribute("data-i18n", "hero.title");
+  title.textContent = t("hero.title");
+  right.appendChild(title);
+
+  // Tab bar
+  const tabBar = document.createElement("div");
+  tabBar.className = "tab-bar";
+  const infoBtn = document.createElement("button");
+  infoBtn.className = "tab-btn active";
+  infoBtn.setAttribute("data-i18n", "hero.tabs.info");
+  infoBtn.textContent = t("hero.tabs.info") || "Info";
+  const skillsBtn = document.createElement("button");
+  skillsBtn.className = "tab-btn";
+  skillsBtn.setAttribute("data-i18n", "hero.tabs.skills");
+  skillsBtn.textContent = t("hero.tabs.skills") || "Skills";
+  tabBar.appendChild(infoBtn);
+  tabBar.appendChild(skillsBtn);
+  right.appendChild(tabBar);
+
+  // Panels
+  const infoPanel = document.createElement("div");
+  infoPanel.className = "tab-panel active";
+  const skillsPanel = document.createElement("div");
+  skillsPanel.className = "tab-panel";
+
+  // Info content
   const info = document.createElement("div");
   info.className = "hero-info";
   info.innerHTML = `<div>${t("hero.info.level")}: ${player.level || 1}</div><div>${t("hero.info.hp")}: ${Math.floor(player.hp)}/${player.maxHP}</div><div>${t("hero.info.mp")}: ${Math.floor(player.mp)}/${player.maxMP}</div>`;
-  container.appendChild(info);
+  infoPanel.appendChild(info);
+
+  // Skills content (reuse existing builder inside a wrapper)
+  const container = document.createElement("div");
+  container.id = "heroSkillsList";
+  skillsPanel.appendChild(container);
 
   // Loadout slots (Q W E R)
   const keys = ["Q", "W", "E", "R"];
@@ -288,7 +458,11 @@ function renderHeroScreen() {
   }
   container.appendChild(slotsWrap);
 
-  // Skill pool list
+  const poolHeader = document.createElement("div");
+  poolHeader.className = "skill-pool-header";
+  poolHeader.textContent = t("hero.pool");
+  container.appendChild(poolHeader);
+
   const poolWrap = document.createElement("div");
   poolWrap.className = "skill-pool";
   SKILL_POOL.forEach((s) => {
@@ -298,11 +472,19 @@ function renderHeroScreen() {
     el.innerHTML = `<div class="skill-icon">${getSkillIcon(s.short)}</div><div class="skill-name">${s.name}</div><button class="assign">${t("hero.assign")}</button>`;
     poolWrap.appendChild(el);
   });
-  const poolHeader = document.createElement("div");
-  poolHeader.className = "skill-pool-header";
-  poolHeader.textContent = t("hero.pool");
-  container.appendChild(poolHeader);
   container.appendChild(poolWrap);
+
+  const actions = document.createElement("div");
+  actions.className = "hero-actions";
+  const resetBtn = document.createElement("button");
+  resetBtn.textContent = t("hero.slot.reset");
+  resetBtn.addEventListener("click", () => {
+    currentLoadout = DEFAULT_LOADOUT.slice();
+    setLoadoutAndSave(currentLoadout);
+    renderHeroScreen();
+  });
+  actions.appendChild(resetBtn);
+  container.appendChild(actions);
 
   // Interaction handling
   let selectedSlotIndex = null;
@@ -320,7 +502,6 @@ function renderHeroScreen() {
       renderHeroScreen();
     });
   });
-
   poolWrap.querySelectorAll(".skill-pool-item").forEach((itemEl) => {
     const skillId = itemEl.dataset.skillId;
     itemEl.addEventListener("click", () => {
@@ -339,18 +520,24 @@ function renderHeroScreen() {
     });
   });
 
-  // Actions (reset)
-  const actions = document.createElement("div");
-  actions.className = "hero-actions";
-  const resetBtn = document.createElement("button");
-  resetBtn.textContent = t("hero.slot.reset");
-  resetBtn.addEventListener("click", () => {
-    currentLoadout = DEFAULT_LOADOUT.slice();
-    setLoadoutAndSave(currentLoadout);
-    renderHeroScreen();
-  });
-  actions.appendChild(resetBtn);
-  container.appendChild(actions);
+  // Append panels
+  right.appendChild(infoPanel);
+  right.appendChild(skillsPanel);
+
+  // Tab switching
+  function activate(panel) {
+    [infoBtn, skillsBtn].forEach((b) => b.classList.remove("active"));
+    [infoPanel, skillsPanel].forEach((p) => p.classList.remove("active"));
+    if (panel === "info") { infoBtn.classList.add("active"); infoPanel.classList.add("active"); }
+    else { skillsBtn.classList.add("active"); skillsPanel.classList.add("active"); }
+  }
+  infoBtn.addEventListener("click", () => activate("info"));
+  skillsBtn.addEventListener("click", () => activate("skills"));
+
+  // Mount hero 3D preview
+  initHeroPreview();
+
+  try { window.applyTranslations && window.applyTranslations(document.getElementById("heroScreen")); } catch(e) {}
 }
 
 // Apply initial loadout so SKILLS are correct for subsequent UI/effects

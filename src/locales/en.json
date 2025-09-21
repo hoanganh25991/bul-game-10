@@ -2,7 +2,12 @@
   "settings": {
     "title": "Settings",
     "language": "Language",
-    "instructions": "Instructions"
+    "instructions": "Instructions",
+    "tabs": {
+      "general": "General",
+      "environment": "Environment",
+      "controls": "Controls"
+    }
   },
   "instructions": {
     "title": "Instructions",
@@ -19,6 +24,10 @@
   "hero": {
     "title": "Zeus",
     "skills": "Skills",
+    "tabs": {
+      "info": "Info",
+      "skills": "Skills"
+    },
     "info": {
       "level": "Level",
       "hp": "HP",
