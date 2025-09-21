@@ -110,11 +110,9 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
       lastAimPos.copy(aim);
       aimPreview.visible = true;
       aimPreview.position.set(aim.x, 0.02, aim.z);
-    } else if (player.aimMode && player.aimModeSkill === "ATTACK" && attackPreview) {
-      // For attack-aim on ground, show ground reticle in joystick direction
-      const aim = computeAimPositionFromJoystick(10);
-      attackPreview.visible = true;
-      attackPreview.position.set(aim.x, 0.02, aim.z);
+    } else {
+      // Attack-aim has been removed — ensure attack preview is hidden while using the joystick
+      if (attackPreview) attackPreview.visible = false;
     }
   }
   function onPointerUp(e) {
@@ -141,9 +139,11 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
 
   // Helpers
   function computeAimPositionFromJoystick(distance = 20) {
-    // World X maps from joystick x; world Z uses -y (screen down is +y)
+    // World X maps from joystick x; world Z maps directly from joystick y
+    // Joystick up (negative screen Y) should map to negative world Z direction if needed,
+    // but we keep a direct mapping: screen-up -> negative joyState.y already handled by updateJoyFromPointer.
     const dirX = joyState.x;
-    const dirZ = -joyState.y;
+    const dirZ = joyState.y;
     const len = Math.hypot(dirX, dirZ) || 1;
     const nx = dirX / len;
     const nz = dirZ / len;
@@ -174,7 +174,7 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
       if (player.frozen) return;
       try {
         const nearest = (typeof getNearestEnemy === "function")
-          ? getNearestEnemy(player.pos(), WORLD.attackRange * 1.2, enemies)
+          ? getNearestEnemy(player.pos(), WORLD.attackRange * 3, enemies)
           : null;
         if (nearest) {
           // select and perform basic attack immediately
@@ -248,7 +248,7 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
 
   return {
     getMoveDir() {
-      return { active: joyState.active, x: joyState.x, y: -joyState.y }; // map to world (x, z)
+      return { active: joyState.active, x: joyState.x, y: joyState.y }; // map to world (x, z)
     },
     cancelAim,
   };

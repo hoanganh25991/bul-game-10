@@ -553,12 +553,18 @@ window.addEventListener("keydown", (e) => {
       } catch (err) {}
       // Attempt immediate auto-attack
       try {
-        const nearest = getNearestEnemy(player.pos(), WORLD.attackRange * 1.2, enemies);
+        const nearest = getNearestEnemy(player.pos(), WORLD.attackRange * 3, enemies);
         if (nearest) {
           try { console.debug && console.debug("[input] A auto-attack target found", nearest); } catch (err) {}
           player.target = nearest;
           player.moveTarget = null;
-          player.attackMove = false;
+          // If target is outside immediate attack range, enable attackMove so the player moves toward and auto-attacks when close enough.
+          try {
+            const d = distance2D(player.pos(), nearest.pos());
+            player.attackMove = d > WORLD.attackRange * 0.95;
+          } catch (err) {
+            player.attackMove = false;
+          }
           effects.spawnTargetPing(nearest);
           try { skills.tryBasicAttack(player, nearest); } catch (err) {}
         } else {
@@ -584,12 +590,17 @@ window.addEventListener("keydown", (e) => {
     } catch (e) {}
 
     // Auto-select nearest enemy and attempt basic attack.
-    const nearest = getNearestEnemy(player.pos(), WORLD.attackRange * 1.2, enemies);
+    const nearest = getNearestEnemy(player.pos(), WORLD.attackRange * 3, enemies);
     if (nearest) {
       // select and perform basic attack immediately
       player.target = nearest;
       player.moveTarget = null;
-      player.attackMove = false;
+      try {
+        const d = distance2D(player.pos(), nearest.pos());
+        player.attackMove = d > WORLD.attackRange * 0.95;
+      } catch (err) {
+        player.attackMove = false;
+      }
       effects.spawnTargetPing(nearest);
       // Attempt basic attack (skills.tryBasicAttack will check cooldown/range)
       try { skills.tryBasicAttack(player, nearest); } catch (err) { /* ignore */ }
@@ -635,17 +646,7 @@ function animate() {
   const dt = Math.min(0.05, t - lastT);
   lastT = t;
 
-  // Force-disable legacy ATTACK aim mode in case any handler still sets it.
-  // This is a defensive safeguard so pressing "A" cannot leave the player in aim mode.
-  try {
-    if (player && player.aimModeSkill === "ATTACK") {
-      player.aimMode = false;
-      player.aimModeSkill = null;
-      if (attackPreview) attackPreview.visible = false;
-      if (aimPreview) aimPreview.visible = false;
-      try { renderer.domElement.style.cursor = "default"; } catch (e) {}
-    }
-  } catch (e) {}
+  
 
   // Mobile joystick drive movement
   if (typeof touch !== "undefined" && touch?.getMoveDir) {
