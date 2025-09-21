@@ -57,6 +57,15 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
 
   let lastAimPos = new THREE.Vector3(); // stores last computed aim position
 
+  // Mini-joystick drag on W button for AOE placement
+  const wDrag = {
+    active: false,
+    center: { x: 0, y: 0 },
+    radiusPx: 56,
+    _pointerId: null,
+    didDrag: false,
+  };
+
   // Hold-to-cast state for touch buttons
   const holdState = { basic: false, skillQ: false, skillW: false, skillE: false, skillR: false };
   let wDownAt = 0;
@@ -115,16 +124,8 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
   function onPointerMove(e) {
     if (joyState._pointerId !== e.pointerId) return;
     updateJoyFromPointer(e.clientX, e.clientY);
-    // If in AOE aim mode, steer aim preview live
-    if (player.aimMode && player.aimModeSkill === "W" && aimPreview) {
-      const aim = computeAimPositionFromJoystick();
-      lastAimPos.copy(aim);
-      aimPreview.visible = true;
-      aimPreview.position.set(aim.x, 0.02, aim.z);
-    } else {
-      // Attack-aim has been removed — ensure attack preview is hidden while using the joystick
-      if (attackPreview) attackPreview.visible = false;
-    }
+    // Joystick no longer steers W AOE; only ensure attack preview hidden
+    if (attackPreview) attackPreview.visible = false;
   }
   function onPointerUp(e) {
     if (joyState._pointerId !== e.pointerId) return;
@@ -142,6 +143,48 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerUp);
     window.addEventListener("resize", computeBase);
+
+    // Mini-joystick drag handlers on W (AOE placement)
+    function updateWAimFromPointer(x, y) {
+      if (!wDrag.active) return;
+      const dx = x - wDrag.center.x;
+      const dy = y - wDrag.center.y;
+      const len = Math.hypot(dx, dy);
+      const clamped = Math.min(len, wDrag.radiusPx);
+      const nx = len ? dx / len : 0;
+      const nz = len ? dy / len : 0;
+      if (clamped > 6) wDrag.didDrag = true;
+
+      // Map drag distance to world distance (cap to ~20 units)
+      const maxWorld = 20;
+      const worldDist = (clamped / wDrag.radiusPx) * maxWorld;
+
+      const aim = computeAimPositionFromVector(nx, nz, worldDist);
+      lastAimPos.copy(aim);
+      if (aimPreview) {
+        aimPreview.visible = true;
+        aimPreview.position.set(aim.x, 0.02, aim.z);
+      }
+    }
+
+    window.addEventListener("pointermove", (e) => {
+      if (!wDrag.active) return;
+      updateWAimFromPointer(e.clientX, e.clientY);
+    });
+    window.addEventListener("pointerup", (e) => {
+      if (wDrag.active && e.pointerId === wDrag._pointerId) {
+        try { els.btnW.releasePointerCapture?.(e.pointerId); } catch (_) {}
+        wDrag.active = false;
+        wDrag._pointerId = null;
+      }
+    });
+    window.addEventListener("pointercancel", (e) => {
+      if (wDrag.active && e.pointerId === wDrag._pointerId) {
+        wDrag.active = false;
+        wDrag._pointerId = null;
+      }
+    });
+
     computeBase();
   }
   if (els.joyKnob) {
@@ -158,6 +201,12 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
     const len = Math.hypot(dirX, dirZ) || 1;
     const nx = dirX / len;
     const nz = dirZ / len;
+    const base = player.pos();
+    return new THREE.Vector3(base.x + nx * distance, 0, base.z + nz * distance);
+  }
+
+  // AOE aim from arbitrary 2D vector (nx, nz should be normalized)
+  function computeAimPositionFromVector(nx, nz, distance = 20) {
     const base = player.pos();
     return new THREE.Vector3(base.x + nx * distance, 0, base.z + nz * distance);
   }
@@ -186,7 +235,24 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
     els.btnQ.addEventListener("pointerdown", () => { holdState.skillQ = true; });
   }
   if (els.btnW) {
-    els.btnW.addEventListener("pointerdown", () => { holdState.skillW = true; wDownAt = performance.now ? performance.now() : Date.now(); });
+    els.btnW.addEventListener("pointerdown", (e) => {
+      // In W aim mode: turn the W button into a mini-joystick for AOE placement
+      if (player.aimMode && player.aimModeSkill === "W") {
+        const rect = els.btnW.getBoundingClientRect();
+        wDrag.center.x = rect.left + rect.width / 2;
+        wDrag.center.y = rect.top + rect.height / 2;
+        wDrag.radiusPx = Math.min(64, Math.max(44, Math.min(rect.width, rect.height) * 0.65));
+        wDrag._pointerId = e.pointerId;
+        wDrag.active = true;
+        wDrag.didDrag = false;
+        e.target.setPointerCapture?.(e.pointerId);
+        e.preventDefault();
+      } else {
+        // normal hold-to-cast behavior when not in aim mode
+        holdState.skillW = true;
+        wDownAt = performance.now ? performance.now() : Date.now();
+      }
+    });
   }
   if (els.btnE) {
     els.btnE.addEventListener("pointerdown", () => { holdState.skillE = true; });
@@ -236,13 +302,14 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
   }
   if (els.btnW) {
     els.btnW.addEventListener("click", () => {
-      // If this was a hold (long press), skip toggling aim to avoid conflict with continuous cast
+      // Ignore click if this was a drag interaction or long-press
       const nowTs = performance.now ? performance.now() : Date.now();
+      if (wDrag.didDrag) { wDrag.didDrag = false; return; }
       if (wDownAt && nowTs - wDownAt > 250) { wDownAt = 0; return; }
       wDownAt = 0;
 
       if (player.aimMode && player.aimModeSkill === "W") {
-        // Confirm cast at current aim (if we have a lastAimPos; else compute default ahead)
+        // Confirm cast at current aim (if we have a lastAimPos; else keep previous)
         const pos = (lastAimPos && isFinite(lastAimPos.x)) ? lastAimPos.clone() : computeAimPositionFromJoystick();
         if (typeof skills.castSkill === "function") {
           skills.castSkill("W", pos);
@@ -252,7 +319,7 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
         effects?.spawnMovePing?.(pos, 0x9fd8ff);
         cancelAim();
       } else {
-        // Enter aim mode for W
+        // Enter aim mode for W; initial aim ahead of player
         player.aimMode = true;
         player.aimModeSkill = "W";
         if (els.btnCancelAim) els.btnCancelAim.classList.remove("hidden");
