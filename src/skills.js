@@ -1,5 +1,5 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { WORLD, SKILLS, COLOR } from "./constants.js";
+import { WORLD, SKILLS, COLOR, VILLAGE_POS, REST_RADIUS } from "./constants.js";
 import { distance2D, now } from "./utils.js";
 import { handWorldPos } from "./entities.js";
 import { createGroundRing } from "./effects.js";
@@ -109,6 +109,19 @@ export class SkillsSystem {
     const time = now();
     if (time < (attacker.nextBasicReady || 0)) return false;
     if (!target || !target.alive) return false;
+
+    // Prevent player from attacking targets outside the village while player is inside the village.
+    // This blocks basic attacks from inside the village against outside enemies.
+    try {
+      if (attacker === this.player) {
+        const pd = distance2D(attacker.pos(), VILLAGE_POS);
+        const td = distance2D(target.pos(), VILLAGE_POS);
+        if (pd <= REST_RADIUS && td > REST_RADIUS) return false;
+      }
+    } catch (e) {
+      // ignore errors in defensive check
+    }
+
     const dist = distance2D(attacker.pos(), target.pos());
     if (dist > WORLD.attackRange) return false;
 

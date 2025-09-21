@@ -409,13 +409,34 @@ const houses = [
   (() => { const h = createHouse(); h.position.set(-16, 0, -12); scene.add(h); return h; })(),
 ];
 
-const villageRing = new THREE.Mesh(
-  new THREE.RingGeometry(REST_RADIUS - 0.4, REST_RADIUS, 32),
-  new THREE.MeshBasicMaterial({ color: COLOR.village, transparent: true, opacity: 0.22, side: THREE.DoubleSide })
+/* Village fence: replace the flat ring with a visual fence made of posts,
+   and keep the logical VILLAGE_POS/REST_RADIUS for gameplay checks. */
+const fenceGroup = new THREE.Group();
+const FENCE_POSTS = 28;
+const fenceRadius = REST_RADIUS - 0.2;
+for (let i = 0; i < FENCE_POSTS; i++) {
+  const ang = (i / FENCE_POSTS) * Math.PI * 2;
+  const px = VILLAGE_POS.x + Math.cos(ang) * fenceRadius;
+  const pz = VILLAGE_POS.z + Math.sin(ang) * fenceRadius;
+  const postGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.6, 8);
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2a });
+  const post = new THREE.Mesh(postGeo, postMat);
+  post.position.set(px, 0.8, pz);
+  post.rotation.y = -ang;
+  post.receiveShadow = true;
+  post.castShadow = true;
+  fenceGroup.add(post);
+}
+// Low translucent ground ring for visual guidance (subtle)
+const fenceRing = new THREE.Mesh(
+  new THREE.RingGeometry(fenceRadius - 0.08, fenceRadius + 0.08, 64),
+  new THREE.MeshBasicMaterial({ color: COLOR.village, transparent: true, opacity: 0.08, side: THREE.DoubleSide })
 );
-villageRing.rotation.x = -Math.PI / 2;
-villageRing.position.copy(VILLAGE_POS);
-scene.add(villageRing);
+fenceRing.rotation.x = -Math.PI / 2;
+fenceRing.position.copy(VILLAGE_POS);
+fenceGroup.add(fenceRing);
+
+scene.add(fenceGroup);
 
 // Portals/Recall
 const portals = initPortals(scene);
@@ -871,8 +892,19 @@ function updateEnemies(dt) {
       if (d > WORLD.aiAttackRange) {
         const v = dir2D(en.pos(), player.pos());
         const spMul = en.slowUntil && now() < en.slowUntil ? en.slowFactor || 0.5 : 1;
-        en.mesh.position.x += v.x * en.speed * spMul * dt;
-        en.mesh.position.z += v.z * en.speed * spMul * dt;
+        // Tentative next position
+        const nx = en.mesh.position.x + v.x * en.speed * spMul * dt;
+        const nz = en.mesh.position.z + v.z * en.speed * spMul * dt;
+        const nextDistToVillage = Math.hypot(nx - VILLAGE_POS.x, nz - VILLAGE_POS.z);
+        if (nextDistToVillage <= REST_RADIUS - 0.25) {
+          // Clamp to fence boundary so enemies cannot enter village
+          const dirFromVillage = dir2D(VILLAGE_POS, en.pos());
+          en.mesh.position.x = VILLAGE_POS.x + dirFromVillage.x * (REST_RADIUS - 0.25);
+          en.mesh.position.z = VILLAGE_POS.z + dirFromVillage.z * (REST_RADIUS - 0.25);
+        } else {
+          en.mesh.position.x = nx;
+          en.mesh.position.z = nz;
+        }
         // face
         const yaw = Math.atan2(v.x, v.z);
         const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
