@@ -532,6 +532,16 @@ function attemptAutoBasic() {
   } catch (e) {}
 }
 
+/* Keyboard movement (arrow keys) */
+const keyMove = { up: false, down: false, left: false, right: false };
+function getKeyMoveDir() {
+  const x = (keyMove.right ? 1 : 0) + (keyMove.left ? -1 : 0);
+  const y = (keyMove.down ? 1 : 0) + (keyMove.up ? -1 : 0);
+  const len = Math.hypot(x, y);
+  if (len === 0) return { active: false, x: 0, y: 0 };
+  return { active: true, x: x / len, y: y / len };
+}
+
 let lastMouseGroundPoint = new THREE.Vector3();
 renderer.domElement.addEventListener("mousemove", (e) => {
   raycast.updateMouseNDC(e);
@@ -727,6 +737,27 @@ window.addEventListener("keyup", (e) => {
   }
 });
 
+/* Arrow keys: continuous movement while held */
+window.addEventListener("keydown", (e) => {
+  const k = e.key;
+  if (k === "ArrowUp" || k === "ArrowDown" || k === "ArrowLeft" || k === "ArrowRight") {
+    try { e.preventDefault(); } catch (_) {}
+    if (k === "ArrowUp") keyMove.up = true;
+    if (k === "ArrowDown") keyMove.down = true;
+    if (k === "ArrowLeft") keyMove.left = true;
+    if (k === "ArrowRight") keyMove.right = true;
+  }
+});
+window.addEventListener("keyup", (e) => {
+  const k = e.key;
+  if (k === "ArrowUp" || k === "ArrowDown" || k === "ArrowLeft" || k === "ArrowRight") {
+    if (k === "ArrowUp") keyMove.up = false;
+    if (k === "ArrowDown") keyMove.down = false;
+    if (k === "ArrowLeft") keyMove.left = false;
+    if (k === "ArrowRight") keyMove.right = false;
+  }
+});
+
 // ------------------------------------------------------------
 // Systems Update Loop
 // ------------------------------------------------------------
@@ -748,6 +779,28 @@ function animate() {
       const ahead = 26;
       const px = player.pos().x + joy.x * ahead;
       const pz = player.pos().z + joy.y * ahead;
+      player.moveTarget = new THREE.Vector3(px, 0, pz);
+      player.attackMove = false;
+      player.target = null;
+    } else {
+      // Keyboard arrows drive movement when joystick is not active
+      const km = getKeyMoveDir();
+      if (km.active && !player.frozen && !player.aimMode) {
+        const ahead = 26;
+        const px = player.pos().x + km.x * ahead;
+        const pz = player.pos().z + km.y * ahead;
+        player.moveTarget = new THREE.Vector3(px, 0, pz);
+        player.attackMove = false;
+        player.target = null;
+      }
+    }
+  } else {
+    // No touch controls available: allow keyboard arrows
+    const km = getKeyMoveDir();
+    if (km.active && !player.frozen && !player.aimMode) {
+      const ahead = 26;
+      const px = player.pos().x + km.x * ahead;
+      const pz = player.pos().z + km.y * ahead;
       player.moveTarget = new THREE.Vector3(px, 0, pz);
       player.attackMove = false;
       player.target = null;

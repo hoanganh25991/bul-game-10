@@ -38,8 +38,8 @@ export class SkillsSystem {
     this.effects = effects;
     this.cdUI = cdUI;
 
-    this.cooldowns = { Q: 0, W: 0, E: 0, R: 0 };
-    this.cdState = { Q: 0, W: 0, E: 0, R: 0 }; // for ready flash timing
+    this.cooldowns = { Q: 0, W: 0, E: 0, R: 0, Basic: 0 };
+    this.cdState = { Q: 0, W: 0, E: 0, R: 0, Basic: 0 }; // for ready flash timing
     this.storms = []; // queued thunderstorm strikes
   }
 
@@ -54,7 +54,7 @@ export class SkillsSystem {
   // ----- UI (cooldowns) -----
   updateCooldownUI() {
     const t = now();
-    for (const key of ["Q", "W", "E", "R"]) {
+    for (const key of ["Q", "W", "E", "R", "Basic"]) {
       const end = this.cooldowns[key];
       const el = this.cdUI?.[key];
       if (!el) continue;
@@ -70,7 +70,7 @@ export class SkillsSystem {
           el.style.background = "none";
           el.textContent = "";
         } else {
-          const total = SKILLS[key].cd;
+          const total = key === "Basic" ? WORLD.basicAttackCooldown : (SKILLS[key]?.cd || 0);
           const pct = clamp01(remain / total);
           const deg = Math.floor(pct * 360);
           const wedge =
@@ -126,6 +126,10 @@ export class SkillsSystem {
     if (dist > WORLD.attackRange * (WORLD.attackRangeMult || 1)) return false;
 
     attacker.nextBasicReady = time + WORLD.basicAttackCooldown;
+    if (attacker === this.player) {
+      // Mirror basic attack cooldown into UI like other skills
+      this.startCooldown("Basic", WORLD.basicAttackCooldown);
+    }
     const from =
       attacker === this.player && this.player.mesh.userData.handAnchor
         ? handWorldPos(this.player)

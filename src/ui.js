@@ -28,6 +28,7 @@ export class UIManager {
       W: document.getElementById("cdW"),
       E: document.getElementById("cdE"),
       R: document.getElementById("cdR"),
+      Basic: document.getElementById("cdBasic"),
     };
 
     // Minimap
