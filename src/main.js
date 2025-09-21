@@ -18,7 +18,7 @@ import { initPortals } from "./portals.js";
 import { initI18n, setLanguage, getLanguage, t } from "./i18n.js";
 import { initSplash } from "./splash.js";
 import { initTouchControls } from "./touch.js";
-import { createInputService } from "./input/service.js";
+import { createInputService } from "./input/input_service.js";
 import { SKILL_POOL, DEFAULT_LOADOUT } from "./skills_pool.js";
 import { loadOrDefault, saveLoadout, resolveLoadout } from "./loadout.js";
 import { audio } from "./audio.js";
