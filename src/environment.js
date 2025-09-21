@@ -137,15 +137,63 @@ export function initEnvironment(scene, options = {}) {
     return g;
   }
 
-  // Road helper - simple textured strip/plane to represent a path/road
-  function createRoad(center = new THREE.Vector3(0,0,0), angle = 0, length = WORLD.groundSize * 0.8, width = 6) {
-    const geo = new THREE.PlaneGeometry(length, width, 1, 1);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x2b2420, roughness: 0.95, metalness: 0.0 });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.rotation.y = angle;
-    mesh.position.copy(center);
-    mesh.position.y = 0.015;
+  // Curved road helper — builds a flat ribbon along a Catmull–Rom spline (connected and curved)
+  function createCurvedRoad(points, width = 6, segments = 120, color = 0x2b2420) {
+    const curve = new THREE.CatmullRomCurve3(points, false, "catmullrom", 0.5);
+    const pos = new Float32Array((segments + 1) * 2 * 3);
+    const uv = new Float32Array((segments + 1) * 2 * 2);
+    const idx = new Uint32Array(segments * 6);
+
+    const up = new THREE.Vector3(0, 1, 0);
+    const p = new THREE.Vector3();
+    const t = new THREE.Vector3();
+    const left = new THREE.Vector3();
+
+    for (let i = 0; i <= segments; i++) {
+      const a = i / segments;
+      curve.getPointAt(a, p);
+      curve.getTangentAt(a, t).normalize();
+      left.crossVectors(up, t).normalize();
+      const hw = width * 0.5;
+      const l = new THREE.Vector3().copy(p).addScaledVector(left, hw);
+      const r = new THREE.Vector3().copy(p).addScaledVector(left, -hw);
+      // keep slightly above ground
+      l.y = (l.y || 0) + 0.015;
+      r.y = (r.y || 0) + 0.015;
+
+      const vi = i * 2 * 3;
+      pos[vi + 0] = l.x; pos[vi + 1] = l.y; pos[vi + 2] = l.z;
+      pos[vi + 3] = r.x; pos[vi + 4] = r.y; pos[vi + 5] = r.z;
+
+      const uvi = i * 2 * 2;
+      uv[uvi + 0] = 0; uv[uvi + 1] = a * 8;
+      uv[uvi + 2] = 1; uv[uvi + 3] = a * 8;
+    }
+
+    for (let i = 0; i < segments; i++) {
+      const i0 = i * 2;
+      const i1 = i0 + 1;
+      const i2 = i0 + 2;
+      const i3 = i0 + 3;
+      const ti = i * 6;
+      idx[ti + 0] = i0; idx[ti + 1] = i1; idx[ti + 2] = i2;
+      idx[ti + 3] = i1; idx[ti + 4] = i3; idx[ti + 5] = i2;
+    }
+
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    geom.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    geom.setIndex(new THREE.BufferAttribute(idx, 1));
+    geom.computeVertexNormals();
+
+    const mat = new THREE.MeshStandardMaterial({
+      color,
+      roughness: 0.95,
+      metalness: 0.0,
+      side: THREE.DoubleSide
+    });
+
+    const mesh = new THREE.Mesh(geom, mat);
     mesh.receiveShadow = false;
     return mesh;
   }
@@ -200,10 +248,7 @@ export function initEnvironment(scene, options = {}) {
   const forest2 = createForest(new THREE.Vector3(WORLD.groundSize * 0.18, 0, WORLD.groundSize * 0.05), Math.max(8, Math.floor(cfg.villageRadius*1.0)), Math.floor(cfg.treeCount * 0.18));
   root.add(forest1, forest2);
 
-  // Add simple cross roads near center (X and Z axes) to create paths between villages
-  const roadX = createRoad(new THREE.Vector3(0, 0, 0), 0, WORLD.groundSize * 0.9, 6);
-  const roadZ = createRoad(new THREE.Vector3(0, 0, 0), Math.PI / 2, WORLD.groundSize * 0.9, 6);
-  root.add(roadX, roadZ);
+  // (removed old straight cross roads; replaced with curved, connected network below)
 
   // ----------------
   // Village generator (simple clustering of houses)
@@ -260,6 +305,34 @@ export function initEnvironment(scene, options = {}) {
     const c = randomPosInBounds();
     villages.push(generateVillage(c, 4 + Math.floor(Math.random() * 6), cfg.villageRadius));
     villageCenters.push(c);
+  }
+
+  // Build curved, connected road network between villages
+  try {
+    if (villageCenters.length >= 2) {
+      const roadsGroup = new THREE.Group();
+      roadsGroup.name = "roads";
+      // connect in a loop for connectivity
+      for (let i = 0; i < villageCenters.length; i++) {
+        const a = villageCenters[i].clone(); a.y = 0.0;
+        const b = villageCenters[(i + 1) % villageCenters.length].clone(); b.y = 0.0;
+        const mid = a.clone().lerp(b, 0.5);
+        // perpendicular control for curvature
+        const dir = b.clone().sub(a).setY(0);
+        const len = Math.max(1, dir.length());
+        dir.normalize();
+        const perp = new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0), dir).normalize();
+        const curveAmt = Math.min(30, len * 0.25);
+        const ctrl = mid.clone().addScaledVector(perp, (i % 2 === 0 ? 1 : -1) * curveAmt);
+        ctrl.y = 0.0;
+
+        const road = createCurvedRoad([a, ctrl, b], 6, 140, 0x2b2420);
+        roadsGroup.add(road);
+      }
+      root.add(roadsGroup);
+    }
+  } catch (e) {
+    console.warn("Road network generation failed", e);
   }
 
   // Fireflies: small glowing points around village centers for ambiance
