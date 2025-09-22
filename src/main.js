@@ -23,6 +23,7 @@ import { SKILL_POOL, DEFAULT_LOADOUT } from "./skills_pool.js";
 import { loadOrDefault, saveLoadout, resolveLoadout } from "./loadout.js";
 import { audio } from "./audio.js";
 import { createVillagesSystem } from "./villages.js";
+import { createMapManager } from "./maps.js";
 
 /**
  * Minimal skill icon helper: returns a small emoji/SVG placeholder for a skill short name.
@@ -50,6 +51,7 @@ function getSkillIcon(short) {
 const { renderer, scene, camera, ground, cameraOffset, cameraShake } = initWorld();
 const ui = new UIManager();
 const effects = new EffectsManager(scene);
+const mapManager = createMapManager();
 
 // Load environment preferences from localStorage (persist rain + density)
 const _envPrefs = JSON.parse(localStorage.getItem("envPrefs") || "{}");
@@ -188,33 +190,6 @@ btnMark?.addEventListener("click", () => {
     }
   } catch (_) {}
 });
-// Cooldown UI updater for Mark button
-(function initMarkCooldownUI() {
-  if (!btnMark || !portals?.getMarkCooldownMs) return;
-  function fmt(ms) {
-    const s = Math.max(0, Math.ceil(ms / 1000));
-    const m = Math.floor(s / 60);
-    const r = s % 60;
-    return m > 0 ? `${m}m ${r}s` : `${r}s`;
-  }
-  function tick() {
-    try {
-      const remain = portals.getMarkCooldownMs();
-      if (remain > 0) {
-        btnMark.disabled = true;
-        btnMark.title = `Mark cooldown: ${fmt(remain)}`;
-        btnMark.style.opacity = "0.5";
-      } else {
-        btnMark.disabled = false;
-        btnMark.title = "Mark (3m cd)";
-        btnMark.style.opacity = "";
-      }
-    } catch (_) {}
-  }
-  try { clearInterval(window.__markCoolInt); } catch (_) {}
-  window.__markCoolInt = setInterval(tick, 500);
-  tick();
-})();
 
 langVi?.addEventListener("click", () => setLanguage("vi"));
 langEn?.addEventListener("click", () => setLanguage("en"));
@@ -703,7 +678,7 @@ function renderHeroScreen(initialTab = "skills") {
     wrap.className = "marks-panel";
     wrap.style.display = "flex";
     wrap.style.flexDirection = "column";
-    wrap.style.gap = "8px";
+    wrap.style.gap = "12px";
 
     const head = document.createElement("div");
     head.style.display = "flex";
@@ -717,11 +692,71 @@ function renderHeroScreen(initialTab = "skills") {
     head.appendChild(titleMarks);
     head.appendChild(cd);
 
+    // Maps section (control current map and show unlock requirements)
+    const mapsBox = document.createElement("div");
+    mapsBox.style.border = "1px solid rgba(255,255,255,0.1)";
+    mapsBox.style.borderRadius = "6px";
+    mapsBox.style.padding = "8px";
+    const mapsTitle = document.createElement("div");
+    mapsTitle.style.fontWeight = "bold";
+    mapsTitle.style.marginBottom = "6px";
+    mapsTitle.textContent = "Maps";
+    const mapsList = document.createElement("div");
+    mapsList.style.display = "flex";
+    mapsList.style.flexDirection = "column";
+    mapsList.style.gap = "6px";
+    mapsBox.appendChild(mapsTitle);
+    mapsBox.appendChild(mapsList);
+
+    function renderMaps() {
+      mapsList.innerHTML = "";
+      try {
+        const items = mapManager.listMaps?.() || [];
+        items.forEach((m) => {
+          const row = document.createElement("div");
+          row.style.display = "grid";
+          row.style.gridTemplateColumns = "1fr auto";
+          row.style.gap = "8px";
+          const info = document.createElement("div");
+          info.innerHTML = `<div style="font-weight:600">${m.name}${m.current ? " • Current" : ""}${(!m.unlocked ? " • Locked" : "")}</div>
+                            <div style="font-size:12px;opacity:0.85">${m.desc}</div>
+                            <div style="font-size:12px;opacity:0.7">Requires Lv ${m.requiredLevel}</div>`;
+          const act = document.createElement("div");
+          const btn = document.createElement("button");
+          if (m.current) {
+            btn.textContent = "Active";
+            btn.disabled = true;
+          } else if (!m.unlocked) {
+            btn.textContent = "Locked";
+            btn.disabled = true;
+          } else {
+            btn.textContent = "Set Active";
+            btn.addEventListener("click", () => {
+              try {
+                if (mapManager.setCurrent?.(m.index)) {
+                  // Reapply modifiers to existing enemies
+                  enemies.forEach((en) => applyMapModifiersToEnemy(en));
+                  // feedback
+                  setCenterMsg && setCenterMsg(`Switched to ${m.name}`);
+                  setTimeout(() => clearCenterMsg(), 1100);
+                  renderMaps();
+                }
+              } catch (_) {}
+            });
+          }
+          act.appendChild(btn);
+          row.appendChild(info);
+          row.appendChild(act);
+          mapsList.appendChild(row);
+        });
+      } catch (_) {}
+    }
+
     const list = document.createElement("div");
     list.style.display = "flex";
     list.style.flexDirection = "column";
     list.style.gap = "6px";
-    list.style.maxHeight = "340px";
+    list.style.maxHeight = "240px";
     list.style.overflow = "auto";
 
     function fmtTime(ts) {
@@ -744,10 +779,22 @@ function renderHeroScreen(initialTab = "skills") {
           arr.forEach((m) => {
             const row = document.createElement("div");
             row.style.display = "grid";
-            row.style.gridTemplateColumns = "1fr auto auto";
+            row.style.gridTemplateColumns = "1fr auto auto auto";
             row.style.gap = "8px";
             const info = document.createElement("div");
-            info.textContent = `(${Math.round(m.x)}, ${Math.round(m.z)}) • ${fmtTime(m.createdAt)}`;
+            const nm = (m.name && String(m.name).trim()) ? m.name : `Mark ${m.index + 1}`;
+            info.textContent = `${nm} • (${Math.round(m.x)}, ${Math.round(m.z)}) • ${fmtTime(m.createdAt)}`;
+            const rn = document.createElement("button");
+            rn.textContent = "Rename";
+            rn.addEventListener("click", () => {
+              try {
+                const newName = prompt("Enter mark name", nm);
+                if (newName != null) {
+                  portals.renamePersistentMark?.(m.index, newName);
+                  render();
+                }
+              } catch (_) {}
+            });
             const tp = document.createElement("button");
             tp.textContent = "Teleport";
             tp.addEventListener("click", () => {
@@ -759,6 +806,7 @@ function renderHeroScreen(initialTab = "skills") {
               try { portals.removePersistentMark?.(m.index); render(); } catch (_) {}
             });
             row.appendChild(info);
+            row.appendChild(rn);
             row.appendChild(tp);
             row.appendChild(rm);
             list.appendChild(row);
@@ -784,9 +832,11 @@ function renderHeroScreen(initialTab = "skills") {
     try { clearInterval(window.__marksPanelTick); } catch (_) {}
     window.__marksPanelTick = setInterval(tickCooldown, 500);
     tickCooldown();
+    renderMaps();
     render();
 
     wrap.appendChild(head);
+    wrap.appendChild(mapsBox);
     wrap.appendChild(list);
     marksPanel.appendChild(wrap);
   })();
@@ -850,12 +900,35 @@ try {
   }
 } catch (e) {}
 
-// ------------------------------------------------------------
-// Entities and Game State
-// ------------------------------------------------------------
+/* ------------------------------------------------------------
+   Entities and Game State
+------------------------------------------------------------ */
 const player = new Player();
 scene.add(player.mesh);
 try { updateEnvironmentFollow(env, player); } catch (e) {}
+// Map unlock check on startup and on level-up
+try {
+  mapManager.unlockByLevel(player.level);
+  window.addEventListener("player-levelup", (ev) => {
+    try {
+      const lvl = ev?.detail?.level || player.level;
+      const unlockedChanged = mapManager.unlockByLevel(lvl);
+      // Auto-advance to highest unlocked map when new map unlocks
+      if (unlockedChanged) {
+        const prevIdx = mapManager.getCurrentIndex?.() || 1;
+        const maxIdx = mapManager.getUnlockedMax?.() || prevIdx;
+        if (maxIdx > prevIdx) {
+          if (mapManager.setCurrent?.(maxIdx)) {
+            // Reapply modifiers to existing enemies on map switch
+            enemies.forEach((en) => applyMapModifiersToEnemy(en));
+            setCenterMsg && setCenterMsg(`Unlocked and switched to MAP ${maxIdx}`);
+            setTimeout(() => clearCenterMsg(), 1400);
+          }
+        }
+      }
+    } catch (_) {}
+  });
+} catch (_) {}
 
 // Hero overhead HP/MP bars
 const heroBars = createHeroOverheadBars();
@@ -871,6 +944,27 @@ player.onDeath = () => {
   player.target = null;
 };
 
+/* Map modifiers helper */
+function applyMapModifiersToEnemy(en) {
+  try {
+    const mods = mapManager.getModifiers?.() || {};
+    // Apply multipliers
+    en.maxHP = Math.max(1, Math.floor(en.maxHP * (mods.enemyHpMul || 1)));
+    en.hp = Math.max(1, Math.min(en.maxHP, en.hp));
+    en.attackDamage = Math.max(1, Math.floor(en.attackDamage * (mods.enemyDmgMul || 1)));
+    if (mods.enemyTint) {
+      en.beamColor = mods.enemyTint;
+      try {
+        const tint = new THREE.Color(mods.enemyTint);
+        en.mesh.traverse?.((o) => {
+          if (o && o.material && o.material.color) {
+            o.material.color.lerp(tint, 0.25);
+          }
+        });
+      } catch (_) {}
+    }
+  } catch (_) {}
+}
 // Enemies
 const enemies = [];
 for (let i = 0; i < WORLD.enemyCount; i++) {
@@ -882,6 +976,7 @@ for (let i = 0; i < WORLD.enemyCount; i++) {
     VILLAGE_POS.z + Math.sin(angle) * r
   );
   const e = new Enemy(pos, player.level);
+  applyMapModifiersToEnemy(e);
   e.mesh.userData.enemyRef = e;
   scene.add(e.mesh);
   enemies.push(e);
@@ -953,6 +1048,33 @@ scene.add(fenceGroup);
 
 // Portals/Recall
 const portals = initPortals(scene);
+// Init Mark cooldown UI after portals are created
+(function initMarkCooldownUI() {
+  if (!btnMark || !portals?.getMarkCooldownMs) return;
+  function fmt(ms) {
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return m > 0 ? `${m}m ${r}s` : `${r}s`;
+  }
+  function tick() {
+    try {
+      const remain = portals.getMarkCooldownMs();
+      if (remain > 0) {
+        btnMark.disabled = true;
+        btnMark.title = `Mark cooldown: ${fmt(remain)}`;
+        btnMark.style.opacity = "0.5";
+      } else {
+        btnMark.disabled = false;
+        btnMark.title = "Mark (3m cd)";
+        btnMark.style.opacity = "";
+      }
+    } catch (_) {}
+  }
+  try { clearInterval(window.__markCoolInt); } catch (_) {}
+  window.__markCoolInt = setInterval(tick, 500);
+  tick();
+})();
 // Villages system (dynamic villages, roads, rest)
 const villages = createVillagesSystem(scene, portals);
 
@@ -1516,6 +1638,7 @@ function updateEnemies(dt) {
       if (en._respawnAt && now() >= en._respawnAt) {
         const pos = randomEnemySpawnPos();
         en.respawn(pos, player.level);
+        applyMapModifiersToEnemy(en);
       }
       return;
     }

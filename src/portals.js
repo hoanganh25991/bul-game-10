@@ -39,13 +39,14 @@ export function initPortals(scene) {
       if (!raw) return;
       const arr = JSON.parse(raw);
       if (!Array.isArray(arr)) return;
-      arr.forEach((m) => {
+      arr.forEach((m, i) => {
         if (!m || typeof m.x !== "number" || typeof m.z !== "number") return;
         const pm = createPortalMesh(MARK_COLOR);
         pm.group.position.set(m.x, 1, m.z);
         scene.add(pm.group);
         const portal = { ...pm, linkTo: null, radius: 2.2, __kind: "mark" };
-        persistentMarks.push({ portal, x: m.x, z: m.z, createdAt: m.createdAt || Date.now() });
+        const name = (m.name && String(m.name).trim()) ? String(m.name).trim() : `Mark ${i + 1}`;
+        persistentMarks.push({ portal, x: m.x, z: m.z, name, createdAt: m.createdAt || Date.now() });
         extraPortals.push(portal);
       });
     } catch (_) {}
@@ -162,7 +163,12 @@ export function initPortals(scene) {
 
   function savePersistentMarks() {
     try {
-      const data = persistentMarks.map((m) => ({ x: m.x, z: m.z, createdAt: m.createdAt || Date.now() }));
+      const data = persistentMarks.map((m) => ({
+        x: m.x,
+        z: m.z,
+        name: m.name || "",
+        createdAt: m.createdAt || Date.now()
+      }));
       localStorage.setItem(LS_KEY_MARKS, JSON.stringify(data));
     } catch (_) {}
   }
@@ -178,7 +184,7 @@ export function initPortals(scene) {
     return remain;
   }
 
-  function addPersistentMarkAt(position) {
+  function addPersistentMarkAt(position, name = "") {
     // cooldown gate
     const remain = getMarkCooldownMs();
     if (remain > 0) return null;
@@ -188,7 +194,8 @@ export function initPortals(scene) {
     pm.group.position.set(x, 1, z);
     scene.add(pm.group);
     const portal = { ...pm, linkTo: null, radius: 2.2, __kind: "mark" };
-    persistentMarks.push({ portal, x, z, createdAt: Date.now() });
+    const defName = name && String(name).trim() ? String(name).trim() : `Mark ${persistentMarks.length + 1}`;
+    persistentMarks.push({ portal, x, z, name: defName, createdAt: Date.now() });
     extraPortals.push(portal);
     savePersistentMarks();
     try { localStorage.setItem(LS_KEY_MARK_READY, String(Date.now() + MARK_COOLDOWN_MS)); } catch (_) {}
@@ -200,6 +207,7 @@ export function initPortals(scene) {
       index: i,
       x: m.x,
       z: m.z,
+      name: m.name || "",
       createdAt: m.createdAt || Date.now()
     }));
   }
@@ -220,6 +228,15 @@ export function initPortals(scene) {
     // also remove from extraPortals
     const idx = extraPortals.indexOf(m.portal);
     if (idx >= 0) extraPortals.splice(idx, 1);
+    savePersistentMarks();
+    return true;
+  }
+
+  function renamePersistentMark(index, newName) {
+    const m = persistentMarks[index];
+    if (!m) return false;
+    const nn = (newName && String(newName).trim()) ? String(newName).trim() : m.name;
+    m.name = nn;
     savePersistentMarks();
     return true;
   }
@@ -264,6 +281,7 @@ export function initPortals(scene) {
     listPersistentMarks,
     teleportToMark,
     removePersistentMark,
+    renamePersistentMark,
     getMarkCooldownMs,
     update,
   };

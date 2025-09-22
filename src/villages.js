@@ -4,29 +4,33 @@ import { createHouse } from "./meshes.js";
 
 /**
  * Villages System
- * - Handles dynamic village spawning based on distance from origin
- * - Tracks village entry/exit and connects visited villages with curved roads
- * - Provides rest regen check while inside any village (base or dynamic)
+ * Encapsulates:
+ *  - Dynamic village spawning based on distance from origin
+ *  - Road creation between consecutively visited villages
+ *  - Village rest (regen) logic for player inside any village
  *
  * Usage:
- *   const villages = createVillagesSystem(scene, portals);
+ *   const villages = initVillages(scene, portals);
+ *   // inside game loop:
  *   villages.ensureFarVillage(player.pos());
  *   villages.updateVisitedVillage(player.pos());
  *   villages.updateRest(player, dt);
  */
-export function createVillagesSystem(scene, portals) {
-  // Spacing and registries
-  const VILLAGE_SPACING = 500; // world units between distant villages
-  const dynamicVillages = new Map(); // key "ix,iz" -> { center, radius, group, portal }
-  const builtRoadKeys = new Set(); // canonical "a|b" keys to avoid duplicates
-  let currentVillageKey = null; // "origin" or "{ix},{iz}"
+export function initVillages(scene, portals, opts = {}) {
+  const VILLAGE_SPACING = opts.spacing || 10000;
 
-  // Dynamic roads group
+  // State
+  const dynamicVillages = new Map(); // key "ix,iz" -> { center, radius, group, portal }
+  const builtRoadKeys = new Set();   // canonical "a|b"
+  let currentVillageKey = null;      // "origin" or "{ix},{iz}"
+
+  // Roads parent
   const dynamicRoads = new THREE.Group();
   dynamicRoads.name = "dynamicRoads";
   scene.add(dynamicRoads);
 
-  // Helpers
+  // ------------- helpers
+
   function getVillageCenterByKey(key) {
     if (!key) return null;
     if (key === "origin") return VILLAGE_POS.clone();
@@ -34,7 +38,7 @@ export function createVillagesSystem(scene, portals) {
     return v ? v.center.clone() : null;
   }
 
-  // Curved ribbon road along a Catmull–Rom spline
+  // Curved road helper — flat ribbon along a Catmull–Rom spline
   function createCurvedRoad(points, width = 7, segments = 200, color = 0x2b2420) {
     const curve = new THREE.CatmullRomCurve3(points, false, "catmullrom", 0.5);
     const pos = new Float32Array((segments + 1) * 2 * 3);
@@ -94,7 +98,6 @@ export function createVillagesSystem(scene, portals) {
     return mesh;
   }
 
-  // Connect two village centers by a single gentle-curved road
   function ensureRoadBetween(keyA, keyB) {
     if (!keyA || !keyB || keyA === keyB) return;
     const canonical = keyA < keyB ? `${keyA}|${keyB}` : `${keyB}|${keyA}`;
@@ -118,7 +121,6 @@ export function createVillagesSystem(scene, portals) {
     builtRoadKeys.add(canonical);
   }
 
-  // Simple text sprite for gate names
   function createTextSprite(text, color = "#e6f4ff", bg = "rgba(0,0,0,0.35)") {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
@@ -146,18 +148,16 @@ export function createVillagesSystem(scene, portals) {
     return sprite;
   }
 
-  // Build a dynamic village at center; size scales with distance
   function createDynamicVillageAt(center, distanceFromOrigin) {
-    const scale = Math.min(4, 1 + distanceFromOrigin / VILLAGE_SPACING);
+    const scale = Math.min(4, 1 + distanceFromOrigin / VILLAGE_SPACING); // 1..4
     const fenceRadius = Math.max(REST_RADIUS + 4, REST_RADIUS * (0.9 + scale));
     const posts = Math.max(28, Math.floor(28 * (0.9 + scale * 0.6)));
     const houseCount = Math.max(6, Math.floor(6 * (0.8 + scale * 1.4)));
-
     const villageGroup = new THREE.Group();
     villageGroup.name = "dynamicVillage";
     scene.add(villageGroup);
 
-    // Fence posts
+    // Fence posts + rails
     const postGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.8, 8);
     const postMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2a });
     const postPositions = [];
@@ -173,8 +173,6 @@ export function createVillagesSystem(scene, portals) {
       villageGroup.add(post);
       postPositions.push({ x: px, z: pz });
     }
-
-    // Rails
     const railMat = new THREE.MeshStandardMaterial({ color: 0x4b3620 });
     const railHeights = [0.5, 1.0, 1.5];
     for (let i = 0; i < posts; i++) {
@@ -215,7 +213,7 @@ export function createVillagesSystem(scene, portals) {
       villageGroup.add(house);
     }
 
-    // Gate and label
+    // Gate + label
     const gatePos = new THREE.Vector3(center.x + fenceRadius, 0, center.z);
     const pillarGeo = new THREE.BoxGeometry(0.3, 3.2, 0.4);
     const beamGeo = new THREE.BoxGeometry(2.8, 0.35, 0.4);
@@ -237,36 +235,11 @@ export function createVillagesSystem(scene, portals) {
     label.position.set(gatePos.x, 3.6, gatePos.z + 0.01);
     villageGroup.add(label);
 
-    // Portal inside the village near the gate
+    // Portal inside village
     const portalOffset = new THREE.Vector3(-2.5, 0, 0);
     const portal = portals.addPortalAt(gatePos.clone().add(portalOffset), COLOR.portal);
 
     return { center: center.clone(), radius: fenceRadius, group: villageGroup, portal };
-  }
-
-  function getPlayerVillageKey(playerPos) {
-    if (!playerPos) return null;
-    if (playerPos.distanceTo(VILLAGE_POS) <= REST_RADIUS) return "origin";
-    let bestKey = null;
-    let bestDist = Infinity;
-    dynamicVillages.forEach((v, key) => {
-      const d = Math.hypot(playerPos.x - v.center.x, playerPos.z - v.center.z);
-      if (d <= v.radius && d < bestDist) {
-        bestDist = d;
-        bestKey = key;
-      }
-    });
-    return bestKey;
-  }
-
-  function updateVisitedVillage(playerPos) {
-    const key = getPlayerVillageKey(playerPos);
-    if (key !== currentVillageKey) {
-      if (key && currentVillageKey) {
-        ensureRoadBetween(currentVillageKey, key);
-      }
-      currentVillageKey = key;
-    }
   }
 
   function ensureFarVillage(playerPos) {
@@ -284,12 +257,36 @@ export function createVillagesSystem(scene, portals) {
     dynamicVillages.set(key, info);
   }
 
-  // Public: add rest regen if inside any village (base or dynamic)
+  function getVillageKeyAt(pos) {
+    if (!pos) return null;
+    if (Math.hypot(pos.x - VILLAGE_POS.x, pos.z - VILLAGE_POS.z) <= REST_RADIUS) return "origin";
+    let bestKey = null;
+    let bestDist = Infinity;
+    dynamicVillages.forEach((v, key) => {
+      const d = Math.hypot(pos.x - v.center.x, pos.z - v.center.z);
+      if (d <= v.radius && d < bestDist) {
+        bestDist = d;
+        bestKey = key;
+      }
+    });
+    return bestKey;
+  }
+
+  function updateVisitedVillage(playerPos) {
+    const key = getVillageKeyAt(playerPos);
+    if (key !== currentVillageKey) {
+      if (key && currentVillageKey) {
+        ensureRoadBetween(currentVillageKey, key);
+      }
+      currentVillageKey = key;
+    }
+  }
+
   function updateRest(player, dt) {
     if (!player) return;
-    let inVillage = player.pos().distanceTo(VILLAGE_POS) <= REST_RADIUS;
+    const p = player.pos();
+    let inVillage = Math.hypot(p.x - VILLAGE_POS.x, p.z - VILLAGE_POS.z) <= REST_RADIUS;
     if (!inVillage && dynamicVillages.size > 0) {
-      const p = player.pos();
       for (const [, v] of dynamicVillages.entries()) {
         const d = Math.hypot(p.x - v.center.x, p.z - v.center.z);
         if (d <= v.radius) { inVillage = true; break; }
@@ -305,5 +302,16 @@ export function createVillagesSystem(scene, portals) {
     ensureFarVillage,
     updateVisitedVillage,
     updateRest,
+    getVillageKeyAt,
+    _debug: {
+      dynamicVillages,
+      dynamicRoads,
+      builtRoadKeys,
+      get currentVillageKey() { return currentVillageKey; }
+    }
   };
+}
+
+export function createVillagesSystem(scene, portals, opts = {}) {
+  return initVillages(scene, portals, opts);
 }

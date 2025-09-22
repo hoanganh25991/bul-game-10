@@ -67,6 +67,59 @@ export class Player extends Entity {
     const light = new THREE.PointLight(0x66b3ff, 1.2, 45, 2);
     light.position.set(0, 3.5, 0);
     mesh.add(light);
+    // Load persisted level (if any) and apply stats
+    try { this.loadLevelFromStorage(); } catch (_) {}
+  }
+
+  // Persist just the level
+  saveLevelToStorage() {
+    try { localStorage.setItem("playerLevel", String(this.level)); } catch (_) {}
+  }
+
+  // Reset stats back to STATS_BASE (level 1 baseline)
+  _recomputeBaseStats() {
+    this.level = 1;
+    this.xp = 0;
+    this.xpToLevel = STATS_BASE.xpToLevel;
+    this.maxHP = STATS_BASE.hp;
+    this.hp = this.maxHP;
+    this.maxMP = STATS_BASE.mp;
+    this.mp = this.maxMP;
+    this.hpRegen = STATS_BASE.hpRegen;
+    this.mpRegen = STATS_BASE.mpRegen;
+    this.baseDamage = WORLD.basicAttackDamage;
+  }
+
+  // Deterministically set level and recompute stats from base using SCALING
+  setLevel(level) {
+    const lvl = Math.max(1, Math.floor(level || 1));
+    this._recomputeBaseStats();
+    if (lvl > 1) {
+      for (let i = 2; i <= lvl; i++) {
+        this.maxHP = Math.floor(this.maxHP * SCALING.hero.hpGrowth);
+        this.maxMP = Math.floor(this.maxMP * SCALING.hero.mpGrowth);
+        this.hpRegen *= SCALING.hero.hpRegenGrowth;
+        this.mpRegen *= SCALING.hero.mpRegenGrowth;
+        this.baseDamage = Math.floor(this.baseDamage * SCALING.hero.baseDamageGrowth);
+        this.xpToLevel = Math.floor(this.xpToLevel * SCALING.xpGrowth);
+      }
+      this.level = lvl;
+      this.hp = this.maxHP;
+      this.mp = this.maxMP;
+    }
+    this.saveLevelToStorage();
+  }
+
+  // Load persisted level (simple persistence)
+  loadLevelFromStorage() {
+    try {
+      const raw = localStorage.getItem("playerLevel");
+      if (!raw) return;
+      const lvl = parseInt(raw, 10);
+      if (Number.isFinite(lvl) && lvl > 1) {
+        this.setLevel(lvl);
+      }
+    } catch (_) {}
   }
 
   gainXP(amount) {
@@ -85,6 +138,11 @@ export class Player extends Entity {
       this.mpRegen *= SCALING.hero.mpRegenGrowth;
       this.baseDamage = Math.floor(this.baseDamage * SCALING.hero.baseDamageGrowth);
       this.xpToLevel = Math.floor(this.xpToLevel * SCALING.xpGrowth);
+    }
+
+    // Persist level if changed
+    if (gained > 0) {
+      try { this.saveLevelToStorage(); } catch (_) {}
     }
 
     // Dispatch a level-up event for UI to react (e.g., glow skill buttons)
