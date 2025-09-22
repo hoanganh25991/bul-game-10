@@ -4,38 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <title>GoT RPG</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
-  <script>
-    (function () {
-      try {
-        var ua = navigator.userAgent || '';
-        var platform = navigator.platform || '';
-        // Robust mobile detection (incl. iPadOS desktop UA)
-        var isMobile = (navigator.userAgentData && navigator.userAgentData.mobile) ||
-          /Android|webOS|iPhone|iPod|iPad|BlackBerry|IEMobile|Opera Mini|Mobi/i.test(ua) ||
-          ((/Macintosh|MacIntel/.test(platform || ua)) && (navigator.maxTouchPoints || 0) > 1);
-
-        // Scale rules:
-        // - Mobile default: 0.75
-        // - Extra small screens (<=430px HEIGHT): 0.6
-        function __updateViewportScale() {
-          try {
-            var h = Math.min(window.innerHeight || (screen && screen.height) || 0, (screen && screen.height) || 0);
-            var scale = isMobile ? 0.75 : 1;
-            if (h && h <= 540) scale = 0.4;
-
-            // Prevent pinch/double-tap zoom on gameplay UI
-            var meta = document.querySelector('meta[name="viewport"]');
-            if (meta) {
-              var content = 'width=device-width, initial-scale=' + scale + ', maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
-              meta.setAttribute('content', content);
-            }
-          } catch (e) { }
-        }
-        __updateViewportScale();
-      } catch (e) { }
-    })();
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=0.8, user-scalable=no, viewport-fit=cover" />
   <script src="lock-zoom.js"></script>
   <link rel="preconnect" href="https://unpkg.com" />
   <link rel="stylesheet" href="css/style.css" />
