@@ -2,18 +2,29 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import { makeNoiseTexture } from "./utils.js";
 import { WORLD } from "./constants.js";
 
-function getTargetPixelRatio() {
+export function getTargetPixelRatio() {
+  // Read render quality preference (persisted). Default to "high".
+  // Values: "low" | "medium" | "high" | (fallback: dynamic)
+  let quality = "high";
+  try {
+    const prefs = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
+    if (prefs && typeof prefs.quality === "string") quality = prefs.quality;
+  } catch (_) {}
+
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  const area = window.innerWidth * window.innerHeight;
 
-  // Low tier: small screens or low DPR -> render at 1x for smoothness
-  if (area <= 800 * 600 || dpr <= 1.25) return 1;
+  if (quality === "low") {
+    return 1;
+  }
+  if (quality === "medium") {
+    return 1.25;
+  }
+  if (quality === "high") {
+    // Cap to 2x to avoid excessive GPU cost on ultra-high DPI
+    return Math.min(dpr, 3);
+  }
 
-  // Medium tier: typical tablets/phones in landscape -> cap around ~1.25x
-  if (area <= 1920 * 1080 || dpr <= 2) return Math.min(dpr, 1.25);
-
-  // High tier: desktops / flagships -> allow up to 2x
-  return Math.min(dpr, 2);
+  return 1;
 }
 
 /**

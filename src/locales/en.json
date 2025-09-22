@@ -11,6 +11,12 @@
     "env": {
       "rain": "Rain",
       "density": "Density"
+    },
+    "render": {
+      "quality": "Quality",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
     }
   },
   "instructions": {

@@ -490,11 +490,37 @@ export function initEnvironment(scene, options = {}) {
     if (rain.points) rain.points.visible = rain.enabled;
   }
 
+  // Adjust rain particle count live (recreate points)
+  function setRainCount(count) {
+    const n = Math.max(0, Math.floor(count || 0));
+    cfg.rainCount = n;
+    // Remove old points if any
+    if (rain.points) {
+      try { root.remove(rain.points); } catch (_) {}
+      try { rain.points.geometry.dispose?.(); } catch (_) {}
+      rain.points = null;
+      rain.velocities = null;
+    }
+    if (rain.enabled && n > 0) {
+      createRain(n);
+      if (rain.points) rain.points.visible = true;
+    }
+  }
+
+  // Convenience levels: 0=low, 1=medium, 2=high
+  function setRainLevel(level) {
+    const lvl = Math.max(0, Math.min(2, parseInt(level, 10) || 0));
+    const map = [300, 900, 1800];
+    setRainCount(map[lvl]);
+  }
+
   // Expose a small API and return
   return {
     root,
     update,
     toggleRain,
+    setRainCount,
+    setRainLevel,
     addVillage: (center, n, r) => generateVillage(center, n, r),
   };
 }

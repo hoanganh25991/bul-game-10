@@ -5,7 +5,7 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import { DEBUG } from "./config.js";
 import { COLOR, WORLD, SKILLS, VILLAGE_POS, REST_RADIUS, SCALING } from "./constants.js";
-import { initWorld, updateCamera, updateGridFollow, updateEnvironmentFollow, addResizeHandler } from "./world.js";
+import { initWorld, updateCamera, updateGridFollow, updateEnvironmentFollow, addResizeHandler, getTargetPixelRatio } from "./world.js";
 import { UIManager } from "./ui.js";
 import { Player, Enemy, getNearestEnemy, handWorldPos } from "./entities.js";
 import { EffectsManager, createGroundRing } from "./effects.js";
@@ -58,6 +58,7 @@ const mapManager = createMapManager();
 const _envPrefs = JSON.parse(localStorage.getItem("envPrefs") || "{}");
 let envRainState = !!_envPrefs.rain;
 let envDensityIndex = Number.isFinite(parseInt(_envPrefs.density, 10)) ? parseInt(_envPrefs.density, 10) : 1;
+let envRainLevel = Number.isFinite(parseInt(_envPrefs.rainLevel, 10)) ? parseInt(_envPrefs.rainLevel, 10) : 1;
 
 // Presets used by the density slider (kept in sync with index 0..2)
 const ENV_PRESETS = [
@@ -68,6 +69,11 @@ const ENV_PRESETS = [
 
 envDensityIndex = Math.min(Math.max(0, envDensityIndex), ENV_PRESETS.length - 1);
 let env = initEnvironment(scene, Object.assign({}, ENV_PRESETS[envDensityIndex], { enableRain: envRainState }));
+try {
+  if (envRainState && env && typeof env.setRainLevel === "function") {
+    env.setRainLevel(Math.min(Math.max(0, envRainLevel), 2));
+  }
+} catch (_) {}
 
 /* Initialize splash first (shows full-screen loader), then i18n */
 initSplash();
@@ -78,6 +84,12 @@ initI18n();
 const _audioPrefs = JSON.parse(localStorage.getItem("audioPrefs") || "{}");
 let musicEnabled = _audioPrefs.music !== false; // default true
 let sfxEnabled = _audioPrefs.sfx !== false;     // default true
+
+// Render quality preference (persisted). Default to "high".
+const _renderPrefs = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
+let renderQuality = (typeof _renderPrefs.quality === "string" && ["low", "medium", "high"].includes(_renderPrefs.quality))
+  ? _renderPrefs.quality
+  : "high";
 
 audio.startOnFirstUserGesture(document);
 /* Apply SFX volume per preference (default 0.5 when enabled) */
@@ -162,7 +174,13 @@ function setFirstPerson(enabled) {
 }
 
  // Settings handlers
- btnSettingsScreen?.addEventListener("click", () => { try { ensureSettingsTabs(); } catch(e) {} settingsPanel?.classList.toggle("hidden"); });
+ btnSettingsScreen?.addEventListener("click", () => {
+   try {
+     ensureSettingsTabs();
+     ensureGuideButton();
+   } catch(e) {}
+   settingsPanel?.classList.toggle("hidden");
+ });
  btnCloseSettings?.addEventListener("click", () => settingsPanel?.classList.add("hidden"));
 
  // Hero open/close
@@ -204,8 +222,16 @@ btnMark?.addEventListener("click", () => {
   } catch (_) {}
 });
 
-langVi?.addEventListener("click", () => setLanguage("vi"));
-langEn?.addEventListener("click", () => setLanguage("en"));
+function updateFlagActive() {
+  try {
+    const lang = (typeof getLanguage === "function" ? getLanguage() : "vi");
+    if (langVi) langVi.classList.toggle("active", lang === "vi");
+    if (langEn) langEn.classList.toggle("active", lang === "en");
+  } catch (_) {}
+}
+langVi?.addEventListener("click", () => { setLanguage("vi"); updateFlagActive(); });
+langEn?.addEventListener("click", () => { setLanguage("en"); updateFlagActive(); });
+try { updateFlagActive(); } catch (_) {}
 
 // Environment controls (Settings panel)
 // - #envRainToggle : checkbox to enable rain
@@ -218,8 +244,11 @@ if (envRainToggle) {
   envRainToggle.addEventListener("change", (ev) => {
     envRainState = !!ev.target.checked;
     if (env && typeof env.toggleRain === "function") env.toggleRain(envRainState);
+    if (envRainState && env && typeof env.setRainLevel === "function") {
+      try { env.setRainLevel(Math.min(Math.max(0, envRainLevel), 2)); } catch (_) {}
+    }
     // persist
-    localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex }));
+    try { localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex, rainLevel: envRainLevel })); } catch (_) {}
   });
 }
 if (envDensity) {
@@ -234,7 +263,50 @@ if (envDensity) {
     env = initEnvironment(scene, Object.assign({}, preset, { enableRain: envRainState }));
     try { updateEnvironmentFollow(env, player); } catch (e) {}
     // persist
-  localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex }));
+  try { localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex, rainLevel: envRainLevel })); } catch (_) {}
+  });
+}
+
+/* Rain density slider (0=low,1=medium,2=high) */
+const rainDensity = document.getElementById("rainDensity");
+if (rainDensity) {
+  try {
+    rainDensity.value = Math.min(Math.max(0, Number.isFinite(parseInt(_envPrefs.rainLevel, 10)) ? parseInt(_envPrefs.rainLevel, 10) : 1), 2);
+  } catch (_) {}
+  rainDensity.addEventListener("input", (ev) => {
+    const v = parseInt(ev.target.value, 10);
+    const lvl = Math.min(Math.max(0, Number.isFinite(v) ? v : 1), 2);
+    envRainLevel = lvl;
+    try { env && typeof env.setRainLevel === "function" && env.setRainLevel(lvl); } catch (_) {}
+    try { localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex, rainLevel: envRainLevel })); } catch (_) {}
+  });
+}
+
+/* Render quality segmented control (low/medium/high) */
+const qualitySeg = document.getElementById("qualitySeg");
+if (qualitySeg) {
+  const setActive = (q) => {
+    qualitySeg.querySelectorAll(".seg-btn").forEach((btn) => {
+      btn.classList.toggle("active", String(btn.dataset.value).toLowerCase() === q);
+    });
+  };
+  setActive(renderQuality);
+
+  qualitySeg.querySelectorAll(".seg-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const v = String(btn.dataset.value || "high").toLowerCase();
+      const valid = v === "low" || v === "medium" || v === "high";
+      const q = valid ? v : "high";
+      // persist
+      try { localStorage.setItem("renderPrefs", JSON.stringify({ quality: q })); } catch (_) {}
+      // visual active state
+      setActive(q);
+      // Apply immediately
+      try {
+        renderer.setPixelRatio(getTargetPixelRatio());
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      } catch (_) {}
+    });
   });
 }
 
@@ -352,10 +424,47 @@ function ensureSettingsTabs(){
   content.appendChild(controlsPanel);
   settingsPanel.dataset.tabsReady = "1";
 
+  // Insert Instruction Guide button into the Instructions row
+  try {
+    const instrRow = generalPanel.querySelector("#settingsInstructions");
+    if (instrRow && !instrRow.querySelector("#btnInstructionGuide")) {
+      const btn = document.createElement("button");
+      btn.id = "btnInstructionGuide";
+      btn.className = "primary";
+      btn.title = "Show guide";
+      btn.innerHTML = "👋 Guide";
+      btn.addEventListener("click", () => {
+        try { startInstructionGuide(); } catch (_) {}
+      });
+      instrRow.appendChild(btn);
+    }
+  } catch (_) {}
+
   try { window.applyTranslations && window.applyTranslations(settingsPanel); } catch (e) {}
 }
+
+function ensureGuideButton() {
+  try {
+    const root = settingsPanel;
+    if (!root) return;
+    const instrRow = root.querySelector("#settingsInstructions");
+    if (!instrRow) return;
+    if (!instrRow.querySelector("#btnInstructionGuide")) {
+      const btn = document.createElement("button");
+      btn.id = "btnInstructionGuide";
+      btn.className = "primary";
+      btn.title = "Show guide";
+      btn.innerHTML = "👋 Guide";
+      btn.addEventListener("click", () => {
+        try { startInstructionGuide(); } catch (_) {}
+      });
+      instrRow.appendChild(btn);
+    }
+  } catch (_) {}
+}
 // Build once on load (in case user opens immediately)
-try { ensureSettingsTabs(); } catch(e) {}
+// Build once on load (in case user opens immediately)
+try { ensureSettingsTabs(); ensureGuideButton(); } catch(e) {}
 
 // Selection/aim indicators
 /* Load and apply saved loadout so runtime SKILLS.Q/W/E/R reflect player's choice */
@@ -725,6 +834,218 @@ function renderHeroScreen(initialTab = "skills") {
     bookPanel.appendChild(wrap);
   })();
 
+/* ------------------------------------------------------------
+   Guided Instruction Overlay (focus ring + hand + tooltip)
+------------------------------------------------------------ */
+let __guideState = null;
+
+function startInstructionGuide() {
+  if (__guideState && __guideState.active) return;
+
+  const steps = [
+    {
+      key: "camera",
+      get el() { return document.getElementById("btnCamera"); },
+      title: "Camera Toggle",
+      desc: "Tap to toggle first-person camera."
+    },
+    {
+      key: "settings",
+      get el() { return document.getElementById("btnSettingsScreen"); },
+      title: "Settings",
+      desc: "Open and adjust game options, environment, and audio."
+    },
+    {
+      key: "hero",
+      get el() { return document.getElementById("btnHeroScreen"); },
+      title: "Hero Screen",
+      desc: "View hero info and configure skills and loadout."
+    },
+    {
+      key: "skills",
+      get el() { return document.getElementById("skillWheel") || document.getElementById("btnBasic"); },
+      title: "Skills",
+      desc: "Tap Basic or Q/W/E/R to use skills. Cooldown shows in the ring."
+    },
+  ].filter(s => !!s.el);
+
+  if (!steps.length) return;
+
+  const overlay = document.createElement("div");
+  overlay.className = "guide-overlay";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+
+  const blocker = document.createElement("div");
+  blocker.className = "guide-blocker";
+  overlay.appendChild(blocker);
+
+  const focus = document.createElement("div");
+  focus.className = "guide-focus";
+  overlay.appendChild(focus);
+
+  const hand = document.createElement("div");
+  hand.className = "guide-hand";
+  hand.textContent = "👉";
+  overlay.appendChild(hand);
+
+  const tip = document.createElement("div");
+  tip.className = "guide-tooltip";
+  const tipHeader = document.createElement("div");
+  tipHeader.className = "guide-tooltip-header";
+  const tipTitle = document.createElement("div");
+  tipTitle.className = "guide-tooltip-title";
+  const tipClose = document.createElement("button");
+  tipClose.className = "guide-close";
+  tipClose.setAttribute("aria-label", "Close guide");
+  tipClose.textContent = "✕";
+  tipHeader.appendChild(tipTitle);
+  tipHeader.appendChild(tipClose);
+  const tipBody = document.createElement("div");
+  tipBody.className = "guide-tooltip-body";
+  const tipNav = document.createElement("div");
+  tipNav.className = "guide-nav";
+  const btnPrev = document.createElement("button");
+  btnPrev.className = "secondary";
+  btnPrev.textContent = "Previous";
+  const btnNext = document.createElement("button");
+  btnNext.className = "primary";
+  btnNext.textContent = "Next";
+  tipNav.appendChild(btnPrev);
+  tipNav.appendChild(btnNext);
+  tip.appendChild(tipHeader);
+  tip.appendChild(tipBody);
+  tip.appendChild(tipNav);
+  overlay.appendChild(tip);
+
+  document.body.appendChild(overlay);
+
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+  function positionFor(el, pad = 10) {
+    const r = el.getBoundingClientRect();
+    const rect = {
+      left: r.left - pad,
+      top: r.top - pad,
+      width: r.width + pad * 2,
+      height: r.height + pad * 2
+    };
+    rect.right = rect.left + rect.width;
+    rect.bottom = rect.top + rect.height;
+    return rect;
+  }
+
+  function placeFocus(rect) {
+    focus.style.left = rect.left + "px";
+    focus.style.top = rect.top + "px";
+    focus.style.width = rect.width + "px";
+    focus.style.height = rect.height + "px";
+  }
+
+  function placeHand(rect) {
+    const hx = rect.right - 8;
+    const hy = rect.bottom + 6;
+    hand.style.left = hx + "px";
+    hand.style.top = hy + "px";
+  }
+
+  function placeTip(rect) {
+    const margin = 8;
+    let tx = rect.left;
+    let ty = rect.bottom + margin;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    tip.style.maxWidth = "320px";
+    tip.style.visibility = "hidden";
+    tip.style.left = "0px"; tip.style.top = "-9999px";
+    tip.style.display = "block";
+    const tb = tip.getBoundingClientRect();
+    let tw = tb.width || 280;
+    let th = tb.height || 120;
+
+    // Prefer below; if not, try above.
+    if (ty + th > vh - 12) {
+      ty = rect.top - th - margin;
+    }
+    // Clamp horizontally
+    tx = clamp(tx, 12, vw - tw - 12);
+    // If still off-screen vertically, clamp
+    ty = clamp(ty, 12, vh - th - 12);
+
+    tip.style.left = tx + "px";
+    tip.style.top = ty + "px";
+    tip.style.visibility = "visible";
+  }
+
+  function setStep(idx) {
+    __guideState.index = idx;
+    const s = steps[idx];
+    if (!s || !s.el) return;
+    // Scroll into view if needed (for safety on small screens)
+    try { s.el.scrollIntoView?.({ block: "nearest", inline: "nearest" }); } catch (_) {}
+    const rect = positionFor(s.el, 10);
+    placeFocus(rect);
+    placeHand(rect);
+    tipTitle.textContent = s.title || "";
+    tipBody.textContent = s.desc || "";
+    placeTip(rect);
+
+    btnPrev.disabled = idx === 0;
+    btnNext.textContent = (idx === steps.length - 1) ? "Done" : "Next";
+  }
+
+  function onNext() {
+    if (__guideState.index >= steps.length - 1) {
+      close();
+      return;
+    }
+    setStep(__guideState.index + 1);
+  }
+  function onPrev() {
+    if (__guideState.index <= 0) return;
+    setStep(__guideState.index - 1);
+  }
+  function onResize() {
+    const s = steps[__guideState.index];
+    if (!s || !s.el) return;
+    const rect = positionFor(s.el, 10);
+    placeFocus(rect);
+    placeHand(rect);
+    placeTip(rect);
+  }
+
+  function close() {
+    if (!__guideState || !__guideState.active) return;
+    __guideState.active = false;
+    btnPrev.removeEventListener("click", onPrev);
+    btnNext.removeEventListener("click", onNext);
+    tipClose.removeEventListener("click", close);
+    window.removeEventListener("resize", onResize);
+    window.removeEventListener("orientationchange", onResize);
+    try { overlay.remove(); } catch (_) {}
+    __guideState = null;
+  }
+
+  btnPrev.addEventListener("click", onPrev);
+  btnNext.addEventListener("click", onNext);
+  tipClose.addEventListener("click", close);
+  blocker.addEventListener("click", () => {}); // absorb clicks
+  window.addEventListener("resize", onResize);
+  window.addEventListener("orientationchange", onResize);
+
+  __guideState = { active: true, index: 0, steps, overlay, focus, hand, tip };
+  setStep(0);
+  try { window.__guideClose = close; } catch (_) {}
+}
+
+// Fallback bindings to ensure the Guide button always triggers the overlay
+try { window.startInstructionGuide = startInstructionGuide; } catch (_) {}
+document.addEventListener("click", (ev) => {
+  const t = ev.target;
+  if (t && t.id === "btnInstructionGuide") {
+    try { startInstructionGuide(); } catch (_) {}
+  }
+});
+
   // Build Maps panel content (scrollable list + set active)
   (function buildMapsPanel() {
     const wrap = document.createElement("div");
@@ -877,9 +1198,9 @@ function renderHeroScreen(initialTab = "skills") {
 
     // Header
     const hName = document.createElement("div"); hName.style.fontWeight = "600"; hName.textContent = "Name / Position / Created";
-    const hRN = document.createElement("div"); hRN.style.fontWeight = "600"; hRN.textContent = "Rename";
-    const hTP = document.createElement("div"); hTP.style.fontWeight = "600"; hTP.textContent = "Teleport";
-    const hRM = document.createElement("div"); hRM.style.fontWeight = "600"; hRM.textContent = "Remove";
+    const hRN = document.createElement("div"); hRN.style.fontWeight = "600"; hRN.textContent = "✏️";
+    const hTP = document.createElement("div"); hTP.style.fontWeight = "600"; hTP.textContent = "🌀";
+    const hRM = document.createElement("div"); hRM.style.fontWeight = "600"; hRM.textContent = "❌";
     list.appendChild(hName); list.appendChild(hRN); list.appendChild(hTP); list.appendChild(hRM);
 
     function fmtTime(ts) {

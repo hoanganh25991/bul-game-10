@@ -52,17 +52,16 @@
     <!-- Screen buttons row (below minimap) -->
     <div id="screenGroup">
       <button id="btnSettingsScreen" class="icon-btn" aria-label="Settings" title="Cài đặt / Settings">⚙️</button>
-      <button id="btnHeroScreen" class="icon-btn" aria-label="Hero" title="Hero">🛡️</button>
+      <button id="btnHeroScreen" class="icon-btn" aria-label="Hero" title="Hero">👹</button>
     </div>
   </div>
 
   <!-- Hints -->
   <div id="hints" style="display:none;">
     <div>DOTA-style controls:</div>
-    <div>- Left Click: select</div>
-    <div>- Right Click: move / attack enemy</div>
-    <div>- W: AOE (auto-cast)</div>
-    <div>- Q/E/R: skills</div>
+    <div>- Left Click: attack</div>
+    <div>- Right Click: move</div>
+    <div>- Q/W/E/R: skills</div>
     <div>- S: Stop (cancel orders)</div>
     <div>- B: Recall to village (opens portal back)</div>
   </div>
@@ -99,6 +98,19 @@
             <label style="display:flex;align-items:center;gap:8px;">
               <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.env.density">Density</span>
               <input type="range" id="envDensity" min="0" max="2" step="1" value="1" />
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.env.rainDensity">Rain Density</span>
+              <input type="range" id="rainDensity" min="0" max="2" step="1" value="1" />
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.render.quality">Quality</span>
+              <!-- Segmented control to match theme (replaces native select) -->
+              <div id="qualitySeg" class="segmented" role="group" aria-label="Quality">
+                <button type="button" class="seg-btn" data-value="low"><span data-i18n="settings.render.low">Low</span></button>
+                <button type="button" class="seg-btn" data-value="medium"><span data-i18n="settings.render.medium">Medium</span></button>
+                <button type="button" class="seg-btn" data-value="high"><span data-i18n="settings.render.high">High</span></button>
+              </div>
             </label>
           </div>
         </div>

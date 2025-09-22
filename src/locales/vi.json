@@ -11,6 +11,12 @@
     "env": {
       "rain": "Mưa",
       "density": "Mật độ"
+    },
+    "render": {
+      "quality": "Chất lượng",
+      "high": "Cao",
+      "medium": "Trung bình",
+      "low": "Thấp"
     }
   },
   "instructions": {
