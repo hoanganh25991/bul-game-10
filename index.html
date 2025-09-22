@@ -26,39 +26,37 @@
   </div>
 
   <!-- UI/HUD Overlay -->
-  <div id="ui-root">
-    <div id="hud">
-      <div id="stats">
-        <div class="bar hp">
-          <div class="fill" id="hpFill"></div>
-          <div class="label"><span>HP</span><span id="hpText">100/100</span></div>
-        </div>
-        <div class="bar mp">
-          <div class="fill" id="mpFill"></div>
-          <div class="label"><span>MP</span><span id="mpText">100/100</span></div>
-        </div>
-        <div class="bar xp">
-          <div class="fill" id="xpFill"></div>
-          <div class="label"><span>XP</span><span id="xpText">0/100</span></div>
-        </div>
-        <div id="level">Lv <span id="levelValue">1</span></div>
+  <div id="hud">
+    <div id="stats">
+      <div class="bar hp">
+        <div class="fill" id="hpFill"></div>
+        <div class="label"><span>HP</span><span id="hpText">100/100</span></div>
       </div>
+      <div class="bar mp">
+        <div class="fill" id="mpFill"></div>
+        <div class="label"><span>MP</span><span id="mpText">100/100</span></div>
+      </div>
+      <div class="bar xp">
+        <div class="fill" id="xpFill"></div>
+        <div class="label"><span>XP</span><span id="xpText">0/100</span></div>
+      </div>
+      <div id="level">Lv <span id="levelValue">1</span></div>
     </div>
+  </div>
 
 
-    <!-- Minimap -->
-    <canvas id="minimap" width="200" height="200"></canvas>
+  <!-- Minimap -->
+  <canvas id="minimap" width="200" height="200"></canvas>
 
-    <!-- Hints -->
-    <div id="hints" style="display:none;">
-      <div>DOTA-style controls:</div>
-      <div>- Left Click: select</div>
-      <div>- Right Click: move / attack enemy</div>
-      <div>- W: AOE (auto-cast)</div>
-      <div>- Q/E/R: skills</div>
-      <div>- S: Stop (cancel orders)</div>
-      <div>- B: Recall to village (opens portal back)</div>
-    </div>
+  <!-- Hints -->
+  <div id="hints" style="display:none;">
+    <div>DOTA-style controls:</div>
+    <div>- Left Click: select</div>
+    <div>- Right Click: move / attack enemy</div>
+    <div>- W: AOE (auto-cast)</div>
+    <div>- Q/E/R: skills</div>
+    <div>- S: Stop (cancel orders)</div>
+    <div>- B: Recall to village (opens portal back)</div>
   </div>
 
   <div id="deathMsg" class="center-msg" style="display:none;">You died. Respawning...</div>
