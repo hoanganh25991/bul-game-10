@@ -101,6 +101,19 @@ export function updateGridFollow(ground, player) {
 /**
  * Attach window resize handling to keep renderer/camera in sync.
  */
+export function updateEnvironmentFollow(env, player) {
+  if (!env || !env.root || !player || !player.pos) return;
+  const p = player.pos();
+  const half = (WORLD.groundSize * 0.5 - 6) || 244;
+  const margin = Math.min(half * 0.25, 80); // recenter when nearing edge, keep a safety margin
+  const dx = p.x - env.root.position.x;
+  const dz = p.z - env.root.position.z;
+  if (Math.abs(dx) > (half - margin) || Math.abs(dz) > (half - margin)) {
+    env.root.position.x = p.x;
+    env.root.position.z = p.z;
+  }
+}
+
 export function addResizeHandler(renderer, camera) {
   function onResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);

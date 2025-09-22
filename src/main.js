@@ -5,7 +5,7 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import { DEBUG } from "./config.js";
 import { COLOR, WORLD, SKILLS, VILLAGE_POS, REST_RADIUS } from "./constants.js";
-import { initWorld, updateCamera, updateGridFollow, addResizeHandler } from "./world.js";
+import { initWorld, updateCamera, updateGridFollow, updateEnvironmentFollow, addResizeHandler } from "./world.js";
 import { UIManager } from "./ui.js";
 import { Player, Enemy, getNearestEnemy, handWorldPos } from "./entities.js";
 import { EffectsManager, createGroundRing } from "./effects.js";
@@ -193,6 +193,7 @@ if (envDensity) {
     // Recreate environment with new density while preserving rain state
     try { if (env && env.root && env.root.parent) env.root.parent.remove(env.root); } catch (e) {}
     env = initEnvironment(scene, Object.assign({}, preset, { enableRain: envRainState }));
+    try { updateEnvironmentFollow(env, player); } catch (e) {}
     // persist
     localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex }));
   });
@@ -554,6 +555,7 @@ try {
 // ------------------------------------------------------------
 const player = new Player();
 scene.add(player.mesh);
+try { updateEnvironmentFollow(env, player); } catch (e) {}
 
 // Hero overhead HP/MP bars
 const heroBars = createHeroOverheadBars();
@@ -978,6 +980,7 @@ function animate() {
     updateCamera(camera, player, lastMoveDir, dt, cameraOffset, cameraShake);
   }
   updateGridFollow(ground, player);
+  if (env) updateEnvironmentFollow(env, player);
   ui.updateHUD(player);
   skills.update(t, dt, cameraShake);
   ui.updateMinimap(player, enemies, portals);
