@@ -15,54 +15,54 @@
     document.head.appendChild(style);
   } catch (e2) {}
 
-  // Global guards: prevent pinch-zoom and double-tap zoom (iOS/Safari)
-  try {
-    document.addEventListener(
-      'gesturestart',
-      function (e) {
-        e.preventDefault();
-      },
-      { passive: false }
-    );
-    document.addEventListener(
-      'gesturechange',
-      function (e) {
-        e.preventDefault();
-      },
-      { passive: false }
-    );
-    document.addEventListener(
-      'gestureend',
-      function (e) {
-        e.preventDefault();
-      },
-      { passive: false }
-    );
-    document.addEventListener(
-      'touchstart',
-      function (e) {
-        if (e.touches && e.touches.length > 1) e.preventDefault(); // block pinch
-      },
-      { passive: false }
-    );
-    var __lastTouchEnd = 0;
-    document.addEventListener(
-      'touchend',
-      function (e) {
-        var now = Date.now();
-        if (now - __lastTouchEnd <= 300) {
-          e.preventDefault(); // block double-tap zoom
-        }
-        __lastTouchEnd = now;
-      },
-      { passive: false }
-    );
-    document.addEventListener(
-      'dblclick',
-      function (e) {
-        e.preventDefault();
-      },
-      { passive: false }
-    );
-  } catch (e3) {}
+  // // Global guards: prevent pinch-zoom and double-tap zoom (iOS/Safari)
+  // try {
+  //   document.addEventListener(
+  //     'gesturestart',
+  //     function (e) {
+  //       e.preventDefault();
+  //     },
+  //     { passive: false }
+  //   );
+  //   document.addEventListener(
+  //     'gesturechange',
+  //     function (e) {
+  //       e.preventDefault();
+  //     },
+  //     { passive: false }
+  //   );
+  //   document.addEventListener(
+  //     'gestureend',
+  //     function (e) {
+  //       e.preventDefault();
+  //     },
+  //     { passive: false }
+  //   );
+  //   document.addEventListener(
+  //     'touchstart',
+  //     function (e) {
+  //       if (e.touches && e.touches.length > 1) e.preventDefault(); // block pinch
+  //     },
+  //     { passive: false }
+  //   );
+  //   var __lastTouchEnd = 0;
+  //   document.addEventListener(
+  //     'touchend',
+  //     function (e) {
+  //       var now = Date.now();
+  //       if (now - __lastTouchEnd <= 300) {
+  //         e.preventDefault(); // block double-tap zoom
+  //       }
+  //       __lastTouchEnd = now;
+  //     },
+  //     { passive: false }
+  //   );
+  //   document.addEventListener(
+  //     'dblclick',
+  //     function (e) {
+  //       e.preventDefault();
+  //     },
+  //     { passive: false }
+  //   );
+  // } catch (e3) {}
 })();
