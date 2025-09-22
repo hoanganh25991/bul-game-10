@@ -33,6 +33,11 @@ export function createInputService({
     moveKeys: { up: false, down: false, left: false, right: false },
     lastMouseGroundPoint: new THREE.Vector3(),
     touch: null, // optional adapter from touch.js
+    // movement release handling
+    prevKeyActive: false,
+    prevJoyActive: false,
+    lastDir: { x: 0, y: 0 }, // last movement direction (normalized)
+    stopUntil: 0,            // time until which we keep short glide
   };
 
   // ---- Helpers ----
@@ -293,8 +298,10 @@ export function createInputService({
       }
     }
 
-    // Touch joystick or keyboard arrows for movement
-    let moved = false;
+    // Touch joystick or keyboard arrows for movement with short glide on release
+    const tnow = now();
+
+    let joyActive = false;
     if (state.touch && typeof state.touch.getMoveDir === "function") {
       const joy = state.touch.getMoveDir();
       if (joy.active && !player.frozen) {
@@ -304,20 +311,56 @@ export function createInputService({
         player.moveTarget = new THREE.Vector3(px, 0, pz);
         player.attackMove = false;
         player.target = null;
-        moved = true;
+        // record last dir normalized
+        const len = Math.hypot(joy.x, joy.y) || 1;
+        state.lastDir.x = joy.x / len;
+        state.lastDir.y = joy.y / len;
+        joyActive = true;
       }
     }
-    if (!moved) {
-      const km = getKeyMoveDir();
-      if (km.active && !player.frozen) {
-        const ahead = 26;
-        const px = player.pos().x + km.x * ahead;
-        const pz = player.pos().z + km.y * ahead;
+
+    const km = getKeyMoveDir();
+    const keyActive = km.active && !player.frozen;
+    if (keyActive) {
+      const ahead = 26;
+      const px = player.pos().x + km.x * ahead;
+      const pz = player.pos().z + km.y * ahead;
+      player.moveTarget = new THREE.Vector3(px, 0, pz);
+      player.attackMove = false;
+      player.target = null;
+      // record last dir normalized
+      state.lastDir.x = km.x;
+      state.lastDir.y = km.y;
+    }
+
+    // Detect release transitions and schedule a short glide (0.2s)
+    if (state.prevJoyActive && !joyActive) {
+      state.stopUntil = Math.max(state.stopUntil, tnow + 0.2);
+    }
+    if (state.prevKeyActive && !keyActive) {
+      state.stopUntil = Math.max(state.stopUntil, tnow + 0.2);
+    }
+
+    // If no active input, apply brief glide or stop immediately
+    if (!joyActive && !keyActive) {
+      if (tnow < state.stopUntil && (state.lastDir.x !== 0 || state.lastDir.y !== 0) && !player.frozen) {
+        // short glide using a small lead distance
+        const aheadStop = 6;
+        const px = player.pos().x + state.lastDir.x * aheadStop;
+        const pz = player.pos().z + state.lastDir.y * aheadStop;
         player.moveTarget = new THREE.Vector3(px, 0, pz);
         player.attackMove = false;
         player.target = null;
+      } else {
+        // fully stop
+        player.moveTarget = null;
+        player.attackMove = false;
       }
     }
+
+    // Update prev flags
+    state.prevJoyActive = joyActive;
+    state.prevKeyActive = keyActive;
   }
 
   return {
