@@ -752,17 +752,63 @@ function renderHeroScreen(initialTab = "skills") {
         items.forEach((m) => {
           const row = document.createElement("div");
           row.style.display = "grid";
-          row.style.gridTemplateColumns = "1fr auto";
-          row.style.gap = "8px";
+          row.style.gridTemplateColumns = "64px 1fr auto";
+          row.style.gap = "12px";
           row.style.border = "1px solid rgba(255,255,255,0.1)";
-          row.style.borderRadius = "6px";
+          row.style.borderRadius = "8px";
           row.style.padding = "8px";
 
-          const info = document.createElement("div");
-          info.innerHTML = `<div style="font-weight:600">${m.name}${m.current ? " • Current" : ""}${(!m.unlocked ? " • Locked" : "")}</div>
-                            <div style="font-size:12px;opacity:0.85">${m.desc}</div>
-                            <div style="font-size:12px;opacity:0.7">Requires Lv ${m.requiredLevel}</div>`;
+          // Square image (left)
+          const thumb = document.createElement("div");
+          thumb.style.width = "64px";
+          thumb.style.height = "64px";
+          thumb.style.borderRadius = "6px";
+          thumb.style.background = "linear-gradient(135deg, rgba(124,196,255,0.15), rgba(255,255,255,0.06))";
+          thumb.style.border = "1px solid rgba(255,255,255,0.12)";
+          thumb.style.overflow = "hidden";
+          if (m.img) {
+            thumb.style.backgroundImage = `url(${m.img})`;
+            thumb.style.backgroundSize = "cover";
+            thumb.style.backgroundPosition = "center";
+            if (m.imgHint) thumb.title = m.imgHint;
+          } else {
+            const ph = document.createElement("div");
+            ph.style.width = "100%";
+            ph.style.height = "100%";
+            ph.style.display = "flex";
+            ph.style.alignItems = "center";
+            ph.style.justifyContent = "center";
+            ph.style.fontWeight = "700";
+            ph.style.opacity = "0.7";
+            ph.textContent = (m.name || "").slice(0, 2).toUpperCase();
+            thumb.appendChild(ph);
+          }
 
+          // Info (name + desc + req + elites)
+          const info = document.createElement("div");
+          const title = document.createElement("div");
+          title.style.fontWeight = "600";
+          title.textContent = `${m.name}${m.current ? " • Current" : ""}${(!m.unlocked ? " • Locked" : "")}`;
+          const desc = document.createElement("div");
+          desc.style.fontSize = "12px";
+          desc.style.opacity = "0.85";
+          desc.textContent = m.desc || "";
+          const req = document.createElement("div");
+          req.style.fontSize = "12px";
+          req.style.opacity = "0.7";
+          req.textContent = `Requires Lv ${m.requiredLevel}`;
+          const elites = document.createElement("div");
+          elites.style.fontSize = "12px";
+          elites.style.opacity = "0.9";
+          elites.style.marginTop = "4px";
+          elites.textContent = (m.strongEnemies && m.strongEnemies.length) ? `Elites: ${m.strongEnemies.join(", ")}` : "";
+
+          info.appendChild(title);
+          info.appendChild(desc);
+          info.appendChild(req);
+          if (elites.textContent) info.appendChild(elites);
+
+          // Action (right)
           const act = document.createElement("div");
           const btn = document.createElement("button");
           if (m.current) {
@@ -776,7 +822,6 @@ function renderHeroScreen(initialTab = "skills") {
             btn.addEventListener("click", () => {
               try {
                 if (mapManager.setCurrent?.(m.index)) {
-                  // Reapply modifiers to existing enemies on map switch
                   enemies.forEach((en) => applyMapModifiersToEnemy(en));
                   setCenterMsg && setCenterMsg(`Switched to ${m.name}`);
                   setTimeout(() => clearCenterMsg(), 1100);
@@ -787,6 +832,7 @@ function renderHeroScreen(initialTab = "skills") {
           }
           act.appendChild(btn);
 
+          row.appendChild(thumb);
           row.appendChild(info);
           row.appendChild(act);
           list.appendChild(row);
