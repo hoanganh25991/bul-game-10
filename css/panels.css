@@ -48,11 +48,23 @@
   z-index: 45;   /* above mobile controls (z-index 40) */
 }
 
+/* Mark/Flag button placement: bottom-right, above Portal */
+#btnMark{
+  position: fixed;
+  right: 12px;
+  bottom: 268px; /* sits above the portal button */
+  z-index: 45;
+}
+
 /* Responsive tweak for narrower screens */
 @media (max-width: 720px){
   #btnPortal{
     right: 8px;
     bottom: 200px;
+  }
+  #btnMark{
+    right: 8px;
+    bottom: 248px;
   }
 }
 
