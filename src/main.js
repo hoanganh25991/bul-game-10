@@ -24,6 +24,7 @@ import { loadOrDefault, saveLoadout, resolveLoadout } from "./loadout.js";
 import { audio } from "./audio.js";
 import { createVillagesSystem } from "./villages.js";
 import { createMapManager } from "./maps.js";
+import { initHeroPreview } from "./hero_preview.js";
 
 /**
  * Minimal skill icon helper: returns a small emoji/SVG placeholder for a skill short name.
@@ -1136,6 +1137,7 @@ const villages = createVillagesSystem(scene, portals);
 // ------------------------------------------------------------
 const skills = new SkillsSystem(player, enemies, effects, ui.getCooldownElements(), villages);
 try { window.__skillsRef = skills; } catch (_) {}
+try { initHeroPreview(skills, { heroScreen }); } catch (_) {}
 
 // Touch controls (joystick + skill wheel)
 const touch = initTouchControls({ player, skills, effects, aimPreview, attackPreview, enemies, getNearestEnemy, WORLD, SKILLS });
