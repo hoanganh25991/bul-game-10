@@ -116,7 +116,7 @@ export function initPortals(scene) {
 
     // Freeze and start a 3-2-1 countdown, then auto-teleport
     player.frozen = true;
-    const msg = (k) => `Dịch chuyển sau ${k}… • Teleporting in ${k}…`;
+    const msg = (k) => `⏳ ${k}…`;
     setCenterMsg && setCenterMsg(msg(3));
 
     const timers = [];
@@ -125,7 +125,7 @@ export function initPortals(scene) {
     timers.push(setTimeout(() => {
       try { teleportToPortal(returnPortal.linkTo || villagePortal, player); } catch (_) {}
       player.frozen = false;
-      try { setCenterMsg && setCenterMsg("Đã dịch chuyển • Teleported"); } catch (_) {}
+      try { setCenterMsg && setCenterMsg("🛖"); } catch (_) {}
       setTimeout(() => { try { setCenterMsg && setCenterMsg(""); } catch (_) {} }, 600);
     }, 3000));
     returnPortal.__countTimers = timers;
