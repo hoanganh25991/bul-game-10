@@ -309,32 +309,46 @@ if (rainDensity) {
 }
 
 /* Render quality segmented control (low/medium/high) */
-const qualitySeg = document.getElementById("qualitySeg");
-if (qualitySeg) {
+function initQualityControl() {
+  const qualitySeg = document.getElementById("qualitySeg");
+  if (!qualitySeg) return;
+
   const setActive = (q) => {
     qualitySeg.querySelectorAll(".seg-btn").forEach((btn) => {
       btn.classList.toggle("active", String(btn.dataset.value).toLowerCase() === q);
     });
   };
-  setActive(renderQuality);
 
-  qualitySeg.querySelectorAll(".seg-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
+  // Initialize from persisted prefs or current variable
+  let q = renderQuality;
+  try {
+    const prefs = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
+    if (prefs && typeof prefs.quality === "string") q = prefs.quality;
+  } catch (_) {}
+  setActive(q);
+
+  // Bind once via event delegation so it survives DOM moves
+  if (!qualitySeg.dataset.bound) {
+    qualitySeg.addEventListener("click", (ev) => {
+      const btn = ev.target && ev.target.closest ? ev.target.closest(".seg-btn") : null;
+      if (!btn) return;
       const v = String(btn.dataset.value || "high").toLowerCase();
       const valid = v === "low" || v === "medium" || v === "high";
-      const q = valid ? v : "high";
+      const nextQ = valid ? v : "high";
       // persist
-      try { localStorage.setItem("renderPrefs", JSON.stringify({ quality: q })); } catch (_) {}
+      try { localStorage.setItem("renderPrefs", JSON.stringify({ quality: nextQ })); } catch (_) {}
       // visual active state
-      setActive(q);
+      setActive(nextQ);
       // Apply immediately
       try {
         renderer.setPixelRatio(getTargetPixelRatio());
         renderer.setSize(window.innerWidth, window.innerHeight);
       } catch (_) {}
-    });
-  });
+    }, { passive: true });
+    qualitySeg.dataset.bound = "1";
+  }
 }
+try { initQualityControl(); } catch (_) {}
 
 /* Settings: Audio toggles (Music / SFX) */
 const musicToggle = document.getElementById("musicToggle");
@@ -466,6 +480,8 @@ function ensureSettingsTabs(){
     }
   } catch (_) {}
 
+  // Re-init quality segmented control after rebuilding tabs (safe if called multiple times)
+  try { initQualityControl && initQualityControl(); } catch (e) {}
   try { window.applyTranslations && window.applyTranslations(settingsPanel); } catch (e) {}
 }
 
