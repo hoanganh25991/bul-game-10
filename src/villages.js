@@ -16,7 +16,7 @@ import { createHouse } from "./meshes.js";
  */
 export function createVillagesSystem(scene, portals) {
   // Spacing and registries
-  const VILLAGE_SPACING = 10000; // world units between distant villages
+  const VILLAGE_SPACING = 500; // world units between distant villages
   const dynamicVillages = new Map(); // key "ix,iz" -> { center, radius, group, portal }
   const builtRoadKeys = new Set(); // canonical "a|b" keys to avoid duplicates
   let currentVillageKey = null; // "origin" or "{ix},{iz}"
