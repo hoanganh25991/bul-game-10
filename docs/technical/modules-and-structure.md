@@ -5,7 +5,7 @@ Runtime Stack
 - Three.js (0.160.0) loaded from unpkg as an ES module.
 
 Entry Points
-- index.html imports src/main.js as the only script module.
+- index.html imports src/main.js as the primary script module. A startup splash (src/splash.js) may run first to show loading and then hand off to main.
 - src/main.js orchestrates all systems; no global variables are required outside modules.
 
 Source Modules (src/)
@@ -33,16 +33,32 @@ Source Modules (src/)
   - initPortals(scene): manages fixed village portal, return portal spawning/linking, frozen click handling, and ring spin update.
 - ui.js
   - UIManager: binds HUD elements, cooldown overlay elements, minimap rendering, and center message helpers.
+- touch.js
+  - Virtual joystick and mobile gestures: movement on bottom-left, skill radial interactions on bottom-right (center basic attack, Q/W/E/R around).
+  - Hold-to-cast handling and AOE placement via mini-joystick drag on skill buttons.
+- maps.js
+  - Map segment and gating helpers (MAP 1, MAP 2, ...), thresholds to unlock next maps, palette/variant hooks for enemy color/model and strength ramps.
+- villages.js
+  - Procedural village generation when traveling far from origin; scalable size/complexity.
+  - Village portals, naming/gates, fence ring barrier, and curved/connected road generation between villages.
+- splash.js
+  - Full-screen splash/intro; shows loading progress (min 1s), then reveals Start button to enter the game.
+- i18n.js (+ locales/)
+  - Dynamic language loading from src/locales/en.json and vi.json; persists language choice; fallback returns key strings before load.
+- input/input_service.js
+  - Keyboard/mouse input service (renamed from service.js): arrows movement, A basic attack (hold supported), Space quick-cast, camera toggle, etc.
 - main.js
-  - Wires everything together: creates player/enemies, houses, village ring; configures input handlers; runs the update loop.
+  - Wires everything together: creates player/enemies, houses, village fence; configures input handlers (keyboard/mouse/touch); runs the update loop.
 
 Data Flow & Ownership
-- main.js owns high-level state: player, enemies array, selection rings/aim previews, and timing for the main loop.
+- main.js owns high-level state: player, enemies array, current map, selection/aim indicators, and timing for the main loop.
 - Modules expose stateless helpers or small stateful managers:
   - EffectsManager owns transient/indicator groups; attached to the scene once.
   - SkillsSystem holds cooldown timestamps and storm queues; reads player/enemy states; writes cooldown UI.
-  - Portals system stores references to village/return portals; exposes recall/handleFrozenPortalClick/update.
-- UIManager reads player/enemies/portals to render HUD/minimap/center messages; retains DOM references.
+  - Portals system stores references to village/return portals; exposes recall/handleFrozenPortalClick/update and nearest-portal queries.
+  - Maps/Villages manage unlock thresholds, village registry, and road/fence meshes.
+  - Touch input translates joystick/skill radial gestures into the same orders used by keyboard/mouse.
+- UIManager reads player/enemies/portals to render HUD/minimap/center messages; retains DOM references; coordinates full-screen panels (Splash/Settings/Hero).
 
 Update Sequencing
 - Player update -> Enemies update -> Camera/world -> HUD -> Skills -> Minimap -> Effects/Indicators -> Portals -> Village regen -> Death/respawn -> Render.

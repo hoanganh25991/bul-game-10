@@ -18,7 +18,10 @@ Module docs:
 - Portals, Recall, Respawn: docs/technical/portals-and-respawn.md
 - Camera & Movement: docs/technical/camera-and-movement.md
 - Update Loop: docs/technical/update-loop.md
+- Audio System: docs/technical/audio.md
+- Leveling & Progression: docs/technical/leveling.md
 
 Notes:
 - These documents map 1:1 to the runtime modules in src/.
 - Behavior is unchanged from the original single-module implementation; only structure and documentation organization were refactored for maintainability.
+- Additional docs included: Audio System and Leveling & Progression. Mobile/touch input, i18n/localization, and persistence updates are documented in the relevant module pages.

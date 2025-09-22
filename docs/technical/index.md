@@ -15,6 +15,8 @@ Overview
 - Portals, Recall, Respawn: ./portals-and-respawn.md
 - Camera & Movement: ./camera-and-movement.md
 - Update Loop: ./update-loop.md
+- Audio System: ./audio.md
+- Leveling & Progression: ./leveling.md
 - Debug Parameters: ./debug.md
 
 Key Mapping (src -> docs)
@@ -27,7 +29,8 @@ Key Mapping (src -> docs)
 - src/portals.js -> ./portals-and-respawn.md
 - src/world.js (camera), src/main.js (movement) -> ./camera-and-movement.md
 - src/main.js (sequence) -> ./update-loop.md
-- src/utils.js, src/config.js, src/constants.js -> ./utils-and-config.md
+- src/utils.js, src/config.js, src/constants.js, src/i18n.js -> ./utils-and-config.md
+- src/audio.js -> ./audio.md
 
 Extensibility
 - Add skills by extending src/skills.js and SKILLS config; prefer reusing VFX helpers.

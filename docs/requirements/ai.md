@@ -6,6 +6,8 @@ Scope
 Spawning
 - Spawn a fixed number of enemies around the village at random positions within enemySpawnRadius.
 - Each enemy is initialized alive with randomized maxHP and billboard HP bar.
+- Maintain a high density suitable for “hunter”-style gameplay; dead enemies respawn after a short delay to keep density high.
+- Variety: include multiple enemy types (melee and ranged), size variants, and different attack effects. Higher maps use stronger variants with distinct color/model differences.
 
 Aggro & Pursuit
 - Aggro if the player is within aiAggroRadius.
@@ -18,6 +20,7 @@ Attacking
   - Attack on a cooldown (aiAttackCooldown).
   - Each attack deals aiAttackDamage to the player.
   - Render a short red beam VFX toward the player for feedback.
+  - Enemies use non‑thunder effects; thunder visuals/skills are reserved for the hero.
 
 Wander (Idle)
 - Without aggro, periodically pick a random nearby moveTarget within aiWanderRadius and walk toward it.
@@ -39,3 +42,6 @@ Acceptance Criteria
 - Enemies attack on cooldown when within aiAttackRange; player HP decreases appropriately.
 - Slow debuff reduces enemy chase speed for the debuff duration and displays a visible indicator ring.
 - On death, enemies stop moving/attacking, hide visually, and grant XP exactly once.
+- Enemy density remains high due to respawn; the playfield stays populated in line with “hunter”-style gameplay.
+- At least two distinct enemy types (melee and ranged) with size variants and differing attack effects are observable.
+- Enemies do not cast thunder‑themed skills; thunder is exclusive to the hero.

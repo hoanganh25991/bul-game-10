@@ -13,6 +13,7 @@ HUD
   - One overlay per skill (Q/W/E/R).
   - Shows a conic-gradient wedge representing remaining cooldown and a numeric countdown.
   - Brief “ready” flash effect when a skill comes off cooldown.
+  - When countdown reaches 0, hide the numeric label (no "0.0" displayed).
 
 Minimap
 - 200x200 canvas rendering:
@@ -25,6 +26,17 @@ Minimap
 - Mapping:
   - worldToMinimap(x, z, centerX, centerZ, scale) converts world XZ to canvas coordinates.
   - Default scale ~0.8 pixels per world unit.
+
+Layout
+- Top-right button group contains Settings and Hero buttons.
+- Minimap is positioned below this top-right button group.
+- A Portal button is shown above the skills radial on the right; consistent styling across desktop/mobile.
+
+Screens
+- All major screens are full-screen overlays:
+  - Splash/Intro
+  - Settings
+  - Hero (directly accessible)
 
 Center Messages
 - Overlay text for critical states such as:

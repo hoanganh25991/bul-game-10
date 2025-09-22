@@ -7,14 +7,15 @@ Recall & Portals
 - Press B (Recall):
   - Spawns or refreshes a return portal at the player’s current position.
   - Links the return portal to the fixed village portal.
-  - Freezes the player (no other actions) until they click the portal or near it to travel.
-  - Shows center message: “Click the portal to travel to the village”.
+  - Freezes the player (no other actions) while a visible 3 → 2 → 1 countdown runs; on 0 auto‑teleport occurs.
+  - Destination is the nearest available village portal when multiple villages exist.
+  - Shows center message with countdown: “Teleporting in 3… 2… 1…”.
 - Portal Interaction (while frozen):
-  - Clicking the portal mesh OR clicking the ground near the portal (within portal radius + small margin) teleports the player to the village portal.
+  - Clicking the portal mesh OR clicking the ground near the portal (within portal radius + small margin) teleports the player to the village portal immediately (skips remaining countdown).
   - After teleporting, player unfreezes; normal controls resume.
 - Village Portal:
-  - Persistently exists near the village center; visually distinct color from return portal.
-  - Portals display slow ring spin/animation.
+  - Persistently exists near the village center; visually distinct, vertical green gate motif with inner rotating swirl.
+  - Portals display ring spin/animation and appear on the minimap.
 
 Village Regen
 - A ring around origin (REST_RADIUS) indicates the village area.
@@ -33,8 +34,9 @@ Death & Respawn
   - Clear center message.
 
 Acceptance Criteria
-- Pressing B creates a return portal at the player’s location and freezes the player.
-- Clicking/near the return portal teleports to the village portal and unfreezes the player.
+- Pressing B creates a return portal at the player’s location, freezes the player, and a visible 3‑2‑1 countdown begins.
+- On countdown reaching 0, the player auto‑teleports to the nearest village portal; player unfreezes.
+- Clicking/near the return portal during frozen state teleports immediately (skips countdown) and unfreezes the player.
 - The village ring provides visibly faster regen while the player is inside it.
 - On death, a message shows; after the delay, the player respawns at the village with full HP/MP and brief invulnerability.
-- Portals visibly rotate/spin; both village and return portals appear on the minimap.
+- Portals use a vertical green gate with an inner swirl; rings rotate/spin; both village and return portals appear on the minimap.

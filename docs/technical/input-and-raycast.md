@@ -2,7 +2,7 @@
 
 Responsibilities
 - Provide reusable raycasting helpers for ground, player, and enemy selection.
-- Implement mouse/keyboard input to drive RTS-like controls and aim modes.
+- Implement mouse/keyboard/touch input, including virtual joystick, skill radial, and updated aim/placement flows.
 
 Raycast Helper (raycast.js)
 - createRaycast({ renderer, camera, ground, enemiesMeshesProvider, playerMesh })
@@ -31,8 +31,8 @@ Mouse
   - If player.frozen: portals.handleFrozenPortalClick and return.
   - If in aim mode:
     - W: confirm ground point and cast W (spawn move ping in light-blue).
-    - ATTACK: confirm enemy (immediate basic attack) or ground (attack-move).
-    - After confirm, exit aim mode and reset cursor.
+    - For touch AOE placement: the skill button acts as a mini-joystick to set direction/offset; confirm on release.
+    - After confirm/cancel, exit aim mode and reset cursor.
   - Else selection:
     - Select player on player hit.
     - Select enemy on enemy hit (info only).
@@ -40,15 +40,17 @@ Mouse
     - Default selection is player.
 
 Keyboard
-- A: enter “ATTACK” aim mode; crosshair cursor.
-- Q/W/E/R: cast skills (W enters aim mode with visible preview).
-- B: recall (spawns return portal, freezes player, prompt message).
-- S: stop (clear orders, short holdUntil to suppress re-acquire).
-- Esc: cancel aim mode (hide preview and reset cursor).
+- A: Basic attack. Auto-targets nearest enemy in range; hold to repeat when off cooldown.
+- Q/W/E/R: Cast skills (W enters placement preview).
+- Space: Quick cast — attempts to cast all ready skills once (respects placement/requirements).
+- Arrow Keys: Move the player (↑/↓/←/→), in addition to mouse/joystick.
+- B: Recall (spawns/refreshes return portal; freezes player; prompt message).
+- S: Stop (clear orders; short holdUntil to suppress re-acquire).
+- Esc: Cancel aim mode (hide W preview and reset cursor).
 
 Aim Previews
-- W: ground ring follows raycastGround while in aim mode.
-- ATTACK: ring follows hovered enemy (or ground point).
+- W: ground ring follows raycastGround while in aim mode; on touch, the W button can be dragged slightly (mini-joystick) to position AOE before release.
+- Basic attack aim mode removed; A triggers immediate basic attack without a preview.
 
 Integration Notes
 - enemiesMeshesProvider filters enemies by alive state and maps to root meshes.

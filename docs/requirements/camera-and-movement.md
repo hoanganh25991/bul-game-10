@@ -8,7 +8,7 @@ Player Movement
 - Move Commands:
   - Right‑click ground sets moveTarget.
   - Right‑click enemy sets target and clears moveTarget.
-  - Attack‑move: in ATTACK aim mode, left‑click ground sets attackMove=true and moveTarget to the clicked point.
+  - Arrow keys and virtual joystick: continuous movement in the intended direction; releasing stops near‑immediately (~0.1s).
 - Movement Toward Targets:
   - If target exists and is alive:
     - If distance > attackRange * 0.95, move toward target.
@@ -41,4 +41,5 @@ Acceptance Criteria
 - Facing transitions are smooth both during movement and while stationary.
 - Pressing S reliably cancels orders and briefly prevents auto‑acquire.
 - Camera follows smoothly with subtle look‑ahead and exhibits small shakes during major strikes.
+- Releasing arrow keys/virtual joystick stops movement within ~0.1s.
 - Ground recenters and UV offsets update while the player moves.

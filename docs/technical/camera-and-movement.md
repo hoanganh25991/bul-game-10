@@ -9,14 +9,15 @@ Movement (main.js)
 - Orders
   - Right‑click ground: player.moveTarget = point, player.target = null.
   - Right‑click enemy: player.target = enemy, player.moveTarget = null.
-  - Attack‑move (A then left‑click ground): player.attackMove = true; player.moveTarget = point.
+  - Arrow keys / virtual joystick: continuous movement in the intended direction; releasing stops near‑immediately (~0.1s damping).
+  - Basic attack is immediate via A; no attack‑move aim mode.
 - Steering
   - Toward target: if distance > WORLD.attackRange * 0.95, move toward target; else attempt basic attack.
   - Toward moveTarget: move until within ~0.6 units, then clear moveTarget.
   - Turn: slerp yaw toward intended direction with player.turnSpeed.
   - Idle facing: if had a target recently, slerp to lastFacingYaw briefly (lastFacingUntil).
 - Stop
-  - S: clears moveTarget, attackMove, and target; sets holdUntil ~0.4s to avoid immediate re‑acquire.
+  - S: clears moveTarget, attackMove, and target; sets holdUntil ~0.1s to avoid immediate re‑acquire.
 - Constraints
   - Keep y at ≈1.1 for the player mesh.
   - Brace squash (brief vertical scale) on basic attack (braceUntil window).
@@ -27,7 +28,7 @@ Camera (world.js)
   - Lerp camera.position toward target (1 - pow(0.001, dt)).
   - If now < cameraShake.until, add small random offsets scaled by cameraShake.mag.
   - camera.lookAt(player.x, 1, player.z).
-- cameraOffset default: (0, 45, 28) for top‑down/angled view.
+- cameraOffset default: (0, 45, 28) for top‑down/angled view. First‑person mode uses a small eye/hand offset and enables the two‑hands overlay; toggled via the camera button in the UI.
 
 Ground (world.js)
 - updateGridFollow(ground, player)
