@@ -2,14 +2,28 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import { makeNoiseTexture } from "./utils.js";
 import { WORLD } from "./constants.js";
 
+function getTargetPixelRatio() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const area = window.innerWidth * window.innerHeight;
+
+  // Low tier: small screens or low DPR -> render at 1x for smoothness
+  if (area <= 800 * 600 || dpr <= 1.25) return 1;
+
+  // Medium tier: typical tablets/phones in landscape -> cap around ~1.25x
+  if (area <= 1920 * 1080 || dpr <= 2) return Math.min(dpr, 1.25);
+
+  // High tier: desktops / flagships -> allow up to 2x
+  return Math.min(dpr, 2);
+}
+
 /**
  * Initialize renderer, scene, camera, lights, and ground.
  * Appends renderer canvas to document.body.
  */
 export function initWorld() {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(getTargetPixelRatio());
   document.body.prepend(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -117,6 +131,7 @@ export function updateEnvironmentFollow(env, player) {
 export function addResizeHandler(renderer, camera) {
   function onResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(getTargetPixelRatio());
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
   }
