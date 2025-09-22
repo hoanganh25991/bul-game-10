@@ -17,7 +17,7 @@ import { createHouse } from "./meshes.js";
  *   villages.updateRest(player, dt);
  */
 export function initVillages(scene, portals, opts = {}) {
-  const VILLAGE_SPACING = opts.spacing || 100;
+  const VILLAGE_SPACING = opts.spacing || 500;
 
   // State
   const dynamicVillages = new Map(); // key "ix,iz" -> { center, radius, group, portal }
