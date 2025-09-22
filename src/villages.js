@@ -29,6 +29,58 @@ export function initVillages(scene, portals, opts = {}) {
   dynamicRoads.name = "dynamicRoads";
   scene.add(dynamicRoads);
 
+  // Persistence keys
+  const STORAGE_VILLAGES = "zeus.dynamic.villages.v1";
+  const STORAGE_ROADS = "zeus.dynamic.roads.v1";
+
+  function saveVillagesToStorage() {
+    try {
+      const arr = Array.from(dynamicVillages.keys());
+      localStorage.setItem(STORAGE_VILLAGES, JSON.stringify(arr));
+    } catch (_) {}
+  }
+  function saveRoadsToStorage() {
+    try {
+      const arr = Array.from(builtRoadKeys.values());
+      localStorage.setItem(STORAGE_ROADS, JSON.stringify(arr));
+    } catch (_) {}
+  }
+  // Load saved villages/roads (if any)
+  (function loadFromStorage() {
+    try {
+      const vraw = localStorage.getItem(STORAGE_VILLAGES);
+      const rraw = localStorage.getItem(STORAGE_ROADS);
+      const vKeys = vraw ? JSON.parse(vraw) : [];
+      if (Array.isArray(vKeys)) {
+        vKeys.forEach((key) => {
+          if (typeof key !== "string" || dynamicVillages.has(key)) return;
+          const [ixStr, izStr] = key.split(",");
+          const ix = parseInt(ixStr, 10), iz = parseInt(izStr, 10);
+          if (!Number.isFinite(ix) || !Number.isFinite(iz)) return;
+          const center = new THREE.Vector3(ix * VILLAGE_SPACING, 0, iz * VILLAGE_SPACING);
+          const info = createDynamicVillageAt(center, Math.hypot(center.x, center.z));
+          dynamicVillages.set(key, info);
+        });
+      }
+      const roads = rraw ? JSON.parse(rraw) : [];
+      if (Array.isArray(roads)) {
+        roads.forEach((canonical) => {
+          if (typeof canonical !== "string" || builtRoadKeys.has(canonical)) return;
+          const parts = canonical.split("|");
+          if (parts.length !== 2) return;
+          const a = parts[0];
+          const b = parts[1];
+          // Build only if endpoints are known or origin
+          const hasA = (a === "origin") || dynamicVillages.has(a);
+          const hasB = (b === "origin") || dynamicVillages.has(b);
+          if (hasA && hasB) {
+            ensureRoadBetween(a, b);
+          }
+        });
+      }
+    } catch (_) {}
+  })();
+
   // ------------- helpers
 
   function getVillageCenterByKey(key) {
@@ -119,6 +171,7 @@ export function initVillages(scene, portals, opts = {}) {
     const road = createCurvedRoad([a, ctrl, b], 7, 200, 0x2b2420);
     dynamicRoads.add(road);
     builtRoadKeys.add(canonical);
+    saveRoadsToStorage();
   }
 
   function createTextSprite(text, color = "#e6f4ff", bg = "rgba(0,0,0,0.35)") {
@@ -255,6 +308,7 @@ export function initVillages(scene, portals, opts = {}) {
     const center = new THREE.Vector3(ix * VILLAGE_SPACING, 0, iz * VILLAGE_SPACING);
     const info = createDynamicVillageAt(center, Math.hypot(center.x, center.z));
     dynamicVillages.set(key, info);
+    saveVillagesToStorage();
   }
 
   function getVillageKeyAt(pos) {
@@ -272,10 +326,45 @@ export function initVillages(scene, portals, opts = {}) {
     return bestKey;
   }
 
+  // Returns info for the village that contains pos, or null.
+  function getContainingVillageInfo(pos) {
+    if (!pos) return null;
+    // Origin first
+    if (Math.hypot(pos.x - VILLAGE_POS.x, pos.z - VILLAGE_POS.z) <= REST_RADIUS) {
+      return { key: "origin", center: VILLAGE_POS.clone(), radius: REST_RADIUS };
+    }
+    // Dynamic villages
+    let found = null;
+    dynamicVillages.forEach((v, key) => {
+      if (found) return;
+      const d = Math.hypot(pos.x - v.center.x, pos.z - v.center.z);
+      if (d <= v.radius) {
+        found = { key, center: v.center.clone(), radius: v.radius };
+      }
+    });
+    return found;
+  }
+
+  function isInsideAnyVillage(pos) {
+    const info = getContainingVillageInfo(pos);
+    return info ? { inside: true, ...info } : { inside: false };
+  }
+
+  // For minimap: list dynamic villages (not including origin)
+  function listVillages() {
+    const arr = [];
+    dynamicVillages.forEach((v, key) => {
+      arr.push({ key, center: v.center.clone(), radius: v.radius });
+    });
+    return arr;
+  }
+
   function updateVisitedVillage(playerPos) {
     const key = getVillageKeyAt(playerPos);
+    // Do not clear currentVillageKey when outside; keep last visited so we can connect a road on next entry
+    if (!key) return;
     if (key !== currentVillageKey) {
-      if (key && currentVillageKey) {
+      if (currentVillageKey) {
         ensureRoadBetween(currentVillageKey, key);
       }
       currentVillageKey = key;
@@ -303,6 +392,8 @@ export function initVillages(scene, portals, opts = {}) {
     updateVisitedVillage,
     updateRest,
     getVillageKeyAt,
+    isInsideAnyVillage,
+    listVillages,
     _debug: {
       dynamicVillages,
       dynamicRoads,

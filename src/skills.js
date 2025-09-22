@@ -32,12 +32,14 @@ export class SkillsSystem {
    * @param {import("./entities.js").Enemy[]} enemies
    * @param {import("./effects.js").EffectsManager} effects
    * @param {{Q: HTMLElement, W: HTMLElement, E: HTMLElement, R: HTMLElement}} cdUI
+   * @param {any} villages optional villages system to enforce village safety rules
    */
-  constructor(player, enemies, effects, cdUI) {
+  constructor(player, enemies, effects, cdUI, villages = null) {
     this.player = player;
     this.enemies = enemies;
     this.effects = effects;
     this.cdUI = cdUI;
+    this.villages = villages;
 
     this.cooldowns = { Q: 0, W: 0, E: 0, R: 0, Basic: 0 };
     this.cdState = { Q: 0, W: 0, E: 0, R: 0, Basic: 0 }; // for ready flash timing
@@ -133,13 +135,23 @@ export class SkillsSystem {
     if (time < (attacker.nextBasicReady || 0)) return false;
     if (!target || !target.alive) return false;
 
-    // Prevent player from attacking targets outside the village while player is inside the village.
-    // This blocks basic attacks from inside the village against outside enemies.
+    // Prevent player from attacking targets outside while inside any village (origin or dynamic).
+    // Falls back to origin-only rule if villages API is not provided.
     try {
       if (attacker === this.player) {
-        const pd = distance2D(attacker.pos(), VILLAGE_POS);
-        const td = distance2D(target.pos(), VILLAGE_POS);
-        if (pd <= REST_RADIUS && td > REST_RADIUS) return false;
+        if (this.villages && typeof this.villages.isInsideAnyVillage === "function") {
+          const pin = this.villages.isInsideAnyVillage(attacker.pos());
+          const tin = this.villages.isInsideAnyVillage(target.pos());
+          if (pin && pin.inside) {
+            const sameVillage = tin && tin.inside && tin.key === pin.key;
+            if (!sameVillage) return false;
+          }
+        } else {
+          // Fallback: origin-only protection
+          const pd = distance2D(attacker.pos(), VILLAGE_POS);
+          const td = distance2D(target.pos(), VILLAGE_POS);
+          if (pd <= REST_RADIUS && td > REST_RADIUS) return false;
+        }
       }
     } catch (e) {
       // ignore errors in defensive check

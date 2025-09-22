@@ -1090,7 +1090,7 @@ const villages = createVillagesSystem(scene, portals);
 // ------------------------------------------------------------
 // Skills system (cooldowns, abilities, storms) and UI
 // ------------------------------------------------------------
-const skills = new SkillsSystem(player, enemies, effects, ui.getCooldownElements());
+const skills = new SkillsSystem(player, enemies, effects, ui.getCooldownElements(), villages);
 try { window.__skillsRef = skills; } catch (_) {}
 
 // Touch controls (joystick + skill wheel)
@@ -1417,7 +1417,7 @@ function animate() {
   if (env) updateEnvironmentFollow(env, player);
   ui.updateHUD(player);
   skills.update(t, dt, cameraShake);
-  ui.updateMinimap(player, enemies, portals);
+  ui.updateMinimap(player, enemies, portals, villages);
   effects.update(t, dt);
   if (env && typeof env.update === "function") env.update(t, dt);
 
@@ -1482,6 +1482,24 @@ function randomEnemySpawnPos() {
     cand.x += nx * push;
     cand.z += nz * push;
   }
+
+  // Keep out of any discovered dynamic village rest radius
+  try {
+    const list = villages?.listVillages?.() || [];
+    for (const v of list) {
+      const dvx2 = cand.x - v.center.x;
+      const dvz2 = cand.z - v.center.z;
+      const d2 = Math.hypot(dvx2, dvz2);
+      const r2 = (v.radius || 0) + 2;
+      if (d2 < r2) {
+        const nx2 = dvx2 / (d2 || 1);
+        const nz2 = dvz2 / (d2 || 1);
+        const push2 = r2 - d2 + 0.5;
+        cand.x += nx2 * push2;
+        cand.z += nz2 * push2;
+      }
+    }
+  } catch (_) {}
 
   return cand;
 }
@@ -1667,13 +1685,28 @@ function updateEnemies(dt) {
         const nz = en.mesh.position.z + v.z * en.speed * spMul * dt;
         const nextDistToVillage = Math.hypot(nx - VILLAGE_POS.x, nz - VILLAGE_POS.z);
         if (nextDistToVillage <= REST_RADIUS - 0.25) {
-          // Clamp to fence boundary so enemies cannot enter village
+          // Clamp to fence boundary so enemies cannot enter origin village
           const dirFromVillage = dir2D(VILLAGE_POS, en.pos());
           en.mesh.position.x = VILLAGE_POS.x + dirFromVillage.x * (REST_RADIUS - 0.25);
           en.mesh.position.z = VILLAGE_POS.z + dirFromVillage.z * (REST_RADIUS - 0.25);
         } else {
-          en.mesh.position.x = nx;
-          en.mesh.position.z = nz;
+          // Check dynamic villages
+          const nextPos = new THREE.Vector3(nx, 0, nz);
+          let clamped = false;
+          try {
+            const inside = villages?.isInsideAnyVillage?.(nextPos);
+            if (inside && inside.inside && inside.key !== "origin") {
+              const dirFrom = dir2D(inside.center, en.pos());
+              const rad = Math.max(0.25, (inside.radius || REST_RADIUS) - 0.25);
+              en.mesh.position.x = inside.center.x + dirFrom.x * rad;
+              en.mesh.position.z = inside.center.z + dirFrom.z * rad;
+              clamped = true;
+            }
+          } catch (_) {}
+          if (!clamped) {
+            en.mesh.position.x = nx;
+            en.mesh.position.z = nz;
+          }
         }
         // face
         const yaw = Math.atan2(v.x, v.z);

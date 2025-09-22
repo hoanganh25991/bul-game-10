@@ -68,7 +68,7 @@ export class UIManager {
     if (this.elLevelValue) this.elLevelValue.textContent = `${player.level}`;
   }
 
-  updateMinimap(player, enemies, portals) {
+  updateMinimap(player, enemies, portals, villages) {
     const ctx = this.miniCtx;
     if (!ctx || !this.minimap || !player) return;
 
@@ -94,6 +94,18 @@ export class UIManager {
       Math.PI * 2
     );
     ctx.stroke();
+
+    // dynamic villages (draw rings for discovered villages)
+    try {
+      const list = villages?.listVillages?.() || [];
+      ctx.strokeStyle = "rgba(90,255,139,0.35)";
+      for (const v of list) {
+        const p = worldToMinimap(v.center.x, v.center.z, center.x, center.z, scale);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, v.radius * scale, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } catch (_) {}
 
     // portals
     const villagePortal = portals?.getVillagePortal?.();

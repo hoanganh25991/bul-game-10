@@ -24,10 +24,12 @@ UIManager
 - updateHUD(player)
   - Calculates HP/MP/XP ratios and updates bar widths and numeric text.
   - Updates level text.
-- updateMinimap(player, enemies, portals)
+- updateMinimap(player, enemies, portals, villages)
   - Clears the 200x200 canvas and draws:
     - Background and frame.
-    - Village ring (using REST_RADIUS) relative to player-centered view.
+    - Village rings:
+      - The origin village ring (using REST_RADIUS) relative to the player-centered view.
+      - Additional rings for discovered dynamic villages via villages.listVillages(), each with its own radius and center.
     - Village and return portals as small squares (if present).
     - Enemies as small red squares (alive only).
     - Player dot at center.
