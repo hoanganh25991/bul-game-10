@@ -101,6 +101,7 @@ const heroScreen = document.getElementById("heroScreen");
 const introScreen = document.getElementById("introScreen");
 const btnStart = document.getElementById("btnStart");
 const btnCamera = document.getElementById("btnCamera");
+const btnPortal = document.getElementById("btnPortal");
 const langVi = document.getElementById("langVi");
 const langEn = document.getElementById("langEn");
 let firstPerson = false;
@@ -164,6 +165,10 @@ function setFirstPerson(enabled) {
  btnStart?.addEventListener("click", () => { introScreen?.classList.add("hidden"); });
 // use the setter so projection updates correctly
 btnCamera?.addEventListener("click", () => { setFirstPerson(!firstPerson); });
+// Portal button: recall to nearest portal (same as pressing 'B')
+btnPortal?.addEventListener("click", () => {
+  try { portals.recallToVillage(player, setCenterMsg); } catch (e) {}
+});
 
 langVi?.addEventListener("click", () => setLanguage("vi"));
 langEn?.addEventListener("click", () => setLanguage("en"));

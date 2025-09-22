@@ -40,6 +40,22 @@
 .icon-btn.top-right{ right: 12px; top: 224px; }
 .icon-btn.right-center{ right: 12px; top: 50%; transform: translateY(-50%); }
 
+/* Portal button placement: bottom-right, above skills layout */
+#btnPortal{
+  position: fixed;
+  right: 12px;
+  bottom: 220px; /* sits above the skill wheel cluster */
+  z-index: 45;   /* above mobile controls (z-index 40) */
+}
+
+/* Responsive tweak for narrower screens */
+@media (max-width: 720px){
+  #btnPortal{
+    right: 8px;
+    bottom: 200px;
+  }
+}
+
 /* Panels (Settings) */
 .panel{
   position: absolute;
