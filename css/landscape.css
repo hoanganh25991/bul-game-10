@@ -1,0 +1,8 @@
+/* Require landscape orientation: show blocking overlay when in portrait */
+.rotate-overlay { position: fixed; inset: 0; display: none; place-items: center; background: rgba(11,26,43,0.96); color: #fff; z-index: 100000; text-align: center; padding: 24px; }
+.rotate-overlay h2 { margin: 0 0 8px; font-size: 20px; }
+.rotate-overlay p { margin: 0; opacity: 0.85; }
+@media screen and (orientation: portrait) {
+    #rotateOverlay { display: grid !important; }
+    body > *:not(#rotateOverlay) { pointer-events: none !important; }
+}
