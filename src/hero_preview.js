@@ -4,8 +4,8 @@ import { SKILLS } from "./constants.js";
  * Enhanced Skillbook preview flow:
  * - Native DOM overlay to select assignment key (Q/W/E/R) instead of prompt
  * - Shows option keys with current bindings for clarity
- * - After Hero Screen fades out, show "Casting" text with countdown 2, 1
- * - Then cast the selected key, show "Casted ⚡", and fade the Hero Screen back in
+ * - After Hero Screen fades out, show countdown 2, 1 only (no extra overlay/backdrop)
+ * - Then cast the selected key, show "⚡ Casted!" for 1.5s, and fade the Hero Screen back in
  *
  * Usage: call initHeroPreview(skills, { heroScreen }) after SkillsSystem is created.
  */
@@ -26,10 +26,10 @@ export function initHeroPreview(skills, opts = {}) {
           }
           // Fade out Hero Screen first
           return fadeOut(heroScreen, 300).then(async () => {
-            // Show "Casting" with 2,1 countdown, then cast and show "Casted ⚡"
+            // Countdown 2,1 and cast; confirmation handled inside
             await showCastingOverlayAndCast(skills, def, key);
-          }).finally(() => {
-            // Fade back in (always)
+          }).then(() => {
+            // Fade back in after countdown + cast + display
             fadeIn(heroScreen, 300);
           });
         })
@@ -195,27 +195,27 @@ async function showCastingOverlayAndCast(skills, def, key) {
   root.id = "__previewCasting";
   Object.assign(root.style, {
     position: "fixed",
-    inset: "0",
+    left: "50%",
+    top: "18%",
+    transform: "translate(-50%, -50%)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "rgba(0,0,0,0.35)",
     zIndex: "9999",
-    pointerEvents: "none",
-    backdropFilter: "blur(2px)",
+    pointerEvents: "none"
   });
 
   // Card
   const card = document.createElement("div");
   Object.assign(card.style, {
-    minWidth: "240px",
-    background: "rgba(10,20,30,0.9)",
-    border: "1px solid rgba(255,255,255,0.15)",
-    borderRadius: "12px",
-    padding: "18px",
+    minWidth: "0",
+    background: "transparent",
+    border: "none",
+    borderRadius: "0",
+    padding: "0",
     color: "#e8f6ff",
     textAlign: "center",
-    boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
+    boxShadow: "none",
   });
 
 
@@ -234,7 +234,8 @@ async function showCastingOverlayAndCast(skills, def, key) {
   document.body.appendChild(root);
 
   try {
-    // Countdown 2, 1 (like portal)
+    // Countdown 2, 1 (like portal) — make numbers 3x larger
+    number.style.fontSize = "126px";
     await setNumber(number, "2", 800);
     await setNumber(number, "1", 800);
 
@@ -247,6 +248,9 @@ async function showCastingOverlayAndCast(skills, def, key) {
       skills.castSkill(key);
     } catch (_) {}
 
+    // Show brief confirmation then restore mapping
+    number.style.fontSize = "42px";
+    await setNumber(number, "⚡ Casted!", 1500);
 
     // Restore mapping
     SKILLS[key] = prev;
