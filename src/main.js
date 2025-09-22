@@ -73,25 +73,37 @@ initSplash();
  // Initialize i18n (default Vietnamese)
 initI18n();
 
- // Audio: initialize on first user gesture and start ambient music once (external CC0 track)
+ /* Audio: preferences + initialize on first user gesture. Do not auto-start music if disabled. */
+const _audioPrefs = JSON.parse(localStorage.getItem("audioPrefs") || "{}");
+let musicEnabled = _audioPrefs.music !== false; // default true
+let sfxEnabled = _audioPrefs.sfx !== false;     // default true
+
 audio.startOnFirstUserGesture(document);
+/* Apply SFX volume per preference (default 0.5 when enabled) */
+try { audio.setSfxVolume(sfxEnabled ? 0.5 : 0.0); } catch (_) {}
+
 const __startMusicOnce = (ev) => {
+  if (!musicEnabled) return;
   try {
     // FreePD CC0: "Ice and Snow" — soft, atmospheric, focus-friendly
     audio.startStreamMusic("audio/Ice and Snow.mp3", { volume: 0.35, loop: true });
-  } catch(e) {
+  } catch (e) {
     // Fallback to generative if streaming fails
     try { audio.setMusicVolume(0.35); audio.startMusic(); } catch (_) {}
+  } finally {
+    try {
+      document.removeEventListener("click", __startMusicOnce, true);
+      document.removeEventListener("touchstart", __startMusicOnce, true);
+      document.removeEventListener("keydown", __startMusicOnce, true);
+    } catch (_) {}
   }
-  try {
-    document.removeEventListener("click", __startMusicOnce, true);
-    document.removeEventListener("touchstart", __startMusicOnce, true);
-    document.removeEventListener("keydown", __startMusicOnce, true);
-  } catch (_) {}
 };
-document.addEventListener("click", __startMusicOnce, true);
-document.addEventListener("touchstart", __startMusicOnce, true);
-document.addEventListener("keydown", __startMusicOnce, true);
+/* Only attach auto-start listeners when music is enabled */
+if (musicEnabled) {
+  document.addEventListener("click", __startMusicOnce, true);
+  document.addEventListener("touchstart", __startMusicOnce, true);
+  document.addEventListener("keydown", __startMusicOnce, true);
+}
 
 // Settings and overlay elements
 const btnSettings = document.getElementById("btnSettings");
@@ -221,11 +233,43 @@ if (envDensity) {
     env = initEnvironment(scene, Object.assign({}, preset, { enableRain: envRainState }));
     try { updateEnvironmentFollow(env, player); } catch (e) {}
     // persist
-    localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex }));
+  localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex }));
   });
 }
 
-// Setup Settings tabs (General / Environment / Controls)
+/* Settings: Audio toggles (Music / SFX) */
+const musicToggle = document.getElementById("musicToggle");
+const sfxToggle = document.getElementById("sfxToggle");
+if (musicToggle) {
+  musicToggle.checked = !!musicEnabled;
+  musicToggle.addEventListener("change", () => {
+    musicEnabled = !!musicToggle.checked;
+    try { localStorage.setItem("audioPrefs", JSON.stringify({ music: musicEnabled, sfx: sfxEnabled })); } catch (_) {}
+    if (musicEnabled) {
+      // Start background music immediately
+      try {
+        audio.startStreamMusic("audio/Ice and Snow.mp3", { volume: 0.35, loop: true });
+      } catch (e) {
+        try { audio.setMusicVolume(0.35); audio.startMusic(); } catch (_) {}
+      }
+    } else {
+      // Stop any music
+      try { audio.stopStreamMusic(); } catch (_) {}
+      try { audio.stopMusic(); } catch (_) {}
+      try { audio.setMusicVolume(0); } catch (_) {}
+    }
+  });
+}
+if (sfxToggle) {
+  sfxToggle.checked = !!sfxEnabled;
+  sfxToggle.addEventListener("change", () => {
+    sfxEnabled = !!sfxToggle.checked;
+    try { audio.setSfxVolume(sfxEnabled ? 0.5 : 0.0); } catch (_) {}
+    try { localStorage.setItem("audioPrefs", JSON.stringify({ music: musicEnabled, sfx: sfxEnabled })); } catch (_) {}
+  });
+}
+
+ // Setup Settings tabs (General / Environment / Controls)
 function ensureSettingsTabs(){
   if (!settingsPanel || settingsPanel.dataset.tabsReady === "1") return;
   const content = settingsPanel.querySelector(".panel-content");

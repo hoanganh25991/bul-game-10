@@ -102,6 +102,19 @@ export function initSplash() {
           if (startBtn) {
             // Wait for explicit player action
             startBtn.addEventListener("click", () => {
+              // Best-effort fullscreen request (desktop browsers)
+              try {
+                const el = document.documentElement;
+                if (el.requestFullscreen) {
+                  el.requestFullscreen().catch(() => {});
+                } else if (el.webkitRequestFullscreen) {
+                  el.webkitRequestFullscreen();
+                } else if (el.mozRequestFullScreen) {
+                  el.mozRequestFullScreen();
+                } else if (el.msRequestFullscreen) {
+                  el.msRequestFullscreen();
+                }
+              } catch (e) {}
               cleanupAndCloseSplash();
             }, { once: true });
           } else {
