@@ -51,8 +51,8 @@
 /* Mark/Flag button placement: bottom-right, above Portal */
 #btnMark{
   position: fixed;
-  right: 12px;
-  bottom: 268px; /* sits above the portal button */
+  right: calc(40px + 12px + 12px);
+  bottom: 220px; /* sits above the portal button */
   z-index: 45;
 }
 
