@@ -1,4 +1,7 @@
 import { SKILLS } from "./constants.js";
+import { saveLoadout, loadOrDefault } from "./loadout.js";
+import { SKILL_POOL, DEFAULT_LOADOUT } from "./skills_pool.js";
+import { now } from "./utils.js";
 
 /**
  * Enhanced Skillbook preview flow:
@@ -234,26 +237,30 @@ async function showCastingOverlayAndCast(skills, def, key) {
   document.body.appendChild(root);
 
   try {
-    // Countdown 2, 1 (like portal) — make numbers 3x larger
+    // Include remaining cooldown before the final 2,1 countdown
+    const rem = Math.max(0, (skills.cooldowns?.[key] || 0) - now());
+    if (rem > 0) {
+      await waitMs(rem * 1000);
+    }
+    // Countdown 2, 1 (seconds) — make numbers 3x larger
     number.style.fontSize = "126px";
-    await setNumber(number, "2", 800);
-    await setNumber(number, "1", 800);
+    await setNumber(number, "2", 1000);
+    await setNumber(number, "1", 1000);
 
-    // Perform temporary assignment, cast, then restore
+    // Persist assignment, then cast
     const prev = SKILLS[key];
     if (def) {
       SKILLS[key] = Object.assign({}, def);
+      // Persist selection to storage and refresh labels if available
+      persistAssignment(key, def);
     }
     try {
       skills.castSkill(key);
     } catch (_) {}
 
-    // Show brief confirmation then restore mapping
+    // Show brief confirmation (keep small); mapping remains assigned and persisted
     number.style.fontSize = "42px";
     await setNumber(number, "⚡ Casted!", 1500);
-
-    // Restore mapping
-    SKILLS[key] = prev;
   } finally {
     // Cleanup overlay
     try {
@@ -262,6 +269,25 @@ async function showCastingOverlayAndCast(skills, def, key) {
       if (root && root.parentNode) root.parentNode.removeChild(root);
     }
   }
+}
+
+function persistAssignment(key, def) {
+  try {
+    const idx = { Q: 0, W: 1, E: 2, R: 3 }[key] ?? 0;
+    const ids = loadOrDefault(SKILL_POOL, DEFAULT_LOADOUT).slice();
+    if (def && def.id) {
+      ids[idx] = def.id;
+      saveLoadout(ids);
+    }
+    // Update runtime labels if main.js exposed it
+    try { window.updateSkillBarLabels && window.updateSkillBarLabels(); } catch (_) {}
+    // Notify app to re-apply loadout and refresh screens
+    try { window.dispatchEvent(new CustomEvent("loadout-changed")); } catch (_) {}
+  } catch (_) {}
+}
+
+function waitMs(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function setNumber(el, txt, ms) {

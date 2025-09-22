@@ -926,6 +926,18 @@ function renderHeroScreen(initialTab = "skills") {
 // Apply initial loadout so SKILLS are correct for subsequent UI/effects
 applyLoadoutToSKILLS(currentLoadout);
 updateSkillBarLabels();
+try { window.updateSkillBarLabels = updateSkillBarLabels; } catch (e) {}
+window.addEventListener("loadout-changed", () => {
+  try {
+    currentLoadout = loadOrDefault(SKILL_POOL, DEFAULT_LOADOUT);
+    applyLoadoutToSKILLS(currentLoadout);
+    updateSkillBarLabels();
+    // If Hero Screen is visible, refresh its contents to reflect the new assignment
+    if (heroScreen && !heroScreen.classList.contains("hidden")) {
+      renderHeroScreen("skills");
+    }
+  } catch (_) {}
+});
 
 const aimPreview = null;
 
