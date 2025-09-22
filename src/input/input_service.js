@@ -38,6 +38,7 @@ export function createInputService({
     prevJoyActive: false,
     lastDir: { x: 0, y: 0 }, // last movement direction (normalized)
     stopUntil: 0,            // time until which we keep short glide
+    lastMoveSource: null,    // 'joy' | 'keys' | 'order' (explicit click/tap)
   };
 
   // ---- Helpers ----
@@ -86,6 +87,19 @@ export function createInputService({
   }
 
   function cancelAim() { /* no-op: aiming removed */ }
+
+  // Check if the event occurred over the renderer canvas (even if covered by overlays)
+  function isEventOverRenderer(e) {
+    try {
+      const el = renderer?.domElement;
+      if (!el) return false;
+      const path = typeof e.composedPath === "function" ? e.composedPath() : [];
+      if (Array.isArray(path) && path.includes(el)) return true;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX, y = e.clientY;
+      return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    } catch (_) { return false; }
+  }
 
   // ---- Adapters (Capture-phase) ----
   function onKeyDownCapture(e) {
@@ -189,6 +203,7 @@ export function createInputService({
   }
 
   function onMouseMoveCapture(e) {
+    if (!isEventOverRenderer(e)) return;
     try { raycast.updateMouseNDC(e); } catch (_) {}
     const p = raycast.raycastGround?.();
     if (p) {
@@ -199,31 +214,36 @@ export function createInputService({
   }
 
   function onMouseDownCapture(e) {
+    if (!isEventOverRenderer(e)) return;
     // Right-click or left-click selection/aim confirm – we will handle here, and stop propagation
     try { raycast.updateMouseNDC(e); } catch (_) {}
 
     // Frozen/click through to portal UI
     if (player.frozen) {
-      e.preventDefault(); e.stopImmediatePropagation();
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
       try { portals.handleFrozenPortalClick(raycast, camera, player, () => {}); } catch (_) {}
       return;
     }
 
-    if (e.button === 2) {
+    // Treat secondary click as right-click: real button 2 or Ctrl+Click (macOS)
+    const isSecondary = e.button === 2 || (e.button === 0 && (e.ctrlKey || e.metaKey));
+    if (isSecondary) {
       // Right click: move or select
-      e.preventDefault(); e.stopImmediatePropagation();
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
       try {
         const obj = raycast.raycastEnemyOrGround?.();
         if (obj && obj.type === "enemy") {
+          // Set explicit target on right-clicking enemy (no auto-attack)
+          player.target = obj.enemy;
+          player.attackMove = false;
           effects.spawnTargetPing(obj.enemy);
-          // Manual selection
-          // Note: selection ring follows selectedUnit in main; keep minimal here
         } else {
           const p = raycast.raycastGround?.();
           if (p) {
             player.moveTarget = p.clone();
             player.target = null;
             player.attackMove = false;
+            state.lastMoveSource = "order";
             effects.spawnMovePing(p);
           }
         }
@@ -233,7 +253,7 @@ export function createInputService({
 
     if (e.button === 0) {
       // Left click: aim confirm or selection
-      e.preventDefault(); e.stopImmediatePropagation();
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
       try {
         const obj = raycast.raycastPlayerOrEnemyOrGround?.();
         // Selection only (no auto-attack/move)
@@ -243,6 +263,8 @@ export function createInputService({
           if (!player.frozen) {
             player.moveTarget = obj.point.clone();
             player.target = null;
+            player.attackMove = false;
+            state.lastMoveSource = "order";
             effects.spawnMovePing(obj.point);
           }
         }
@@ -251,21 +273,54 @@ export function createInputService({
     }
   }
 
+  function onContextMenuCapture(e) {
+    if (!isEventOverRenderer(e)) return;
+    try {
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      if (player.frozen) {
+        try { portals.handleFrozenPortalClick(raycast, camera, player, () => {}); } catch (_) {}
+        return;
+      }
+      try { raycast.updateMouseNDC(e); } catch (_) {}
+      // Treat contextmenu as a right-click action fallback (some browsers/devices)
+      try {
+        const obj = raycast.raycastEnemyOrGround?.();
+        if (obj && obj.type === "enemy") {
+          player.target = obj.enemy;
+          player.attackMove = false;
+          effects.spawnTargetPing(obj.enemy);
+        } else {
+          const p = raycast.raycastGround?.();
+          if (p) {
+            player.moveTarget = p.clone();
+            player.target = null;
+            player.attackMove = false;
+            state.lastMoveSource = "order";
+            effects.spawnMovePing(p);
+          }
+        }
+      } catch (_) {}
+    } catch (_) {}
+  }
+
   // ---- Public API ----
   function attachCaptureListeners() {
     // Keyboard (capture)
     window.addEventListener("keydown", onKeyDownCapture, true);
     window.addEventListener("keyup", onKeyUpCapture, true);
-    // Mouse on renderer (capture)
-    renderer?.domElement?.addEventListener("mousemove", onMouseMoveCapture, true);
-    renderer?.domElement?.addEventListener("mousedown", onMouseDownCapture, true);
+    // Mouse at window level (capture) so overlays cannot block; we gate by isEventOverRenderer
+    window.addEventListener("mousemove", onMouseMoveCapture, true);
+    window.addEventListener("mousedown", onMouseDownCapture, true);
+    // Prevent native context menu only over the renderer
+    window.addEventListener("contextmenu", onContextMenuCapture, true);
   }
 
   function detachListeners() {
     window.removeEventListener("keydown", onKeyDownCapture, true);
     window.removeEventListener("keyup", onKeyUpCapture, true);
-    renderer?.domElement?.removeEventListener("mousemove", onMouseMoveCapture, true);
-    renderer?.domElement?.removeEventListener("mousedown", onMouseDownCapture, true);
+    window.removeEventListener("mousemove", onMouseMoveCapture, true);
+    window.removeEventListener("mousedown", onMouseDownCapture, true);
+    window.removeEventListener("contextmenu", onContextMenuCapture, true);
   }
 
   function setTouchAdapter(touch) {
@@ -311,6 +366,7 @@ export function createInputService({
         player.moveTarget = new THREE.Vector3(px, 0, pz);
         player.attackMove = false;
         player.target = null;
+        state.lastMoveSource = "joy";
         // record last dir normalized
         const len = Math.hypot(joy.x, joy.y) || 1;
         state.lastDir.x = joy.x / len;
@@ -328,6 +384,7 @@ export function createInputService({
       player.moveTarget = new THREE.Vector3(px, 0, pz);
       player.attackMove = false;
       player.target = null;
+      state.lastMoveSource = "keys";
       // record last dir normalized
       state.lastDir.x = km.x;
       state.lastDir.y = km.y;
@@ -343,19 +400,24 @@ export function createInputService({
 
     // If no active input, apply brief glide or stop immediately
     if (!joyActive && !keyActive) {
-      if (tnow < state.stopUntil && (state.lastDir.x !== 0 || state.lastDir.y !== 0) && !player.frozen) {
-        // short glide using a small lead distance
-        const aheadStop = 6;
-        const px = player.pos().x + state.lastDir.x * aheadStop;
-        const pz = player.pos().z + state.lastDir.y * aheadStop;
-        player.moveTarget = new THREE.Vector3(px, 0, pz);
-        player.attackMove = false;
-        player.target = null;
-      } else {
-        // fully stop
-        player.moveTarget = null;
-        player.attackMove = false;
+      const analogSource = state.lastMoveSource === "joy" || state.lastMoveSource === "keys";
+      if (analogSource) {
+        if (tnow < state.stopUntil && (state.lastDir.x !== 0 || state.lastDir.y !== 0) && !player.frozen) {
+          // short glide using a small lead distance
+          const aheadStop = 6;
+          const px = player.pos().x + state.lastDir.x * aheadStop;
+          const pz = player.pos().z + state.lastDir.y * aheadStop;
+          player.moveTarget = new THREE.Vector3(px, 0, pz);
+          player.attackMove = false;
+          player.target = null;
+        } else {
+          // fully stop movement induced by analog input
+          player.moveTarget = null;
+          player.attackMove = false;
+          state.lastMoveSource = null;
+        }
       }
+      // If lastMoveSource is "order" (explicit click/tap), do not override player.moveTarget here.
     }
 
     // Update prev flags
