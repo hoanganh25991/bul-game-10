@@ -16,6 +16,13 @@ export function initPortals(scene) {
   let villagePortal = null; // fixed in village
   const extraPortals = [];  // dynamic portals added in distant villages
 
+  // Persistent Marks/Flags (user-placed permanent teleport portals)
+  const MARK_COLOR = 0x66ffd1;
+  const LS_KEY_MARKS = "persistentMarks";
+  const LS_KEY_MARK_READY = "markNextReadyAt";
+  const MARK_COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes
+  let persistentMarks = []; // [{ portal, x, z, createdAt }]
+
   function ensureVillagePortal() {
     if (villagePortal) return;
     const pm = createPortalMesh(COLOR.village);
@@ -24,6 +31,25 @@ export function initPortals(scene) {
     villagePortal = { ...pm, linkTo: null, radius: 2.2, __kind: "village" };
   }
   ensureVillagePortal();
+
+  // Load persistent marks from localStorage on init
+  (function loadPersistentMarks() {
+    try {
+      const raw = localStorage.getItem(LS_KEY_MARKS);
+      if (!raw) return;
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return;
+      arr.forEach((m) => {
+        if (!m || typeof m.x !== "number" || typeof m.z !== "number") return;
+        const pm = createPortalMesh(MARK_COLOR);
+        pm.group.position.set(m.x, 1, m.z);
+        scene.add(pm.group);
+        const portal = { ...pm, linkTo: null, radius: 2.2, __kind: "mark" };
+        persistentMarks.push({ portal, x: m.x, z: m.z, createdAt: m.createdAt || Date.now() });
+        extraPortals.push(portal);
+      });
+    } catch (_) {}
+  })();
 
   // Return all destination portals (exclude the temporary returnPortal)
   function getAllPortals() {
@@ -134,6 +160,70 @@ export function initPortals(scene) {
     return false;
   }
 
+  function savePersistentMarks() {
+    try {
+      const data = persistentMarks.map((m) => ({ x: m.x, z: m.z, createdAt: m.createdAt || Date.now() }));
+      localStorage.setItem(LS_KEY_MARKS, JSON.stringify(data));
+    } catch (_) {}
+  }
+
+  function getMarkCooldownMs() {
+    try {
+      const t = parseInt(localStorage.getItem(LS_KEY_MARK_READY) || "0", 10) || 0;
+      const remain = Math.max(0, t - now() * 1000); // now() is seconds? Our now() returns seconds or ms?
+    } catch (_) {}
+    // Fallback: compute with Date.now()
+    const next = parseInt(localStorage.getItem(LS_KEY_MARK_READY) || "0", 10) || 0;
+    const remain = Math.max(0, next - Date.now());
+    return remain;
+  }
+
+  function addPersistentMarkAt(position) {
+    // cooldown gate
+    const remain = getMarkCooldownMs();
+    if (remain > 0) return null;
+
+    const pm = createPortalMesh(MARK_COLOR);
+    const x = position.x, z = position.z;
+    pm.group.position.set(x, 1, z);
+    scene.add(pm.group);
+    const portal = { ...pm, linkTo: null, radius: 2.2, __kind: "mark" };
+    persistentMarks.push({ portal, x, z, createdAt: Date.now() });
+    extraPortals.push(portal);
+    savePersistentMarks();
+    try { localStorage.setItem(LS_KEY_MARK_READY, String(Date.now() + MARK_COOLDOWN_MS)); } catch (_) {}
+    return portal;
+  }
+
+  function listPersistentMarks() {
+    return persistentMarks.map((m, i) => ({
+      index: i,
+      x: m.x,
+      z: m.z,
+      createdAt: m.createdAt || Date.now()
+    }));
+  }
+
+  function teleportToMark(index, player) {
+    const m = persistentMarks[index];
+    if (!m) return false;
+    teleportToPortal(m.portal, player);
+    return true;
+  }
+
+  function removePersistentMark(index) {
+    const m = persistentMarks[index];
+    if (!m) return false;
+    try { scene.remove(m.portal.group); } catch (_) {}
+    try { m.portal.group.traverse?.((o) => { o.geometry?.dispose?.(); o.material?.dispose?.(); }); } catch (_) {}
+    persistentMarks.splice(index, 1);
+    // also remove from extraPortals
+    const idx = extraPortals.indexOf(m.portal);
+    if (idx >= 0) extraPortals.splice(idx, 1);
+    savePersistentMarks();
+    return true;
+  }
+
   function update(dt) {
     const arr = [];
     if (returnPortal) arr.push(returnPortal);
@@ -169,6 +259,12 @@ export function initPortals(scene) {
     recallToVillage,
     handleFrozenPortalClick,
     teleportToPortal,
+    // Marks/Flags API
+    addPersistentMarkAt,
+    listPersistentMarks,
+    teleportToMark,
+    removePersistentMark,
+    getMarkCooldownMs,
     update,
   };
 }

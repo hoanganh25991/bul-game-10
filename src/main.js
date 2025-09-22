@@ -4,7 +4,7 @@
 
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import { DEBUG } from "./config.js";
-import { COLOR, WORLD, SKILLS, VILLAGE_POS, REST_RADIUS } from "./constants.js";
+import { COLOR, WORLD, SKILLS, VILLAGE_POS, REST_RADIUS, SCALING } from "./constants.js";
 import { initWorld, updateCamera, updateGridFollow, updateEnvironmentFollow, addResizeHandler } from "./world.js";
 import { UIManager } from "./ui.js";
 import { Player, Enemy, getNearestEnemy, handWorldPos } from "./entities.js";
@@ -103,6 +103,7 @@ const introScreen = document.getElementById("introScreen");
 const btnStart = document.getElementById("btnStart");
 const btnCamera = document.getElementById("btnCamera");
 const btnPortal = document.getElementById("btnPortal");
+const btnMark = document.getElementById("btnMark");
 const langVi = document.getElementById("langVi");
 const langEn = document.getElementById("langEn");
 let firstPerson = false;
@@ -170,6 +171,50 @@ btnCamera?.addEventListener("click", () => { setFirstPerson(!firstPerson); });
 btnPortal?.addEventListener("click", () => {
   try { portals.recallToVillage(player, setCenterMsg); } catch (e) {}
 });
+// Place persistent Mark/Flag (3-minute cooldown)
+btnMark?.addEventListener("click", () => {
+  try {
+    const remain = portals.getMarkCooldownMs?.() ?? 0;
+    if (remain > 0) {
+      const s = Math.ceil(remain / 1000);
+      setCenterMsg(`Mark ready in ${s}s`);
+      setTimeout(() => clearCenterMsg(), 1200);
+      return;
+    }
+    const m = portals.addPersistentMarkAt?.(player.pos());
+    if (m) {
+      setCenterMsg("Flag placed");
+      setTimeout(() => clearCenterMsg(), 1100);
+    }
+  } catch (_) {}
+});
+// Cooldown UI updater for Mark button
+(function initMarkCooldownUI() {
+  if (!btnMark || !portals?.getMarkCooldownMs) return;
+  function fmt(ms) {
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return m > 0 ? `${m}m ${r}s` : `${r}s`;
+  }
+  function tick() {
+    try {
+      const remain = portals.getMarkCooldownMs();
+      if (remain > 0) {
+        btnMark.disabled = true;
+        btnMark.title = `Mark cooldown: ${fmt(remain)}`;
+        btnMark.style.opacity = "0.5";
+      } else {
+        btnMark.disabled = false;
+        btnMark.title = "Mark (3m cd)";
+        btnMark.style.opacity = "";
+      }
+    } catch (_) {}
+  }
+  try { clearInterval(window.__markCoolInt); } catch (_) {}
+  window.__markCoolInt = setInterval(tick, 500);
+  tick();
+})();
 
 langVi?.addEventListener("click", () => setLanguage("vi"));
 langEn?.addEventListener("click", () => setLanguage("en"));
@@ -388,34 +433,45 @@ function renderHeroScreen(initialTab = "skills") {
   title.textContent = t("hero.title");
   layout.appendChild(title);
 
-  // Tab bar (Skills first)
+  // Tab bar (Skills / Info / Skillbook / Marks)
   const tabBar = document.createElement("div");
   tabBar.className = "tab-bar";
   const skillsBtn = document.createElement("button");
-  skillsBtn.className = "tab-btn" + (initialTab !== "info" ? " active" : "");
+  skillsBtn.className = "tab-btn" + ((initialTab !== "info" && initialTab !== "book" && initialTab !== "marks") ? " active" : "");
   skillsBtn.setAttribute("data-i18n", "hero.tabs.skills");
   skillsBtn.textContent = t("hero.tabs.skills") || "Skills";
   const infoBtn = document.createElement("button");
   infoBtn.className = "tab-btn" + (initialTab === "info" ? " active" : "");
   infoBtn.setAttribute("data-i18n", "hero.tabs.info");
   infoBtn.textContent = t("hero.tabs.info") || "Info";
+  const bookBtn = document.createElement("button");
+  bookBtn.className = "tab-btn" + (initialTab === "book" ? " active" : "");
+  bookBtn.setAttribute("data-i18n", "hero.tabs.skillbook");
+  bookBtn.textContent = t("hero.tabs.skillbook") || "Skillbook";
+  const marksBtn = document.createElement("button");
+  marksBtn.className = "tab-btn" + (initialTab === "marks" ? " active" : "");
+  marksBtn.setAttribute("data-i18n", "hero.tabs.marks");
+  marksBtn.textContent = t("hero.tabs.marks") || "Marks";
   tabBar.appendChild(skillsBtn);
   tabBar.appendChild(infoBtn);
+  tabBar.appendChild(bookBtn);
+  tabBar.appendChild(marksBtn);
   layout.appendChild(tabBar);
 
   // Panels
   const infoPanel = document.createElement("div");
   infoPanel.className = "tab-panel" + (initialTab === "info" ? " active" : "");
   const skillsPanel = document.createElement("div");
-  skillsPanel.className = "tab-panel" + (initialTab !== "info" ? " active" : "");
+  skillsPanel.className = "tab-panel" + ((initialTab !== "info" && initialTab !== "book" && initialTab !== "marks") ? " active" : "");
+  const bookPanel = document.createElement("div");
+  bookPanel.className = "tab-panel" + (initialTab === "book" ? " active" : "");
+  const marksPanel = document.createElement("div");
+  marksPanel.className = "tab-panel" + (initialTab === "marks" ? " active" : "");
   // Initialize visibility based on initialTab
-  if (initialTab === "info") {
-    infoPanel.style.display = "block";
-    skillsPanel.style.display = "none";
-  } else {
-    infoPanel.style.display = "none";
-    skillsPanel.style.display = "block";
-  }
+  infoPanel.style.display = (initialTab === "info") ? "block" : "none";
+  skillsPanel.style.display = ((initialTab !== "info" && initialTab !== "book" && initialTab !== "marks") ? "block" : "none");
+  bookPanel.style.display = (initialTab === "book") ? "block" : "none";
+  marksPanel.style.display = (initialTab === "marks") ? "block" : "none";
 
   // Info content
   const info = document.createElement("div");
@@ -509,18 +565,254 @@ function renderHeroScreen(initialTab = "skills") {
     });
   });
 
+  // Build Skillbook panel content (list + details + preview)
+  (function buildSkillbookPanel() {
+    const wrap = document.createElement("div");
+    wrap.className = "skillbook";
+    wrap.style.display = "grid";
+    wrap.style.gridTemplateColumns = "1fr 2fr";
+    wrap.style.gap = "12px";
+
+    const list = document.createElement("div");
+    list.className = "skillbook-list";
+    list.style.maxHeight = "340px";
+    list.style.overflow = "auto";
+    const ul = document.createElement("div");
+    ul.style.display = "flex";
+    ul.style.flexDirection = "column";
+    ul.style.gap = "6px";
+    list.appendChild(ul);
+
+    const detail = document.createElement("div");
+    detail.className = "skillbook-detail";
+    detail.style.minHeight = "240px";
+    detail.style.padding = "8px";
+    detail.style.border = "1px solid rgba(255,255,255,0.1)";
+    detail.style.borderRadius = "6px";
+    const title = document.createElement("h3");
+    const icon = document.createElement("div");
+    icon.style.fontSize = "28px";
+    const stats = document.createElement("div");
+    stats.style.fontSize = "12px";
+    stats.style.opacity = "0.9";
+    stats.style.lineHeight = "1.6";
+    const expl = document.createElement("div");
+    expl.style.marginTop = "6px";
+    const imgBox = document.createElement("div");
+    imgBox.style.marginTop = "8px";
+    const previewBtn = document.createElement("button");
+    previewBtn.textContent = "Preview";
+    previewBtn.style.marginTop = "10px";
+
+    detail.appendChild(title);
+    detail.appendChild(icon);
+    detail.appendChild(stats);
+    detail.appendChild(expl);
+    detail.appendChild(imgBox);
+    detail.appendChild(previewBtn);
+
+    const typeExplain = {
+      chain: "Chains between nearby enemies, hitting multiple targets.",
+      aoe: "Ground-targeted area. Damages enemies within its radius.",
+      aura: "Toggle aura around hero. Ticks damage periodically while draining mana.",
+      storm: "Multiple random strikes in a radius over time.",
+      beam: "Instant zap to nearest enemy in range.",
+      nova: "Radial burst around hero.",
+      heal: "Restores hero HP instantly.",
+      mana: "Restores hero MP instantly.",
+      buff: "Temporarily increases damage and speed.",
+      dash: "Quickly dash forward.",
+      blink: "Teleport toward direction/point.",
+      clone: "Summons a lightning image that periodically zaps nearby foes."
+    };
+
+    function getSkillIcon(short) {
+      if (!short) return "⚡";
+      const k = String(short).slice(0, 3).toLowerCase();
+      const map = { chn: "⚡", bol: "⚡", stc: "🔌", str: "⛈️", bam: "🔋", nov: "✴️", aoe: "💥" };
+      return map[k] || "⚡";
+    }
+
+    function computeDamage(s) {
+      const base = s.dmg || 0;
+      const lvl = Math.max(1, (player && player.level) || 1);
+      const mult = Math.pow(SCALING.hero.skillDamageGrowth, Math.max(0, lvl - 1));
+      return Math.floor(base * mult);
+    }
+
+    function renderDetail(s) {
+      title.textContent = `${s.name} (${s.short || ""})`;
+      icon.textContent = getSkillIcon(s.short || s.name);
+      const dmgLine = (typeof s.dmg === "number") ? `Damage: ${computeDamage(s)} (base ${s.dmg})` : "";
+      const lines = [
+        `Type: ${s.type}`,
+        s.cd != null ? `Cooldown: ${s.cd}s` : "",
+        s.mana != null ? `Mana: ${s.mana}` : "",
+        s.radius != null ? `Radius: ${s.radius}` : "",
+        s.range != null ? `Range: ${s.range}` : "",
+        s.jumps != null ? `Jumps: ${s.jumps}` : "",
+        s.jumpRange != null ? `Jump Range: ${s.jumpRange}` : "",
+        s.tick != null ? `Tick: ${s.tick}s` : "",
+        s.duration != null ? `Duration: ${s.duration}s` : "",
+        s.slowFactor != null ? `Slow: ${Math.round(s.slowFactor * 100)}%` : "",
+        s.slowDuration != null ? `Slow Duration: ${s.slowDuration}s` : "",
+        dmgLine
+      ].filter(Boolean);
+      stats.innerHTML = lines.map((x) => `<div>${x}</div>`).join("");
+      expl.textContent = typeExplain[s.type] || "No description.";
+      // Optional image placeholder
+      imgBox.innerHTML = "";
+      const ph = document.createElement("div");
+      ph.style.fontSize = "40px";
+      ph.style.opacity = "0.9";
+      ph.textContent = getSkillIcon(s.short || s.name);
+      imgBox.appendChild(ph);
+      previewBtn.onclick = () => {
+        try { window.__skillsRef && window.__skillsRef.previewSkill(s); } catch (_) {}
+      };
+    }
+
+    // Populate list
+    SKILL_POOL.forEach((s) => {
+      const btn = document.createElement("button");
+      btn.className = "skillbook-item";
+      btn.style.display = "flex";
+      btn.style.alignItems = "center";
+      btn.style.gap = "8px";
+      const ic = document.createElement("span");
+      ic.textContent = getSkillIcon(s.short || s.name);
+      const nm = document.createElement("span");
+      nm.textContent = s.name;
+      btn.appendChild(ic);
+      btn.appendChild(nm);
+      btn.addEventListener("click", () => renderDetail(s));
+      ul.appendChild(btn);
+    });
+
+    // Default select first
+    try { if (SKILL_POOL.length) renderDetail(SKILL_POOL[0]); } catch (_) {}
+
+    wrap.appendChild(list);
+    wrap.appendChild(detail);
+    bookPanel.appendChild(wrap);
+  })();
+
+  // Build Marks panel content (list + teleport + remove + cooldown status)
+  (function buildMarksPanel() {
+    const wrap = document.createElement("div");
+    wrap.className = "marks-panel";
+    wrap.style.display = "flex";
+    wrap.style.flexDirection = "column";
+    wrap.style.gap = "8px";
+
+    const head = document.createElement("div");
+    head.style.display = "flex";
+    head.style.alignItems = "center";
+    head.style.justifyContent = "space-between";
+    const titleMarks = document.createElement("h3");
+    titleMarks.textContent = t("hero.tabs.marks") || "Marks";
+    const cd = document.createElement("span");
+    cd.style.fontSize = "12px";
+    cd.style.opacity = "0.8";
+    head.appendChild(titleMarks);
+    head.appendChild(cd);
+
+    const list = document.createElement("div");
+    list.style.display = "flex";
+    list.style.flexDirection = "column";
+    list.style.gap = "6px";
+    list.style.maxHeight = "340px";
+    list.style.overflow = "auto";
+
+    function fmtTime(ts) {
+      try {
+        const d = new Date(ts);
+        return d.toLocaleString();
+      } catch (_) { return String(ts); }
+    }
+    function render() {
+      list.innerHTML = "";
+      try {
+        const arr = portals.listPersistentMarks?.() || [];
+        if (!arr.length) {
+          const empty = document.createElement("div");
+          empty.style.opacity = "0.8";
+          empty.style.fontSize = "12px";
+          empty.textContent = "No marks yet. Use the 🚩 Mark button to place a flag.";
+          list.appendChild(empty);
+        } else {
+          arr.forEach((m) => {
+            const row = document.createElement("div");
+            row.style.display = "grid";
+            row.style.gridTemplateColumns = "1fr auto auto";
+            row.style.gap = "8px";
+            const info = document.createElement("div");
+            info.textContent = `(${Math.round(m.x)}, ${Math.round(m.z)}) • ${fmtTime(m.createdAt)}`;
+            const tp = document.createElement("button");
+            tp.textContent = "Teleport";
+            tp.addEventListener("click", () => {
+              try { portals.teleportToMark?.(m.index, player); } catch (_) {}
+            });
+            const rm = document.createElement("button");
+            rm.textContent = "Remove";
+            rm.addEventListener("click", () => {
+              try { portals.removePersistentMark?.(m.index); render(); } catch (_) {}
+            });
+            row.appendChild(info);
+            row.appendChild(tp);
+            row.appendChild(rm);
+            list.appendChild(row);
+          });
+        }
+      } catch (e) {}
+    }
+
+    function tickCooldown() {
+      try {
+        const ms = portals.getMarkCooldownMs?.() || 0;
+        if (ms <= 0) {
+          cd.textContent = "Ready";
+        } else {
+          const s = Math.ceil(ms / 1000);
+          const m = Math.floor(s / 60);
+          const r = s % 60;
+          cd.textContent = `Cooldown: ${m > 0 ? m + "m " : ""}${r}s`;
+        }
+      } catch (_) {}
+    }
+
+    try { clearInterval(window.__marksPanelTick); } catch (_) {}
+    window.__marksPanelTick = setInterval(tickCooldown, 500);
+    tickCooldown();
+    render();
+
+    wrap.appendChild(head);
+    wrap.appendChild(list);
+    marksPanel.appendChild(wrap);
+  })();
+
   // Append panels
   layout.appendChild(infoPanel);
   layout.appendChild(skillsPanel);
+  layout.appendChild(bookPanel);
+  layout.appendChild(marksPanel);
 
   // Tab switching
   function activate(panel) {
-    [infoBtn, skillsBtn].forEach((b) => b.classList.remove("active"));
-    [infoPanel, skillsPanel].forEach((p) => { p.classList.remove("active"); p.style.display = "none"; });
+    [infoBtn, skillsBtn, bookBtn, marksBtn].forEach((b) => b.classList.remove("active"));
+    [infoPanel, skillsPanel, bookPanel, marksPanel].forEach((p) => { p.classList.remove("active"); p.style.display = "none"; });
     if (panel === "info") {
       infoBtn.classList.add("active");
       infoPanel.classList.add("active");
       infoPanel.style.display = "block";
+    } else if (panel === "book") {
+      bookBtn.classList.add("active");
+      bookPanel.classList.add("active");
+      bookPanel.style.display = "block";
+    } else if (panel === "marks") {
+      marksBtn.classList.add("active");
+      marksPanel.classList.add("active");
+      marksPanel.style.display = "block";
     } else {
       skillsBtn.classList.add("active");
       skillsPanel.classList.add("active");
@@ -529,6 +821,8 @@ function renderHeroScreen(initialTab = "skills") {
   }
   infoBtn.addEventListener("click", () => activate("info"));
   skillsBtn.addEventListener("click", () => activate("skills"));
+  bookBtn.addEventListener("click", () => activate("book"));
+  marksBtn.addEventListener("click", () => activate("marks"));
 
 
   try { window.applyTranslations && window.applyTranslations(document.getElementById("heroScreen")); } catch(e) {}
@@ -675,6 +969,7 @@ const villages = createVillagesSystem(scene, portals);
 // Skills system (cooldowns, abilities, storms) and UI
 // ------------------------------------------------------------
 const skills = new SkillsSystem(player, enemies, effects, ui.getCooldownElements());
+try { window.__skillsRef = skills; } catch (_) {}
 
 // Touch controls (joystick + skill wheel)
 const touch = initTouchControls({ player, skills, effects, aimPreview, attackPreview, enemies, getNearestEnemy, WORLD, SKILLS });

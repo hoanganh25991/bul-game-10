@@ -278,7 +278,7 @@ export class SkillsSystem {
         (e) =>
           e.alive &&
           e !== current &&
-          distance2D(current.pos(), e.pos()) <= (SK.jumpRange || 0)
+          distance2D(current.pos(), e.pos()) <= ((SK.jumpRange || 0) + 2.5)
       );
       current = candidates[0];
     }
@@ -325,7 +325,7 @@ export class SkillsSystem {
     // Damage enemies in radius and apply slow if present
     this.enemies.forEach((en) => {
       if (!en.alive) return;
-      if (distance2D(en.pos(), point) <= SK.radius) {
+      if (distance2D(en.pos(), point) <= (SK.radius + 2.5)) {
         const dmg = this.scaleSkillDamage(SK.dmg || 0);
         en.takeDamage(dmg);
         try { this.effects.spawnDamagePopup(en.pos(), dmg, 0x9fd3ff); } catch (e) {}
@@ -420,7 +420,7 @@ export class SkillsSystem {
     this.effects.spawnStrike(this.player.pos(), SK.radius, 0x9fd8ff);
     audio.sfx("boom");
     this.enemies.forEach((en) => {
-      if (en.alive && distance2D(en.pos(), this.player.pos()) <= SK.radius) {
+      if (en.alive && distance2D(en.pos(), this.player.pos()) <= (SK.radius + 2.5)) {
         const dmg = this.scaleSkillDamage(SK.dmg || 0);
         en.takeDamage(dmg);
         try { this.effects.spawnDamagePopup(en.pos(), dmg, 0x9fd3ff); } catch(e) {}
@@ -596,7 +596,7 @@ export class SkillsSystem {
 
       const dmg = this.scaleSkillDamage(SKILLS.E.dmg || 0);
       this.enemies.forEach((en) => {
-        if (en.alive && distance2D(en.pos(), this.player.pos()) <= SKILLS.E.radius) {
+        if (en.alive && distance2D(en.pos(), this.player.pos()) <= (SKILLS.E.radius + 2.5)) {
           en.takeDamage(dmg);
           try { this.effects.spawnDamagePopup(en.pos(), dmg, 0x7fc7ff); } catch(e) {}
         }
@@ -621,7 +621,7 @@ export class SkillsSystem {
           }
           const dmg = this.scaleSkillDamage(SKILLS.R.dmg || 0);
           this.enemies.forEach((en) => {
-            if (en.alive && distance2D(en.pos(), st.pt) <= 3.2) {
+            if (en.alive && distance2D(en.pos(), st.pt) <= 5.0) {
               en.takeDamage(dmg);
               try { this.effects.spawnDamagePopup(en.pos(), dmg, 0xbfe2ff); } catch(e) {}
             }
@@ -663,7 +663,75 @@ export class SkillsSystem {
       }
     }
   }
-
+  
+  // Preview-only visualization for a skill definition (no cost, no cooldown, no damage)
+  previewSkill(def) {
+    if (!def) return;
+    try {
+      const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.player.mesh.quaternion).normalize();
+      const ahead = this.player.pos().clone().add(forward.multiplyScalar(10));
+      const from = this.player.mesh.userData?.handAnchor ? handWorldPos(this.player) : this.player.pos().clone().add(new THREE.Vector3(0, 1.6, 0));
+      const mkRing = (center, r, col = 0x9fd8ff, a = 0.22) => {
+        try {
+          const ring = createGroundRing(Math.max(0.1, r - 0.35), r + 0.35, col, a);
+          ring.position.set(center.x, 0.02, center.z);
+          this.effects.indicators.add(ring);
+          this.effects.queue.push({ obj: ring, until: now() + 0.4, fade: true, mat: ring.material, scaleRate: 0.4 });
+        } catch (_) {}
+      };
+      switch (def.type) {
+        case "aoe": {
+          const r = def.radius || 12;
+          this.effects.spawnStrike(ahead, r, 0x9fd8ff);
+          mkRing(ahead, r);
+          break;
+        }
+        case "nova": {
+          const r = def.radius || 12;
+          this.effects.spawnStrike(this.player.pos(), r, 0x9fd8ff);
+          mkRing(this.player.pos(), r);
+          break;
+        }
+        case "aura": {
+          const r = def.radius || 12;
+          this.effects.spawnStrike(this.player.pos(), r, 0x7fc7ff);
+          mkRing(this.player.pos(), r, 0x7fc7ff, 0.28);
+          break;
+        }
+        case "storm": {
+          const r = def.radius || 12;
+          const n = Math.min(8, def.strikes || 6);
+          for (let i = 0; i < n; i++) {
+            const ang = Math.random() * Math.PI * 2;
+            const rr = Math.random() * r;
+            const pt = this.player.pos().clone().add(new THREE.Vector3(Math.cos(ang) * rr, 0, Math.sin(ang) * rr));
+            this.effects.spawnStrike(pt, 3, 0xb5e2ff);
+          }
+          mkRing(this.player.pos(), r, 0xb5e2ff, 0.18);
+          break;
+        }
+        case "chain":
+        case "beam": {
+          const to = ahead.clone().add(new THREE.Vector3(0, 1.2, 0));
+          this.effects.spawnElectricBeamAuto(from, to, 0x8fd3ff, 0.12);
+          this.effects.spawnStrike(ahead, 1.0, 0x9fd3ff);
+          break;
+        }
+        default: {
+          // Generic preview: hand flash and a small strike in front
+          this.effects.spawnHandFlash(this.player);
+          this.effects.spawnStrike(ahead, 2.5, 0x9fd8ff);
+          break;
+        }
+      }
+      // subtle hand crackle for feedback
+      try {
+        this.effects.spawnHandCrackle(this.player, false, 0.8);
+        this.effects.spawnHandCrackle(this.player, true, 0.8);
+      } catch (_) {}
+    } catch (_) {}
+  }
+  
   // ----- Per-frame update -----
   update(t, dt, cameraShake) {
     // Static Field tick
