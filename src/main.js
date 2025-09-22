@@ -308,16 +308,10 @@ if (rainDensity) {
   rainDensity.addEventListener("change", onRainDensityChange);
 }
 
-/* Render quality segmented control (low/medium/high) */
-function initQualityControl() {
-  const qualitySeg = document.getElementById("qualitySeg");
-  if (!qualitySeg) return;
-
-  const setActive = (q) => {
-    qualitySeg.querySelectorAll(".seg-btn").forEach((btn) => {
-      btn.classList.toggle("active", String(btn.dataset.value).toLowerCase() === q);
-    });
-  };
+/* Render quality: native select (low/medium/high) */
+function initQualitySelect() {
+  const sel = document.getElementById("qualitySelect");
+  if (!sel) return;
 
   // Initialize from persisted prefs or current variable
   let q = renderQuality;
@@ -325,30 +319,31 @@ function initQualityControl() {
     const prefs = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
     if (prefs && typeof prefs.quality === "string") q = prefs.quality;
   } catch (_) {}
-  setActive(q);
 
-  // Bind once via event delegation so it survives DOM moves
-  if (!qualitySeg.dataset.bound) {
-    qualitySeg.addEventListener("click", (ev) => {
-      const btn = ev.target && ev.target.closest ? ev.target.closest(".seg-btn") : null;
-      if (!btn) return;
-      const v = String(btn.dataset.value || "high").toLowerCase();
+  // Fallback to high if unexpected
+  if (q !== "low" && q !== "medium" && q !== "high") q = "high";
+  try { sel.value = q; } catch (_) {}
+
+  // Bind once
+  if (!sel.dataset.bound) {
+    sel.addEventListener("change", () => {
+      const v = String(sel.value || "high").toLowerCase();
       const valid = v === "low" || v === "medium" || v === "high";
       const nextQ = valid ? v : "high";
       // persist
       try { localStorage.setItem("renderPrefs", JSON.stringify({ quality: nextQ })); } catch (_) {}
-      // visual active state
-      setActive(nextQ);
+      // keep local variable consistent
+      renderQuality = nextQ;
       // Apply immediately
       try {
         renderer.setPixelRatio(getTargetPixelRatio());
         renderer.setSize(window.innerWidth, window.innerHeight);
       } catch (_) {}
-    }, { passive: true });
-    qualitySeg.dataset.bound = "1";
+    });
+    sel.dataset.bound = "1";
   }
 }
-try { initQualityControl(); } catch (_) {}
+try { initQualitySelect(); } catch (_) {}
 
 /* Settings: Audio toggles (Music / SFX) */
 const musicToggle = document.getElementById("musicToggle");
@@ -480,8 +475,8 @@ function ensureSettingsTabs(){
     }
   } catch (_) {}
 
-  // Re-init quality segmented control after rebuilding tabs (safe if called multiple times)
-  try { initQualityControl && initQualityControl(); } catch (e) {}
+  // Re-init quality select after rebuilding tabs (safe if called multiple times)
+  try { initQualitySelect && initQualitySelect(); } catch (e) {}
   try { window.applyTranslations && window.applyTranslations(settingsPanel); } catch (e) {}
 }
 
