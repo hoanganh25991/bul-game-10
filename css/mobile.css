@@ -102,22 +102,22 @@
 /* Small screens: stronger scale down for tight viewports */
 @media (max-height: 500px) {
   #hud {
-    transform: scale(0.75);
+    transform: scale(0.7);
     transform-origin: top left;
   }
 
   #topRightGroup {
-    transform: scale(0.75);
+    transform: scale(0.7);
     transform-origin: top right;
   }
 
   #bottomLeftGroup {
-    transform: scale(0.75);
+    transform: scale(0.7);
     transform-origin: bottom left;
   }
 
   #bottomRightGroup {
-    transform: scale(0.75);
+    transform: scale(0.7);
     transform-origin: bottom right;
   }
 }

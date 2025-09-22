@@ -104,12 +104,11 @@
             </label>
             <label style="display:flex;align-items:center;gap:8px;">
               <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.render.quality">Quality</span>
-              <!-- Segmented control to match theme (replaces native select) -->
-              <div id="qualitySeg" class="segmented" role="group" aria-label="Quality">
-                <button type="button" class="seg-btn" data-value="low"><span data-i18n="settings.render.low">Low</span></button>
-                <button type="button" class="seg-btn" data-value="medium"><span data-i18n="settings.render.medium">Medium</span></button>
-                <button type="button" class="seg-btn" data-value="high"><span data-i18n="settings.render.high">High</span></button>
-              </div>
+              <select id="qualitySelect" aria-label="Quality">
+                <option value="low" data-i18n="settings.render.low">Low</option>
+                <option value="medium" data-i18n="settings.render.medium">Medium</option>
+                <option value="high" data-i18n="settings.render.high">High</option>
+              </select>
             </label>
           </div>
         </div>
