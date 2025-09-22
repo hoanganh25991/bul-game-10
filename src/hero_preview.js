@@ -237,18 +237,21 @@ async function showCastingOverlayAndCast(skills, def, key) {
   document.body.appendChild(root);
 
   try {
-    // Include remaining cooldown before the final 2,1 countdown
+    // Countdown over total wait = remaining cooldown + 2s; show ceiling seconds down to 1
     const rem = Math.max(0, (skills.cooldowns?.[key] || 0) - now());
-    if (rem > 0) {
-      await waitMs(rem * 1000);
-    }
-    // Countdown 2, 1 (seconds) — make numbers 3x larger
+    const total = rem + 2;
+    const steps = Math.max(1, Math.ceil(total));
+    const frac = total - Math.floor(total);
     number.style.fontSize = "126px";
-    await setNumber(number, "2", 1000);
-    await setNumber(number, "1", 1000);
+    if (steps > 0) {
+      const firstMs = Math.round((frac > 0 ? frac : 1) * 1000);
+      await setNumber(number, String(steps), firstMs);
+      for (let n = steps - 1; n >= 1; n--) {
+        await setNumber(number, String(n), 1000);
+      }
+    }
 
     // Persist assignment, then cast
-    const prev = SKILLS[key];
     if (def) {
       SKILLS[key] = Object.assign({}, def);
       // Persist selection to storage and refresh labels if available
