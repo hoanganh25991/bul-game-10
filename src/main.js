@@ -655,6 +655,161 @@ scene.add(fenceGroup);
 const portals = initPortals(scene);
 
 // ------------------------------------------------------------
+// Dynamic Villages (spawn as hero travels far from origin)
+// ------------------------------------------------------------
+const VILLAGE_SPACING = 10000; // world units between distant villages
+const dynamicVillages = new Map(); // key "ix,iz" -> { center, radius, group, portal }
+
+/**
+ * Create a simple text sprite for gate names.
+ */
+function createTextSprite(text, color = "#e6f4ff", bg = "rgba(0,0,0,0.35)") {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const pad = 24;
+  ctx.font = "bold 42px sans-serif";
+  const metrics = ctx.measureText(text);
+  const w = Math.ceil(metrics.width + pad * 2);
+  const h = 42 + pad * 2;
+  canvas.width = w;
+  canvas.height = h;
+  // redraw with correct resolution
+  const ctx2 = canvas.getContext("2d");
+  ctx2.font = "bold 42px sans-serif";
+  ctx2.fillStyle = bg;
+  ctx2.fillRect(0, 0, w, h);
+  ctx2.fillStyle = color;
+  ctx2.textBaseline = "top";
+  ctx2.fillText(text, pad, pad);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.anisotropy = 4;
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+  const sprite = new THREE.Sprite(mat);
+  const scale = 0.04; // world units per pixel
+  sprite.scale.set(w * scale, h * scale, 1);
+  sprite.position.y = 3.2;
+  return sprite;
+}
+
+/**
+ * Make a village at a world center with scale based on distance.
+ * Adds fence ring, houses, a named gate arch, and a portal.
+ */
+function createDynamicVillageAt(center, distanceFromOrigin) {
+  // Size and complexity scale with distance
+  const scale = Math.min(4, 1 + distanceFromOrigin / VILLAGE_SPACING); // 1..4
+  const fenceRadius = Math.max(REST_RADIUS + 4, REST_RADIUS * (0.9 + scale)); // grows with distance
+  const posts = Math.max(28, Math.floor(28 * (0.9 + scale * 0.6)));
+  const houseCount = Math.max(6, Math.floor(6 * (0.8 + scale * 1.4)));
+  const villageGroup = new THREE.Group();
+  villageGroup.name = "dynamicVillage";
+  scene.add(villageGroup);
+
+  // Fence posts and rails like base village
+  const postGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.8, 8);
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2a });
+  const postPositions = [];
+  for (let i = 0; i < posts; i++) {
+    const ang = (i / posts) * Math.PI * 2;
+    const px = center.x + Math.cos(ang) * fenceRadius;
+    const pz = center.z + Math.sin(ang) * fenceRadius;
+    const post = new THREE.Mesh(postGeo, postMat);
+    post.position.set(px, 0.9, pz);
+    post.rotation.y = -ang;
+    post.receiveShadow = true;
+    post.castShadow = true;
+    villageGroup.add(post);
+    postPositions.push({ x: px, z: pz });
+  }
+  // rails
+  const railMat = new THREE.MeshStandardMaterial({ color: 0x4b3620 });
+  const railHeights = [0.5, 1.0, 1.5];
+  for (let i = 0; i < posts; i++) {
+    const a = postPositions[i];
+    const b = postPositions[(i + 1) % posts];
+    const dx = b.x - a.x;
+    const dz = b.z - a.z;
+    const len = Math.hypot(dx, dz);
+    const angle = Math.atan2(dz, dx);
+    for (const h of railHeights) {
+      const railGeo = new THREE.BoxGeometry(len, 0.06, 0.06);
+      const rail = new THREE.Mesh(railGeo, railMat);
+      rail.position.set((a.x + b.x) / 2, h, (a.z + b.z) / 2);
+      rail.rotation.y = -angle;
+      rail.receiveShadow = true;
+      villageGroup.add(rail);
+    }
+  }
+  // ground ring
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(fenceRadius - 0.1, fenceRadius + 0.1, 64),
+    new THREE.MeshBasicMaterial({ color: COLOR.village, transparent: true, opacity: 0.08, side: THREE.DoubleSide })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.set(center.x, 0, center.z);
+  villageGroup.add(ring);
+
+  // Houses arranged in rings for complexity
+  for (let i = 0; i < houseCount; i++) {
+    const house = createHouse();
+    const ang = (i / houseCount) * Math.PI * 2 + Math.random() * 0.2;
+    const r = (fenceRadius * (0.35 + 0.5 * Math.random()));
+    house.position.set(center.x + Math.cos(ang) * r, 0, center.z + Math.sin(ang) * r);
+    house.rotation.y = Math.random() * Math.PI * 2;
+    const sc = 0.9 + Math.random() * (0.4 + scale * 0.2);
+    house.scale.setScalar(sc);
+    villageGroup.add(house);
+  }
+
+  // Simple gate arch on the east side with name sprite
+  const gatePos = new THREE.Vector3(center.x + fenceRadius, 0, center.z);
+  const pillarGeo = new THREE.BoxGeometry(0.3, 3.2, 0.4);
+  const beamGeo = new THREE.BoxGeometry(2.8, 0.35, 0.4);
+  const gateMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2a, roughness: 0.9 });
+  const leftPillar = new THREE.Mesh(pillarGeo, gateMat);
+  const rightPillar = new THREE.Mesh(pillarGeo, gateMat);
+  leftPillar.position.set(gatePos.x - 1.6, 1.6, gatePos.z);
+  rightPillar.position.set(gatePos.x + 1.6, 1.6, gatePos.z);
+  const beam = new THREE.Mesh(beamGeo, gateMat);
+  beam.position.set(gatePos.x, 3.1, gatePos.z);
+  [leftPillar, rightPillar, beam].forEach((m) => { m.castShadow = true; villageGroup.add(m); });
+
+  const quadrant =
+    Math.abs(center.x) > Math.abs(center.z)
+      ? (center.x >= 0 ? "East" : "West")
+      : (center.z >= 0 ? "South" : "North");
+  const km = Math.round(distanceFromOrigin / 1000);
+  const label = createTextSprite(`${quadrant} Gate — ${km}k`);
+  label.position.set(gatePos.x, 3.6, gatePos.z + 0.01);
+  villageGroup.add(label);
+
+  // Add a portal inside the village near the gate
+  const portalOffset = new THREE.Vector3(-2.5, 0, 0);
+  const portal = portals.addPortalAt(gatePos.clone().add(portalOffset), COLOR.portal);
+
+  return { center: center.clone(), radius: fenceRadius, group: villageGroup, portal };
+}
+
+/**
+ * Ensure we have a distant village near current far tile when far from origin.
+ */
+function ensureFarVillage() {
+  const p = player.pos();
+  const distFromOrigin = Math.hypot(p.x - VILLAGE_POS.x, p.z - VILLAGE_POS.z);
+  if (distFromOrigin < VILLAGE_SPACING * 0.9) return; // not far enough
+
+  const ix = Math.round(p.x / VILLAGE_SPACING);
+  const iz = Math.round(p.z / VILLAGE_SPACING);
+  const key = `${ix},${iz}`;
+  if (dynamicVillages.has(key)) return;
+
+  // Place village at snapped tile center
+  const center = new THREE.Vector3(ix * VILLAGE_SPACING, 0, iz * VILLAGE_SPACING);
+  const info = createDynamicVillageAt(center, Math.hypot(center.x, center.z));
+  dynamicVillages.set(key, info);
+}
+
+// ------------------------------------------------------------
 // Skills system (cooldowns, abilities, storms) and UI
 // ------------------------------------------------------------
 const skills = new SkillsSystem(player, enemies, effects, ui.getCooldownElements());
@@ -986,6 +1141,10 @@ function animate() {
   ui.updateMinimap(player, enemies, portals);
   effects.update(t, dt);
   if (env && typeof env.update === "function") env.update(t, dt);
+
+  // Stream world features: ensure far village(s) exist as player travels
+  ensureFarVillage();
+
   updateIndicators(dt);
   portals.update(dt);
   updateVillageRest(dt);
@@ -1349,9 +1508,18 @@ function updateIndicators(dt) {
 }
 
 function updateVillageRest(dt) {
-  const d = distance2D(player.pos(), VILLAGE_POS);
-  if (d <= REST_RADIUS) {
-    // bonus regen while at village
+  // Check base village
+  let inVillage = distance2D(player.pos(), VILLAGE_POS) <= REST_RADIUS;
+  // Check dynamic villages
+  if (!inVillage && dynamicVillages && dynamicVillages.size > 0) {
+    const p = player.pos();
+    for (const [, v] of dynamicVillages.entries()) {
+      const d = Math.hypot(p.x - v.center.x, p.z - v.center.z);
+      if (d <= v.radius) { inVillage = true; break; }
+    }
+  }
+  if (inVillage) {
+    // bonus regen while at any village
     player.hp = Math.min(player.maxHP, player.hp + 8 * dt);
     player.mp = Math.min(player.maxMP, player.mp + 10 * dt);
   }

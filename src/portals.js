@@ -14,15 +14,45 @@ import { distance2D, now } from "./utils.js";
 export function initPortals(scene) {
   let returnPortal = null; // placed where B was cast
   let villagePortal = null; // fixed in village
+  const extraPortals = [];  // dynamic portals added in distant villages
 
   function ensureVillagePortal() {
     if (villagePortal) return;
     const pm = createPortalMesh(COLOR.village);
     pm.group.position.copy(VILLAGE_POS).add(new THREE.Vector3(4, 1, 0));
     scene.add(pm.group);
-    villagePortal = { ...pm, linkTo: null, radius: 2.2 };
+    villagePortal = { ...pm, linkTo: null, radius: 2.2, __kind: "village" };
   }
   ensureVillagePortal();
+
+  // Return all destination portals (exclude the temporary returnPortal)
+  function getAllPortals() {
+    const arr = [];
+    if (villagePortal) arr.push(villagePortal);
+    for (const p of extraPortals) if (p) arr.push(p);
+    return arr;
+  }
+
+  // Add a new portal at a position (used by generated distant villages)
+  function addPortalAt(position, color = COLOR.village) {
+    const pm = createPortalMesh(color);
+    pm.group.position.copy(position.clone().add(new THREE.Vector3(0, 1, 0)));
+    scene.add(pm.group);
+    const portal = { ...pm, linkTo: null, radius: 2.2, __kind: "dynamic" };
+    extraPortals.push(portal);
+    return portal;
+  }
+
+  function getNearestPortal(pos) {
+    ensureVillagePortal();
+    const arr = getAllPortals();
+    let best = null, bestD = Infinity;
+    for (const p of arr) {
+      const d = pos.distanceTo(p.group.position);
+      if (d < bestD) { bestD = d; best = p; }
+    }
+    return best || villagePortal;
+  }
 
   function teleportToPortal(dest, player) {
     if (!dest) return;
@@ -52,9 +82,10 @@ export function initPortals(scene) {
     // ensure vertical orientation (no horizontal flip)
     try { returnPortal.ring.rotation.x = 0; } catch (_) {}
 
-    // Link portals
-    returnPortal.linkTo = villagePortal;
-    villagePortal.linkTo = returnPortal;
+    // Link portals to the nearest destination portal
+    const dest = getNearestPortal(here);
+    returnPortal.linkTo = dest;
+    if (dest) dest.linkTo = returnPortal;
 
     // Freeze and start a 3-2-1 countdown, then auto-teleport
     player.frozen = true;
@@ -65,7 +96,7 @@ export function initPortals(scene) {
     timers.push(setTimeout(() => { setCenterMsg && setCenterMsg(msg(2)); }, 1000));
     timers.push(setTimeout(() => { setCenterMsg && setCenterMsg(msg(1)); }, 2000));
     timers.push(setTimeout(() => {
-      try { teleportToPortal(villagePortal, player); } catch (_) {}
+      try { teleportToPortal(returnPortal.linkTo || villagePortal, player); } catch (_) {}
       player.frozen = false;
       try { setCenterMsg && setCenterMsg("Đã dịch chuyển • Teleported"); } catch (_) {}
       setTimeout(() => { try { setCenterMsg && setCenterMsg(""); } catch (_) {} }, 600);
@@ -95,7 +126,7 @@ export function initPortals(scene) {
           returnPortal.__countTimers = null;
         }
       } catch (_) {}
-      teleportToPortal(villagePortal, player);
+      teleportToPortal(returnPortal.linkTo || villagePortal, player);
       player.frozen = false;
       clearCenterMsg && clearCenterMsg();
       return true;
@@ -107,6 +138,7 @@ export function initPortals(scene) {
     const arr = [];
     if (returnPortal) arr.push(returnPortal);
     if (villagePortal) arr.push(villagePortal);
+    extraPortals.forEach((p) => { if (p) arr.push(p); });
     arr.forEach((p) => {
       if (!p) return;
       // vertical gate spin
@@ -132,6 +164,8 @@ export function initPortals(scene) {
     getVillagePortal: () => villagePortal,
     getReturnPortal: () => returnPortal,
     ensureVillagePortal,
+    addPortalAt,
+    getNearestPortal,
     recallToVillage,
     handleFrozenPortalClick,
     teleportToPortal,
