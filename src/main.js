@@ -1123,15 +1123,6 @@ const portals = initPortals(scene);
 // Villages system (dynamic villages, roads, rest)
 const villages = createVillagesSystem(scene, portals);
 
-
-
-
-
-
-
-
-
-
 // ------------------------------------------------------------
 // Skills system (cooldowns, abilities, storms) and UI
 // ------------------------------------------------------------
@@ -1548,15 +1539,6 @@ function randomEnemySpawnPos() {
   } catch (_) {}
 
   return cand;
-}
-
-function teleportToPortal(dest) {
-  if (!dest) return;
-  const to = dest.group.position.clone();
-  to.y = 0;
-  player.mesh.position.copy(to).add(new THREE.Vector3(1.5, 0, 0));
-  player.moveTarget = null;
-  player.target = null;
 }
 
 function stopPlayer() {
