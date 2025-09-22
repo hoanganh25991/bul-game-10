@@ -62,15 +62,13 @@
   <div id="deathMsg" class="center-msg" style="display:none;">You died. Respawning...</div>
 
   <!-- New Interactive UI -->
-  <!-- Settings button (top-right) -->
-  <button id="btnSettings" class="icon-btn top-right" aria-label="Settings" title="Cài đặt / Settings">⚙️</button>
-
-  <!-- Hero screen button (top-right, next to settings) -->
-  <button id="btnHeroScreen" class="icon-btn top-right" aria-label="Hero" title="Hero" style="right:64px;">🛡️</button>
-
-  <!-- Camera toggle (right side) -->
-  <button id="btnCamera" class="icon-btn top-right" aria-label="Camera Toggle" title="Camera"
-    style="right:116px;">🎥</button>
+  
+  <div id="screenGroup">
+    <!-- Settings button (top-right) -->
+    <button id="btnSettingsScreen" class="icon-btn top-right" aria-label="Settings" title="Cài đặt / Settings">⚙️</button>
+    <!-- Hero screen button (top-right, next to settings) -->
+    <button id="btnHeroScreen" class="icon-btn top-right" aria-label="Hero" title="Hero" style="right:64px;">🛡️</button>
+  </div>
 
   <!-- Settings Panel (now full-screen system screen) -->
   <div id="settingsPanel" class="screen hidden system-screen" role="dialog" aria-modal="true"
@@ -203,11 +201,15 @@
     </div>
   </div>
 
-  <!-- Portal button (bottom-right, above skills) -->
-  <button id="btnPortal" class="icon-btn" aria-label="Portal" title="Portal">🌀</button>
-  <!-- Mark/Flag button (persistent teleport, 3m cooldown) -->
-  <button id="btnMark" class="icon-btn" aria-label="Mark" title="Mark (3m cd)">🚩</button>
-
+  <div id="coreSkillGroup">
+    <!-- Portal button (bottom-right, above skills) -->
+    <button id="btnPortal" class="icon-btn" aria-label="Portal" title="Portal">🌀</button>
+    <!-- Mark/Flag button (persistent teleport, 3m cooldown) -->
+    <button id="btnMark" class="icon-btn" aria-label="Mark" title="Mark (3m cd)">🚩</button>
+    <!-- Camera toggle (right side) -->
+    <button id="btnCamera" class="icon-btn top-right" aria-label="Camera Toggle" title="Camera"
+    style="right:116px;">🎥</button>
+  </div>
   <!-- Module game code -->
   <script type="importmap">
     {

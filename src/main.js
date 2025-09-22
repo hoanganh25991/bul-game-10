@@ -107,7 +107,7 @@ if (musicEnabled) {
 }
 
 // Settings and overlay elements
-const btnSettings = document.getElementById("btnSettings");
+const btnSettingsScreen = document.getElementById("btnSettingsScreen");
 const btnCloseSettings = document.getElementById("btnCloseSettings");
 const settingsPanel = document.getElementById("settingsPanel");
 const btnHeroScreen = document.getElementById("btnHeroScreen");
@@ -162,7 +162,7 @@ function setFirstPerson(enabled) {
 }
 
  // Settings handlers
- btnSettings?.addEventListener("click", () => { try { ensureSettingsTabs(); } catch(e) {} settingsPanel?.classList.toggle("hidden"); });
+ btnSettingsScreen?.addEventListener("click", () => { try { ensureSettingsTabs(); } catch(e) {} settingsPanel?.classList.toggle("hidden"); });
  btnCloseSettings?.addEventListener("click", () => settingsPanel?.classList.add("hidden"));
 
  // Hero open/close
