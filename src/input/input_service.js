@@ -333,12 +333,12 @@ export function createInputService({
       state.lastDir.y = km.y;
     }
 
-    // Detect release transitions and schedule a short glide (0.2s)
+    // Detect release transitions and schedule a short glide (0.1s)
     if (state.prevJoyActive && !joyActive) {
-      state.stopUntil = Math.max(state.stopUntil, tnow + 0.2);
+      state.stopUntil = Math.max(state.stopUntil, tnow + 0.1);
     }
     if (state.prevKeyActive && !keyActive) {
-      state.stopUntil = Math.max(state.stopUntil, tnow + 0.2);
+      state.stopUntil = Math.max(state.stopUntil, tnow + 0.1);
     }
 
     // If no active input, apply brief glide or stop immediately
