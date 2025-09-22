@@ -187,11 +187,11 @@ export class Enemy extends Entity {
       this.attackDamage = Math.floor(this.attackDamage * 1.0);
       this.mesh.scale.multiplyScalar(0.95);
     } else if (kind === "shocker") {
-      // Ranged electric
+      // Ranged arcane (no thunder – hero-exclusive). Use non-electric beam.
       this.attackRange = 24;
       this.attackCooldown = (WORLD.aiAttackCooldown || 1.6) * 1.25;
-      this.attackEffect = "electric";
-      this.beamColor = 0x9fd8ff;
+      this.attackEffect = "beam";
+      this.beamColor = 0xc070ff; // arcane/magenta
       this.speed *= 0.95;
       this.attackDamage = Math.floor(this.attackDamage * 0.95);
       this.mesh.scale.multiplyScalar(1.1);
