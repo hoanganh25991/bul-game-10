@@ -665,6 +665,138 @@ const portals = initPortals(scene);
 const VILLAGE_SPACING = 10000; // world units between distant villages
 const dynamicVillages = new Map(); // key "ix,iz" -> { center, radius, group, portal }
 
+// Dynamic roads linking villages visited by the hero
+const dynamicRoads = new THREE.Group();
+dynamicRoads.name = "dynamicRoads";
+scene.add(dynamicRoads);
+
+// Road registry and village-visit tracking
+const builtRoadKeys = new Set(); // canonical "a|b" keys
+let currentVillageKey = null;    // "origin" or "{ix},{iz}"
+
+// Resolve village center by key
+function getVillageCenterByKey(key) {
+  if (!key) return null;
+  if (key === "origin") return VILLAGE_POS.clone();
+  const v = dynamicVillages.get(key);
+  return v ? v.center.clone() : null;
+}
+
+// Curved road helper — flat ribbon along a Catmull–Rom spline
+function createCurvedRoad(points, width = 6, segments = 140, color = 0x2b2420) {
+  const curve = new THREE.CatmullRomCurve3(points, false, "catmullrom", 0.5);
+  const pos = new Float32Array((segments + 1) * 2 * 3);
+  const uv = new Float32Array((segments + 1) * 2 * 2);
+  const idx = new Uint32Array(segments * 6);
+
+  const up = new THREE.Vector3(0, 1, 0);
+  const p = new THREE.Vector3();
+  const t = new THREE.Vector3();
+  const left = new THREE.Vector3();
+
+  for (let i = 0; i <= segments; i++) {
+    const a = i / segments;
+    curve.getPointAt(a, p);
+    curve.getTangentAt(a, t).normalize();
+    left.crossVectors(up, t).normalize();
+    const hw = width * 0.5;
+    const l = new THREE.Vector3().copy(p).addScaledVector(left, hw);
+    const r = new THREE.Vector3().copy(p).addScaledVector(left, -hw);
+    l.y = (l.y || 0) + 0.015;
+    r.y = (r.y || 0) + 0.015;
+
+    const vi = i * 2 * 3;
+    pos[vi + 0] = l.x; pos[vi + 1] = l.y; pos[vi + 2] = l.z;
+    pos[vi + 3] = r.x; pos[vi + 4] = r.y; pos[vi + 5] = r.z;
+
+    const uvi = i * 2 * 2;
+    uv[uvi + 0] = 0; uv[uvi + 1] = a * 8;
+    uv[uvi + 2] = 1; uv[uvi + 3] = a * 8;
+  }
+
+  for (let i = 0; i < segments; i++) {
+    const i0 = i * 2;
+    const i1 = i0 + 1;
+    const i2 = i0 + 2;
+    const i3 = i0 + 3;
+    const ti = i * 6;
+    idx[ti + 0] = i0; idx[ti + 1] = i1; idx[ti + 2] = i2;
+    idx[ti + 3] = i1; idx[ti + 4] = i3; idx[ti + 5] = i2;
+  }
+
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  geom.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+  geom.setIndex(new THREE.BufferAttribute(idx, 1));
+  geom.computeVertexNormals();
+
+  const mat = new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.95,
+    metalness: 0.0,
+    side: THREE.DoubleSide
+  });
+
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.receiveShadow = false;
+  return mesh;
+}
+
+// Build a single gentle-curved road between two village centers
+function ensureRoadBetween(keyA, keyB) {
+  if (!keyA || !keyB || keyA === keyB) return;
+  // Canonical set key (order-independent)
+  const canonical = keyA < keyB ? `${keyA}|${keyB}` : `${keyB}|${keyA}`;
+  if (builtRoadKeys.has(canonical)) return;
+
+  const a = getVillageCenterByKey(keyA);
+  const b = getVillageCenterByKey(keyB);
+  if (!a || !b) return;
+
+  const mid = a.clone().lerp(b, 0.5);
+  const dir = b.clone().sub(a).setY(0);
+  const len = Math.max(1, dir.length());
+  dir.normalize();
+  const perp = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), dir).normalize();
+  const curveAmt = Math.min(600, Math.max(30, len * 0.25)); // larger curve for long roads
+  const ctrl = mid.clone().addScaledVector(perp, curveAmt * (Math.random() < 0.5 ? 1 : -1));
+  ctrl.y = 0.0;
+
+  const road = createCurvedRoad([a, ctrl, b], 7, 200, 0x2b2420);
+  dynamicRoads.add(road);
+  builtRoadKeys.add(canonical);
+}
+
+// Determine if the player is inside a village; return its key
+function getPlayerVillageKey() {
+  const p = player.pos();
+  // Base/origin village
+  if (distance2D(p, VILLAGE_POS) <= REST_RADIUS) return "origin";
+  // Dynamic villages
+  let bestKey = null;
+  let bestDist = Infinity;
+  dynamicVillages.forEach((v, key) => {
+    const d = Math.hypot(p.x - v.center.x, p.z - v.center.z);
+    if (d <= v.radius && d < bestDist) {
+      bestDist = d;
+      bestKey = key;
+    }
+  });
+  return bestKey;
+}
+
+// Track entering villages and link with a road to previously visited village
+function updateVisitedVillage() {
+  const key = getPlayerVillageKey();
+  if (key !== currentVillageKey) {
+    // Entered a new village
+    if (key && currentVillageKey) {
+      ensureRoadBetween(currentVillageKey, key);
+    }
+    currentVillageKey = key;
+  }
+}
+
 /**
  * Create a simple text sprite for gate names.
  */
@@ -1149,6 +1281,8 @@ function animate() {
 
   // Stream world features: ensure far village(s) exist as player travels
   ensureFarVillage();
+  // When entering a village, connect it to previous visited village with a road
+  updateVisitedVillage();
 
   updateIndicators(dt);
   portals.update(dt);
