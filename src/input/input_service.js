@@ -272,7 +272,24 @@ export function createInputService({
             try { skills.tryBasicAttack(player, obj.enemy); } catch (_) {}
           }
         } else {
-          // ignore ground and player clicks (no move/order on left click)
+          // Left click on ground: try to basic-attack nearest enemy to the clicked point within effective range
+          const g = raycast.raycastGround?.();
+          if (g && !player.frozen) {
+            const eff = effectiveRange();
+            const en = getNearestEnemy(g, eff, enemies);
+            if (en && en.alive) {
+              player.target = en;
+              player.moveTarget = null;
+              try {
+                const d = distance2D(player.pos(), en.pos());
+                player.attackMove = d > eff * 0.95;
+              } catch (_) {
+                player.attackMove = false;
+              }
+              effects.spawnTargetPing(en);
+              try { skills.tryBasicAttack(player, en); } catch (_) {}
+            }
+          }
         }
       } catch (_) {}
       return;
