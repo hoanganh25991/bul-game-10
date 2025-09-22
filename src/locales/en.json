@@ -10,7 +10,8 @@
     },
     "env": {
       "rain": "Rain",
-      "density": "Density"
+      "density": "Density",
+      "rainDensity": "Rain Density"
     },
     "render": {
       "quality": "Quality",

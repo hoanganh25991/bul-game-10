@@ -24,7 +24,7 @@ export function getTargetPixelRatio() {
     return Math.min(dpr, 3);
   }
 
-  return 1;
+  return 3;
 }
 
 /**
@@ -36,6 +36,17 @@ export function initWorld() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(getTargetPixelRatio());
   document.body.prepend(renderer.domElement);
+  // Ensure the WebGL canvas sits at the bottom of the stacking order so DOM overlays appear above it.
+  try {
+    const c = renderer.domElement;
+    c.style.position = "fixed";
+    c.style.left = "0";
+    c.style.top = "0";
+    c.style.width = "100%";
+    c.style.height = "100%";
+    c.style.zIndex = "0";        // overlays like .guide-overlay use a much higher z-index (e.g., 9999)
+    c.style.pointerEvents = "auto";
+  } catch (_) {}
 
   const scene = new THREE.Scene();
   scene.background = null;

@@ -225,8 +225,25 @@ btnMark?.addEventListener("click", () => {
 function updateFlagActive() {
   try {
     const lang = (typeof getLanguage === "function" ? getLanguage() : "vi");
-    if (langVi) langVi.classList.toggle("active", lang === "vi");
-    if (langEn) langEn.classList.toggle("active", lang === "en");
+    const on = (el, isActive) => {
+      if (!el) return;
+      // Keep class for any theme CSS that may target it
+      try { el.classList.toggle("active", !!isActive); } catch (_) {}
+      // Inline highlight to match checkbox (thunder yellow) so it's always visible
+      if (isActive) {
+        el.style.background = "linear-gradient(180deg, #ffe98a, #ffd94a)";
+        el.style.color = "var(--theme-dark-blue)";
+        el.style.borderColor = "rgba(255,217,74,0.6)";
+        el.style.boxShadow = "0 6px 18px rgba(0,0,0,0.35), 0 0 10px rgba(255,217,74,0.28)";
+      } else {
+        el.style.background = "rgba(10,25,48,0.6)";
+        el.style.color = "#fff";
+        el.style.borderColor = "rgba(124,196,255,0.35)";
+        el.style.boxShadow = "0 6px 14px rgba(0,0,0,0.35)";
+      }
+    };
+    on(langVi, lang === "vi");
+    on(langEn, lang === "en");
   } catch (_) {}
 }
 langVi?.addEventListener("click", () => { setLanguage("vi"); updateFlagActive(); });
@@ -254,17 +271,24 @@ if (envRainToggle) {
 if (envDensity) {
   // set initial slider value (clamped)
   envDensity.value = Math.min(Math.max(0, envDensityIndex), ENV_PRESETS.length - 1);
-  envDensity.addEventListener("input", (ev) => {
+  const onEnvDensityChange = (ev) => {
     const v = parseInt(ev.target.value, 10) || 1;
     envDensityIndex = Math.min(Math.max(0, v), ENV_PRESETS.length - 1);
     const preset = ENV_PRESETS[envDensityIndex];
-    // Recreate environment with new density while preserving rain state
+    // Recreate environment with new density while preserving rain state and rain level
     try { if (env && env.root && env.root.parent) env.root.parent.remove(env.root); } catch (e) {}
     env = initEnvironment(scene, Object.assign({}, preset, { enableRain: envRainState }));
-    try { updateEnvironmentFollow(env, player); } catch (e) {}
+    try {
+      if (envRainState && env && typeof env.setRainLevel === "function") {
+        env.setRainLevel(Math.min(Math.max(0, envRainLevel), 2));
+      }
+      updateEnvironmentFollow(env, player);
+    } catch (e) {}
     // persist
-  try { localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex, rainLevel: envRainLevel })); } catch (_) {}
-  });
+    try { localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex, rainLevel: envRainLevel })); } catch (_) {}
+  };
+  envDensity.addEventListener("input", onEnvDensityChange);
+  envDensity.addEventListener("change", onEnvDensityChange);
 }
 
 /* Rain density slider (0=low,1=medium,2=high) */
@@ -273,13 +297,15 @@ if (rainDensity) {
   try {
     rainDensity.value = Math.min(Math.max(0, Number.isFinite(parseInt(_envPrefs.rainLevel, 10)) ? parseInt(_envPrefs.rainLevel, 10) : 1), 2);
   } catch (_) {}
-  rainDensity.addEventListener("input", (ev) => {
+  const onRainDensityChange = (ev) => {
     const v = parseInt(ev.target.value, 10);
     const lvl = Math.min(Math.max(0, Number.isFinite(v) ? v : 1), 2);
     envRainLevel = lvl;
     try { env && typeof env.setRainLevel === "function" && env.setRainLevel(lvl); } catch (_) {}
     try { localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex, rainLevel: envRainLevel })); } catch (_) {}
-  });
+  };
+  rainDensity.addEventListener("input", onRainDensityChange);
+  rainDensity.addEventListener("change", onRainDensityChange);
 }
 
 /* Render quality segmented control (low/medium/high) */
@@ -361,7 +387,7 @@ function ensureSettingsTabs(){
   rows.forEach((row) => {
     if (row.querySelector("#langVi") || row.querySelector("#settingsInstructions")) {
       generalPanel.appendChild(row);
-    } else if (row.querySelector("#envRainToggle") || row.querySelector("#envDensity")) {
+    } else if (row.querySelector("#envRainToggle") || row.querySelector("#envDensity") || row.querySelector("#rainDensity")) {
       envPanel.appendChild(row);
     } else {
       generalPanel.appendChild(row);
@@ -875,6 +901,17 @@ function startInstructionGuide() {
   overlay.className = "guide-overlay";
   overlay.setAttribute("role", "dialog");
   overlay.setAttribute("aria-modal", "true");
+  // Force overlay to top-most layer above WebGL canvas on all platforms
+  try {
+    overlay.id = "guideOverlayRoot";
+    overlay.style.position = "fixed";
+    overlay.style.left = "0";
+    overlay.style.top = "0";
+    overlay.style.right = "0";
+    overlay.style.bottom = "0";
+    overlay.style.zIndex = "2147483647"; // higher than any in-app UI
+    overlay.style.pointerEvents = "none"; // children manage interaction
+  } catch (_) {}
 
   const blocker = document.createElement("div");
   blocker.className = "guide-blocker";
