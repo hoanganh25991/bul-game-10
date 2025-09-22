@@ -10,7 +10,8 @@
     },
     "env": {
       "rain": "Mưa",
-      "density": "Mật độ"
+      "density": "Mật độ",
+      "rainDensity": "Mật độ mưa"
     },
     "render": {
       "quality": "Chất lượng",

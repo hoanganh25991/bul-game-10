@@ -182,7 +182,7 @@
   position: relative;   /* anchor for absolute-positioned .skill-btn children */
   right: auto;
   bottom: auto;
-  width: 220px;         /* visual footprint to contain the arc */
-  height: 220px;
+  width: 200px;         /* visual footprint to contain the arc */
+  height: 200px;
   pointer-events: none; /* keep interaction on buttons only */
 }

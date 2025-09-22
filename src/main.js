@@ -1814,6 +1814,22 @@ function animate() {
   // Unified input (Hexagonal service): movement, holds, skills
   inputService.update(t, dt);
 
+  // Mobile joystick movement (touch controls)
+  try {
+    if (typeof touch !== "undefined" && touch) {
+      const joy = touch.getMoveDir?.();
+      if (joy && joy.active && !player.frozen && !player.aimMode) {
+        const speed = 30; // target distance ahead in world units
+        const base = player.pos();
+        const px = base.x + joy.x * speed;
+        const pz = base.z + joy.y * speed;
+        player.moveTarget = new THREE.Vector3(px, 0, pz);
+        player.attackMove = false;
+        player.target = null;
+      }
+    }
+  } catch (_) {}
+
   updatePlayer(dt);
   updateEnemies(dt);
   if (firstPerson && typeof player !== "undefined") {
