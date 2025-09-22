@@ -1017,15 +1017,33 @@ animate();
 // Pick a random valid spawn position for enemies around the village ring.
 // Ensures spawns are outside the village rest radius and within the world enemy spawn radius.
 function randomEnemySpawnPos() {
+  // Dynamic enemy spawn around the hero for continuous gameplay.
   const angle = Math.random() * Math.PI * 2;
-  // keep away from village by adding a minimum band
-  const minR = Math.max(REST_RADIUS + 5, WORLD.enemySpawnRadius * 0.4);
-  const r = minR + Math.random() * (WORLD.enemySpawnRadius - minR);
-  return new THREE.Vector3(
-    VILLAGE_POS.x + Math.cos(angle) * r,
+  const minR = Math.max(30, WORLD.enemySpawnRadius * 0.5);
+  const maxR = Math.max(minR + 1, WORLD.enemySpawnRadius);
+  const r = minR + Math.random() * (maxR - minR);
+
+  // Base candidate around player's current position
+  const center = player.pos();
+  const cand = new THREE.Vector3(
+    center.x + Math.cos(angle) * r,
     0,
-    VILLAGE_POS.z + Math.sin(angle) * r
+    center.z + Math.sin(angle) * r
   );
+
+  // Keep out of village rest radius if near village
+  const dvx = cand.x - VILLAGE_POS.x;
+  const dvz = cand.z - VILLAGE_POS.z;
+  const dVillage = Math.hypot(dvx, dvz);
+  if (dVillage < REST_RADIUS + 2) {
+    const push = (REST_RADIUS + 2) - dVillage + 0.5;
+    const nx = dvx / (dVillage || 1);
+    const nz = dvz / (dVillage || 1);
+    cand.x += nx * push;
+    cand.z += nz * push;
+  }
+
+  return cand;
 }
 
 function teleportToPortal(dest) {
@@ -1184,6 +1202,18 @@ function updateEnemies(dt) {
       return;
     }
     const toPlayer = player.alive ? distance2D(en.pos(), player.pos()) : Infinity;
+
+    // Stream/recycle enemies that are far away to maintain density around the hero
+    const STREAM_DESPAWN_DIST = (WORLD.enemySpawnRadius || 220) * 1.6;
+    if (toPlayer > STREAM_DESPAWN_DIST) {
+      const pos = randomEnemySpawnPos();
+      en.mesh.position.copy(pos);
+      en.moveTarget = null;
+      en.nextAttackReady = now() + 0.8;
+      // skip AI this frame after relocation
+      return;
+    }
+
     if (toPlayer < WORLD.aiAggroRadius) {
       // chase player
       const d = toPlayer;
