@@ -49,14 +49,15 @@ export function createRaycast({ renderer, camera, ground, enemiesMeshesProvider,
 
   function raycastPlayerOrEnemyOrGround() {
     raycaster.setFromCamera(mouseNDC, camera);
-    if (playerMesh) {
-      const pm = raycaster.intersectObject(playerMesh, true)[0];
-      if (pm) return { type: "player" };
-    }
+    // Prioritize enemies first so clicks overlapping player/enemy target enemy for basic attack
     const em = raycaster.intersectObjects(enemiesMeshesProvider(), true)[0];
     if (em) {
       const enemy = findEnemyFromObject(em.object);
       if (enemy) return { type: "enemy", enemy };
+    }
+    if (playerMesh) {
+      const pm = raycaster.intersectObject(playerMesh, true)[0];
+      if (pm) return { type: "player" };
     }
     const p = raycastGround();
     if (p) return { type: "ground", point: p };

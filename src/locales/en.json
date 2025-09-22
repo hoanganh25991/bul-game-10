@@ -7,15 +7,19 @@
       "general": "General",
       "environment": "Environment",
       "controls": "Controls"
+    },
+    "env": {
+      "rain": "Rain",
+      "density": "Density"
     }
   },
   "instructions": {
     "title": "Instructions",
     "items": [
-      "Left Click: select",
-      "Right Click: move / attack enemy",
-      "A: basic attack (auto-target nearest enemy)",
-      "W: aim AOE (then Left Click to cast, ESC cancels)",
+      "Left Click: basic attack enemy; clicking ground does nothing",
+      "Right Click: move / select enemy",
+      "A: hold to auto basic attack nearest enemy",
+      "W: AOE",
       "Q/E/R: skills",
       "S: Stop (cancel orders)",
       "B: Recall to village (opens portal back)"
@@ -26,7 +30,10 @@
     "skills": "Skills",
     "tabs": {
       "info": "Info",
-      "skills": "Skills"
+      "skills": "Skills",
+      "skillbook": "Skillbook",
+      "maps": "Maps",
+      "marks": "Marks"
     },
     "info": {
       "level": "Level",

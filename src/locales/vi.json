@@ -7,15 +7,19 @@
       "general": "Chung",
       "environment": "Môi trường",
       "controls": "Điều khiển"
+    },
+    "env": {
+      "rain": "Mưa",
+      "density": "Mật độ"
     }
   },
   "instructions": {
     "title": "Hướng dẫn",
     "items": [
-      "Nhấp trái: chọn",
-      "Nhấp phải: di chuyển / tấn công kẻ địch",
-      "A: chuẩn bị tấn công (sau đó nhấp trái vào kẻ địch)",
-      "W: chuẩn bị AOE (sau đó nhấp trái để thi triển, ESC hủy)",
+      "Nhấp trái: tấn công cơ bản vào kẻ địch; nhấp đất thì không làm gì",
+      "Nhấp phải: di chuyển / chọn kẻ địch",
+      "A: giữ để tự động tấn công cơ bản kẻ địch gần nhất",
+      "W: AOE",
       "Q/E/R: kỹ năng",
       "S: Dừng (hủy lệnh)",
       "B: Về làng (mở cổng hồi)"
@@ -26,7 +30,10 @@
     "skills": "Kỹ năng",
     "tabs": {
       "info": "Thông tin",
-      "skills": "Kỹ năng"
+      "skills": "Kỹ năng",
+      "skillbook": "Sách kỹ năng",
+      "maps": "Bản đồ",
+      "marks": "Đánh dấu"
     },
     "info": {
       "level": "Cấp",
@@ -57,5 +64,5 @@
   "start": {
     "title": "Hành trình của Thần Sấm",
     "story": "Thế giới chìm trong u ám. Những bóng đêm tỉnh dậy, và chỉ một vị thần có thể gọi sấm sét trở lại. Hãy dẫn Zeus — vị thần sấm — qua rừng hoang, làng mạc đổ nát và chiến trường, tiêu diệt lũ quái và khôi phục trật tự."
-  }
+    }
 }

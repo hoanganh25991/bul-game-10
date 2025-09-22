@@ -26,8 +26,8 @@ export const WORLD = {
   // Slightly longer attack range and faster basic attack
   attackRange: 32,
   attackRangeMult: 1,
-  basicAttackCooldown: 0.6,
-  basicAttackDamage: 24 * 3,
+  basicAttackCooldown: 0.2,
+  basicAttackDamage: 24,
   // Enemies are more aggressive and a bit tougher
   aiAggroRadius: 60,
   aiForgetRadius: 100,

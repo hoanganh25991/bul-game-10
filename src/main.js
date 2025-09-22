@@ -453,11 +453,11 @@ function renderHeroScreen(initialTab = "skills") {
   title.textContent = t("hero.title");
   layout.appendChild(title);
 
-  // Tab bar (Skills / Info / Skillbook / Marks)
+  // Tab bar (Skills / Info / Skillbook / Maps / Marks)
   const tabBar = document.createElement("div");
   tabBar.className = "tab-bar";
   const skillsBtn = document.createElement("button");
-  skillsBtn.className = "tab-btn" + ((initialTab !== "info" && initialTab !== "book" && initialTab !== "marks") ? " active" : "");
+  skillsBtn.className = "tab-btn" + ((initialTab !== "info" && initialTab !== "book" && initialTab !== "maps" && initialTab !== "marks") ? " active" : "");
   skillsBtn.setAttribute("data-i18n", "hero.tabs.skills");
   skillsBtn.textContent = t("hero.tabs.skills") || "Skills";
   const infoBtn = document.createElement("button");
@@ -468,6 +468,10 @@ function renderHeroScreen(initialTab = "skills") {
   bookBtn.className = "tab-btn" + (initialTab === "book" ? " active" : "");
   bookBtn.setAttribute("data-i18n", "hero.tabs.skillbook");
   bookBtn.textContent = t("hero.tabs.skillbook") || "Skillbook";
+  const mapsBtn = document.createElement("button");
+  mapsBtn.className = "tab-btn" + (initialTab === "maps" ? " active" : "");
+  mapsBtn.setAttribute("data-i18n", "hero.tabs.maps");
+  mapsBtn.textContent = t("hero.tabs.maps") || "Maps";
   const marksBtn = document.createElement("button");
   marksBtn.className = "tab-btn" + (initialTab === "marks" ? " active" : "");
   marksBtn.setAttribute("data-i18n", "hero.tabs.marks");
@@ -475,6 +479,7 @@ function renderHeroScreen(initialTab = "skills") {
   tabBar.appendChild(skillsBtn);
   tabBar.appendChild(infoBtn);
   tabBar.appendChild(bookBtn);
+  tabBar.appendChild(mapsBtn);
   tabBar.appendChild(marksBtn);
   layout.appendChild(tabBar);
 
@@ -482,15 +487,18 @@ function renderHeroScreen(initialTab = "skills") {
   const infoPanel = document.createElement("div");
   infoPanel.className = "tab-panel" + (initialTab === "info" ? " active" : "");
   const skillsPanel = document.createElement("div");
-  skillsPanel.className = "tab-panel" + ((initialTab !== "info" && initialTab !== "book" && initialTab !== "marks") ? " active" : "");
+  skillsPanel.className = "tab-panel" + ((initialTab !== "info" && initialTab !== "book" && initialTab !== "maps" && initialTab !== "marks") ? " active" : "");
   const bookPanel = document.createElement("div");
   bookPanel.className = "tab-panel" + (initialTab === "book" ? " active" : "");
+  const mapsPanel = document.createElement("div");
+  mapsPanel.className = "tab-panel" + (initialTab === "maps" ? " active" : "");
   const marksPanel = document.createElement("div");
   marksPanel.className = "tab-panel" + (initialTab === "marks" ? " active" : "");
   // Initialize visibility based on initialTab
   infoPanel.style.display = (initialTab === "info") ? "block" : "none";
-  skillsPanel.style.display = ((initialTab !== "info" && initialTab !== "book" && initialTab !== "marks") ? "block" : "none");
+  skillsPanel.style.display = ((initialTab !== "info" && initialTab !== "book" && initialTab !== "maps" && initialTab !== "marks") ? "block" : "none");
   bookPanel.style.display = (initialTab === "book") ? "block" : "none";
+  mapsPanel.style.display = (initialTab === "maps") ? "block" : "none";
   marksPanel.style.display = (initialTab === "marks") ? "block" : "none";
 
   // Info content
@@ -717,7 +725,80 @@ function renderHeroScreen(initialTab = "skills") {
     bookPanel.appendChild(wrap);
   })();
 
-  // Build Marks panel content (list + teleport + remove + cooldown status)
+  // Build Maps panel content (scrollable list + set active)
+  (function buildMapsPanel() {
+    const wrap = document.createElement("div");
+    wrap.className = "maps-panel";
+    wrap.style.display = "flex";
+    wrap.style.flexDirection = "column";
+    wrap.style.gap = "8px";
+
+    const title = document.createElement("h3");
+    title.textContent = t("hero.tabs.maps") || "Maps";
+    wrap.appendChild(title);
+
+    const list = document.createElement("div");
+    list.style.display = "flex";
+    list.style.flexDirection = "column";
+    list.style.gap = "8px";
+    list.style.maxHeight = "300px";
+    list.style.overflow = "auto";
+    wrap.appendChild(list);
+
+    function renderMaps() {
+      list.innerHTML = "";
+      try {
+        const items = mapManager.listMaps?.() || [];
+        items.forEach((m) => {
+          const row = document.createElement("div");
+          row.style.display = "grid";
+          row.style.gridTemplateColumns = "1fr auto";
+          row.style.gap = "8px";
+          row.style.border = "1px solid rgba(255,255,255,0.1)";
+          row.style.borderRadius = "6px";
+          row.style.padding = "8px";
+
+          const info = document.createElement("div");
+          info.innerHTML = `<div style="font-weight:600">${m.name}${m.current ? " • Current" : ""}${(!m.unlocked ? " • Locked" : "")}</div>
+                            <div style="font-size:12px;opacity:0.85">${m.desc}</div>
+                            <div style="font-size:12px;opacity:0.7">Requires Lv ${m.requiredLevel}</div>`;
+
+          const act = document.createElement("div");
+          const btn = document.createElement("button");
+          if (m.current) {
+            btn.textContent = "Active";
+            btn.disabled = true;
+          } else if (!m.unlocked) {
+            btn.textContent = "Locked";
+            btn.disabled = true;
+          } else {
+            btn.textContent = "Set Active";
+            btn.addEventListener("click", () => {
+              try {
+                if (mapManager.setCurrent?.(m.index)) {
+                  // Reapply modifiers to existing enemies on map switch
+                  enemies.forEach((en) => applyMapModifiersToEnemy(en));
+                  setCenterMsg && setCenterMsg(`Switched to ${m.name}`);
+                  setTimeout(() => clearCenterMsg(), 1100);
+                  renderMaps();
+                }
+              } catch (_) {}
+            });
+          }
+          act.appendChild(btn);
+
+          row.appendChild(info);
+          row.appendChild(act);
+          list.appendChild(row);
+        });
+      } catch (_) {}
+    }
+
+    renderMaps();
+    mapsPanel.appendChild(wrap);
+  })();
+
+  // Build Marks panel content (table + teleport/remove/rename + cooldown status)
   (function buildMarksPanel() {
     const wrap = document.createElement("div");
     wrap.className = "marks-panel";
@@ -737,72 +818,23 @@ function renderHeroScreen(initialTab = "skills") {
     head.appendChild(titleMarks);
     head.appendChild(cd);
 
-    // Maps section (control current map and show unlock requirements)
-    const mapsBox = document.createElement("div");
-    mapsBox.style.border = "1px solid rgba(255,255,255,0.1)";
-    mapsBox.style.borderRadius = "6px";
-    mapsBox.style.padding = "8px";
-    const mapsTitle = document.createElement("div");
-    mapsTitle.style.fontWeight = "bold";
-    mapsTitle.style.marginBottom = "6px";
-    mapsTitle.textContent = "Maps";
-    const mapsList = document.createElement("div");
-    mapsList.style.display = "flex";
-    mapsList.style.flexDirection = "column";
-    mapsList.style.gap = "6px";
-    mapsBox.appendChild(mapsTitle);
-    mapsBox.appendChild(mapsList);
-
-    function renderMaps() {
-      mapsList.innerHTML = "";
-      try {
-        const items = mapManager.listMaps?.() || [];
-        items.forEach((m) => {
-          const row = document.createElement("div");
-          row.style.display = "grid";
-          row.style.gridTemplateColumns = "1fr auto";
-          row.style.gap = "8px";
-          const info = document.createElement("div");
-          info.innerHTML = `<div style="font-weight:600">${m.name}${m.current ? " • Current" : ""}${(!m.unlocked ? " • Locked" : "")}</div>
-                            <div style="font-size:12px;opacity:0.85">${m.desc}</div>
-                            <div style="font-size:12px;opacity:0.7">Requires Lv ${m.requiredLevel}</div>`;
-          const act = document.createElement("div");
-          const btn = document.createElement("button");
-          if (m.current) {
-            btn.textContent = "Active";
-            btn.disabled = true;
-          } else if (!m.unlocked) {
-            btn.textContent = "Locked";
-            btn.disabled = true;
-          } else {
-            btn.textContent = "Set Active";
-            btn.addEventListener("click", () => {
-              try {
-                if (mapManager.setCurrent?.(m.index)) {
-                  // Reapply modifiers to existing enemies
-                  enemies.forEach((en) => applyMapModifiersToEnemy(en));
-                  // feedback
-                  setCenterMsg && setCenterMsg(`Switched to ${m.name}`);
-                  setTimeout(() => clearCenterMsg(), 1100);
-                  renderMaps();
-                }
-              } catch (_) {}
-            });
-          }
-          act.appendChild(btn);
-          row.appendChild(info);
-          row.appendChild(act);
-          mapsList.appendChild(row);
-        });
-      } catch (_) {}
-    }
+    /* Marks list (separate table) */
 
     const list = document.createElement("div");
-    list.style.display = "flex";
-    list.style.flexDirection = "column";
-    list.style.gap = "6px";
+    list.style.display = "grid";
+    list.style.gridTemplateColumns = "1fr auto auto auto";
+    list.style.rowGap = "6px";
+    list.style.columnGap = "8px";
+    list.style.alignItems = "center";
     list.style.maxHeight = "240px";
     list.style.overflow = "auto";
+
+    // Header
+    const hName = document.createElement("div"); hName.style.fontWeight = "600"; hName.textContent = "Name / Position / Created";
+    const hRN = document.createElement("div"); hRN.style.fontWeight = "600"; hRN.textContent = "Rename";
+    const hTP = document.createElement("div"); hTP.style.fontWeight = "600"; hTP.textContent = "Teleport";
+    const hRM = document.createElement("div"); hRM.style.fontWeight = "600"; hRM.textContent = "Remove";
+    list.appendChild(hName); list.appendChild(hRN); list.appendChild(hTP); list.appendChild(hRM);
 
     function fmtTime(ts) {
       try {
@@ -815,20 +847,20 @@ function renderHeroScreen(initialTab = "skills") {
       try {
         const arr = portals.listPersistentMarks?.() || [];
         if (!arr.length) {
+          // remove header if empty
+          list.innerHTML = "";
           const empty = document.createElement("div");
           empty.style.opacity = "0.8";
           empty.style.fontSize = "12px";
           empty.textContent = "No marks yet. Use the 🚩 Mark button to place a flag.";
           list.appendChild(empty);
         } else {
+          // keep header, append rows
           arr.forEach((m) => {
-            const row = document.createElement("div");
-            row.style.display = "grid";
-            row.style.gridTemplateColumns = "1fr auto auto auto";
-            row.style.gap = "8px";
             const info = document.createElement("div");
             const nm = (m.name && String(m.name).trim()) ? m.name : `Mark ${m.index + 1}`;
             info.textContent = `${nm} • (${Math.round(m.x)}, ${Math.round(m.z)}) • ${fmtTime(m.createdAt)}`;
+
             const rn = document.createElement("button");
             rn.textContent = "Rename";
             rn.addEventListener("click", () => {
@@ -840,21 +872,23 @@ function renderHeroScreen(initialTab = "skills") {
                 }
               } catch (_) {}
             });
+
             const tp = document.createElement("button");
             tp.textContent = "Teleport";
             tp.addEventListener("click", () => {
               try { portals.teleportToMark?.(m.index, player); } catch (_) {}
             });
+
             const rm = document.createElement("button");
             rm.textContent = "Remove";
             rm.addEventListener("click", () => {
               try { portals.removePersistentMark?.(m.index); render(); } catch (_) {}
             });
-            row.appendChild(info);
-            row.appendChild(rn);
-            row.appendChild(tp);
-            row.appendChild(rm);
-            list.appendChild(row);
+
+            list.appendChild(info);
+            list.appendChild(rn);
+            list.appendChild(tp);
+            list.appendChild(rm);
           });
         }
       } catch (e) {}
@@ -877,11 +911,9 @@ function renderHeroScreen(initialTab = "skills") {
     try { clearInterval(window.__marksPanelTick); } catch (_) {}
     window.__marksPanelTick = setInterval(tickCooldown, 500);
     tickCooldown();
-    renderMaps();
     render();
 
     wrap.appendChild(head);
-    wrap.appendChild(mapsBox);
     wrap.appendChild(list);
     marksPanel.appendChild(wrap);
   })();
@@ -890,12 +922,13 @@ function renderHeroScreen(initialTab = "skills") {
   layout.appendChild(infoPanel);
   layout.appendChild(skillsPanel);
   layout.appendChild(bookPanel);
+  layout.appendChild(mapsPanel);
   layout.appendChild(marksPanel);
 
   // Tab switching
   function activate(panel) {
-    [infoBtn, skillsBtn, bookBtn, marksBtn].forEach((b) => b.classList.remove("active"));
-    [infoPanel, skillsPanel, bookPanel, marksPanel].forEach((p) => { p.classList.remove("active"); p.style.display = "none"; });
+    [infoBtn, skillsBtn, bookBtn, mapsBtn, marksBtn].forEach((b) => b.classList.remove("active"));
+    [infoPanel, skillsPanel, bookPanel, mapsPanel, marksPanel].forEach((p) => { p.classList.remove("active"); p.style.display = "none"; });
     if (panel === "info") {
       infoBtn.classList.add("active");
       infoPanel.classList.add("active");
@@ -904,6 +937,10 @@ function renderHeroScreen(initialTab = "skills") {
       bookBtn.classList.add("active");
       bookPanel.classList.add("active");
       bookPanel.style.display = "block";
+    } else if (panel === "maps") {
+      mapsBtn.classList.add("active");
+      mapsPanel.classList.add("active");
+      mapsPanel.style.display = "block";
     } else if (panel === "marks") {
       marksBtn.classList.add("active");
       marksPanel.classList.add("active");
@@ -917,6 +954,7 @@ function renderHeroScreen(initialTab = "skills") {
   infoBtn.addEventListener("click", () => activate("info"));
   skillsBtn.addEventListener("click", () => activate("skills"));
   bookBtn.addEventListener("click", () => activate("book"));
+  mapsBtn.addEventListener("click", () => activate("maps"));
   marksBtn.addEventListener("click", () => activate("marks"));
 
 
@@ -1246,7 +1284,7 @@ renderer.domElement.addEventListener("mousedown", (e) => {
         effects.spawnMovePing(p);
       }
     }
-  } else if (e.button === 0) { // Left click: select
+  } else if (e.button === 0) { // Left click: basic attack on enemy; ignore ground
     const obj = raycast.raycastPlayerOrEnemyOrGround();
 
     if (player.frozen) {
@@ -1254,19 +1292,24 @@ renderer.domElement.addEventListener("mousedown", (e) => {
       return;
     }
 
-    // Standard select logic
-    if (obj && obj.type === "player") {
-      selectedUnit = player;
-    } else if (obj && obj.type === "enemy") {
+    const effRange = WORLD.attackRange * (WORLD.attackRangeMult || 1);
+
+    if (obj && obj.type === "enemy") {
       selectedUnit = obj.enemy;
-    } else if (obj && obj.type === "ground" && DEBUG && obj.point) {
-      selectedUnit = player;
-      if (!player.frozen) {
-        player.moveTarget = obj.point.clone();
-        player.target = null;
-        effects.spawnMovePing(obj.point);
+      if (obj.enemy && obj.enemy.alive) {
+        player.target = obj.enemy;
+        player.moveTarget = null;
+        try {
+          const d = distance2D(player.pos(), obj.enemy.pos());
+          player.attackMove = d > effRange * 0.95;
+        } catch (err) {
+          player.attackMove = false;
+        }
+        effects.spawnTargetPing(obj.enemy);
+        try { skills.tryBasicAttack(player, obj.enemy); } catch (_) {}
       }
     } else {
+      // Ignore player/ground on left click (no move/order)
       selectedUnit = player;
     }
   }

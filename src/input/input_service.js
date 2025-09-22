@@ -252,21 +252,27 @@ export function createInputService({
     }
 
     if (e.button === 0) {
-      // Left click: aim confirm or selection
+      // Left click: basic attack on enemy; ignore ground
       e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
       try {
         const obj = raycast.raycastPlayerOrEnemyOrGround?.();
-        // Selection only (no auto-attack/move)
         if (obj && obj.type === "enemy") {
-          effects.spawnTargetPing(obj.enemy);
-        } else if (obj && obj.type === "ground" && DEBUG && obj.point) {
-          if (!player.frozen) {
-            player.moveTarget = obj.point.clone();
-            player.target = null;
-            player.attackMove = false;
-            state.lastMoveSource = "order";
-            effects.spawnMovePing(obj.point);
+          if (!player.frozen && obj.enemy && obj.enemy.alive) {
+            // Set target and attempt immediate basic attack
+            player.target = obj.enemy;
+            player.moveTarget = null;
+            try {
+              const effRange = effectiveRange();
+              const d = distance2D(player.pos(), obj.enemy.pos());
+              player.attackMove = d > effRange * 0.95;
+            } catch (_) {
+              player.attackMove = false;
+            }
+            effects.spawnTargetPing(obj.enemy);
+            try { skills.tryBasicAttack(player, obj.enemy); } catch (_) {}
           }
+        } else {
+          // ignore ground and player clicks (no move/order on left click)
         }
       } catch (_) {}
       return;
