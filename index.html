@@ -14,12 +14,45 @@
         var isMobile = (navigator.userAgentData && navigator.userAgentData.mobile) ||
                        /Android|webOS|iPhone|iPod|iPad|BlackBerry|IEMobile|Opera Mini|Mobi/i.test(ua) ||
                        ((/Macintosh|MacIntel/.test(platform || ua)) && (navigator.maxTouchPoints || 0) > 1);
+
+        // Scale rules:
+        // - Mobile default: 0.75
+        // - Extra small screens (<430px width): 0.6
+        var w = Math.min(window.innerWidth || screen.width || 0, screen.width || 0);
         var scale = isMobile ? 0.75 : 1;
+        if (w && w <= 430) scale = 0.6;
+
+        // Prevent pinch/double-tap zoom on gameplay UI
         var meta = document.querySelector('meta[name="viewport"]');
         if (meta) {
-          var content = 'width=device-width, initial-scale=' + scale + ', viewport-fit=cover';
+          var content = 'width=device-width, initial-scale=' + scale + ', maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
           meta.setAttribute('content', content);
         }
+
+        // Reduce double-tap zoom triggers on interactive UI
+        try {
+          var style = document.createElement('style');
+          style.textContent = 'html, body, canvas, #ui-root, #skillWheel, button, .icon-btn, .skill-btn, #mobileControls button { -webkit-tap-highlight-color: rgba(0,0,0,0); touch-action: manipulation; -ms-touch-action: manipulation; }';
+          document.head.appendChild(style);
+        } catch (e2) {}
+        // Global guards: prevent pinch-zoom and double-tap zoom (iOS/Safari)
+        try {
+          document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, { passive: false });
+          document.addEventListener('gesturechange', function(e){ e.preventDefault(); }, { passive: false });
+          document.addEventListener('gestureend', function(e){ e.preventDefault(); }, { passive: false });
+          document.addEventListener('touchstart', function(e){
+            if (e.touches && e.touches.length > 1) e.preventDefault(); // block pinch
+          }, { passive: false });
+          var __lastTouchEnd = 0;
+          document.addEventListener('touchend', function(e){
+            var now = Date.now();
+            if (now - __lastTouchEnd <= 300) {
+              e.preventDefault(); // block double-tap zoom
+            }
+            __lastTouchEnd = now;
+          }, { passive: false });
+          document.addEventListener('dblclick', function(e){ e.preventDefault(); }, { passive: false });
+        } catch (e3) {}
       } catch (e) {}
     })();
   </script>
