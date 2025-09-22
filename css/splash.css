@@ -26,7 +26,7 @@
 .splash-active .screen,
 .splash-active .screen .screen-content,
 .splash-active #ui-root,
-.splash-active #mobileControls {
+.splash-active #bottomLeftGroup {
   display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;

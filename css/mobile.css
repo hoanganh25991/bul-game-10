@@ -2,7 +2,7 @@
    Mobile touch controls and joystick styling.
 */
 
-#mobileControls {
+#bottomLeftGroup {
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -70,17 +70,17 @@
     transform-origin: top left;
   }
 
-  #minimap {
+  #topRightGroup {
     transform: scale(0.75);
     transform-origin: top right;
   }
 
-  #joystick {
+  #bottomLeftGroup {
     transform: scale(0.75);
     transform-origin: bottom left;
   }
 
-  #skillWheel {
+  #bottomRightGroup {
     transform: scale(0.75);
     transform-origin: bottom right;
   }

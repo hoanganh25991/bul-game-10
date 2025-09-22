@@ -44,9 +44,17 @@
     </div>
   </div>
 
+  <!-- Top-right flex group: minimap above screen buttons -->
+  <div id="topRightGroup">
+    <!-- Minimap -->
+    <canvas id="minimap" width="200" height="200"></canvas>
 
-  <!-- Minimap -->
-  <canvas id="minimap" width="200" height="200"></canvas>
+    <!-- Screen buttons row (below minimap) -->
+    <div id="screenGroup">
+      <button id="btnSettingsScreen" class="icon-btn" aria-label="Settings" title="Cài đặt / Settings">⚙️</button>
+      <button id="btnHeroScreen" class="icon-btn" aria-label="Hero" title="Hero">🛡️</button>
+    </div>
+  </div>
 
   <!-- Hints -->
   <div id="hints" style="display:none;">
@@ -60,15 +68,6 @@
   </div>
 
   <div id="deathMsg" class="center-msg" style="display:none;">You died. Respawning...</div>
-
-  <!-- New Interactive UI -->
-  
-  <div id="screenGroup">
-    <!-- Settings button (top-right) -->
-    <button id="btnSettingsScreen" class="icon-btn top-right" aria-label="Settings" title="Cài đặt / Settings">⚙️</button>
-    <!-- Hero screen button (top-right, next to settings) -->
-    <button id="btnHeroScreen" class="icon-btn top-right" aria-label="Hero" title="Hero" style="right:64px;">🛡️</button>
-  </div>
 
   <!-- Settings Panel (now full-screen system screen) -->
   <div id="settingsPanel" class="screen hidden system-screen" role="dialog" aria-modal="true"
@@ -158,13 +157,28 @@
   </div>
 
   <!-- Mobile Touch Controls -->
-  <div id="mobileControls">
+  <div id="bottomLeftGroup">
     <!-- Joystick (bottom-left) -->
     <div id="joystick">
       <div id="joyBase"></div>
       <div id="joyKnob"></div>
+      <!-- Small cancel aim button positioned above joystick -->
+      <!-- <button id="btnCancelAim" class="small">Cancel</button> -->
     </div>
-    <!-- Skill wheel (bottom-right quarter circle) -->
+  </div>
+
+  <!-- Bottom-right flex group: core controls above skill wheel -->
+  <div id="bottomRightGroup">
+    <div id="coreSkillGroup">
+      <!-- Camera toggle -->
+      <button id="btnCamera" class="icon-btn" aria-label="Camera Toggle" title="Camera">🎥</button>
+      <!-- Portal button -->
+      <button id="btnPortal" class="icon-btn" aria-label="Portal" title="Portal">🌀</button>
+      <!-- Mark/Flag button -->
+      <button id="btnMark" class="icon-btn" aria-label="Mark" title="Mark (3m cd)">🚩</button>
+    </div>
+
+    <!-- Skill wheel (kept as bottom item in the column) -->
     <div id="skillWheel">
       <button id="btnBasic" class="skill-btn center" title="Basic">
         <span class="icon">⚡</span>
@@ -201,15 +215,6 @@
     </div>
   </div>
 
-  <div id="coreSkillGroup">
-    <!-- Portal button (bottom-right, above skills) -->
-    <button id="btnPortal" class="icon-btn" aria-label="Portal" title="Portal">🌀</button>
-    <!-- Mark/Flag button (persistent teleport, 3m cooldown) -->
-    <button id="btnMark" class="icon-btn" aria-label="Mark" title="Mark (3m cd)">🚩</button>
-    <!-- Camera toggle (right side) -->
-    <button id="btnCamera" class="icon-btn top-right" aria-label="Camera Toggle" title="Camera"
-    style="right:116px;">🎥</button>
-  </div>
   <!-- Module game code -->
   <script type="importmap">
     {

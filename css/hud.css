@@ -139,3 +139,32 @@
   #hud { width: 90vw; left: 6px; top: 8px; padding: 8px; }
   #minimap { right: 8px; top: 8px; width: 160px; height: 160px; }
 }
+
+/* Top-right flex stack: minimap above screenGroup */
+#topRightGroup{
+  position: fixed;
+  right: 12px;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 30;          /* same visual layer as minimap */
+  pointer-events: none; /* allow underlying world unless child captures */
+}
+#topRightGroup > *{ pointer-events: auto; }
+
+/* Make minimap flow inside the group (disable its absolute offsets when in group) */
+#topRightGroup #minimap{
+  position: static;
+  right: auto;
+  top: auto;
+}
+
+@media (max-width: 720px){
+  #topRightGroup{
+    right: 8px;
+    top: 8px;
+    gap: 6px;
+  }
+}

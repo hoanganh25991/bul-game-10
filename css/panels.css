@@ -256,3 +256,44 @@
   outline: 2px solid rgba(255,217,74,0.8);
   outline-offset: 2px;
 }
+
+/* ScreenGroup buttons row below minimap */
+#screenGroup{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: auto;
+}
+#screenGroup .icon-btn{
+  position: static; /* participate in flex layout */
+}
+
+/* Bottom-right flex stack: coreSkillGroup above skillWheel */
+#bottomRightGroup{
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 45;          /* above mobile controls (z=40) */
+  pointer-events: none;
+}
+#bottomRightGroup > *{ pointer-events: auto; }
+
+/* Make core skill icons flow in a row with gap */
+#coreSkillGroup{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Override individual absolute/fixed placements while inside the group */
+#bottomRightGroup #btnPortal,
+#bottomRightGroup #btnMark,
+#bottomRightGroup #btnCamera{
+  position: static;
+  inset: auto;
+  right: auto; left: auto; top: auto; bottom: auto;
+}

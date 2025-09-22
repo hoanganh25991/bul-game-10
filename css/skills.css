@@ -175,3 +175,14 @@
   border-radius: 50%;
   inset: 0;
 }
+
+/* Integrate skill wheel into bottom-right flex stack.
+   The wheel container becomes the positioning context for its absolute children. */
+#bottomRightGroup #skillWheel{
+  position: relative;   /* anchor for absolute-positioned .skill-btn children */
+  right: auto;
+  bottom: auto;
+  width: 220px;         /* visual footprint to contain the arc */
+  height: 220px;
+  pointer-events: none; /* keep interaction on buttons only */
+}

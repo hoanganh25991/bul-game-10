@@ -11,7 +11,7 @@
     var style = document.createElement('style');
     style.id = 'lock-zoom-style';
     style.textContent =
-      "html, body, canvas, #ui-root, #skillWheel, button, .icon-btn, .skill-btn, #mobileControls button { -webkit-tap-highlight-color: rgba(0,0,0,0); touch-action: manipulation; -ms-touch-action: manipulation; }";
+      "html, body, canvas, #ui-root, #skillWheel, button, .icon-btn, .skill-btn, #bottomLeftGroup button { -webkit-tap-highlight-color: rgba(0,0,0,0); touch-action: manipulation; -ms-touch-action: manipulation; }";
     document.head.appendChild(style);
   } catch (e2) {}
 
