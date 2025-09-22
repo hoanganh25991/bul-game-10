@@ -218,13 +218,7 @@ async function showCastingOverlayAndCast(skills, def, key) {
     boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
   });
 
-  const title = document.createElement("div");
-  title.textContent = "Casting";
-  Object.assign(title.style, { fontSize: "20px", fontWeight: "700", marginBottom: "8px", letterSpacing: "0.3px" });
 
-  const subtitle = document.createElement("div");
-  subtitle.textContent = def?.name ? `Skill: ${def.name} → ${key}` : `Key: ${key}`;
-  Object.assign(subtitle.style, { fontSize: "12px", opacity: "0.8", marginBottom: "8px" });
 
   const number = document.createElement("div");
   Object.assign(number.style, {
@@ -235,8 +229,6 @@ async function showCastingOverlayAndCast(skills, def, key) {
     minHeight: "1.2em",
   });
 
-  card.appendChild(title);
-  card.appendChild(subtitle);
   card.appendChild(number);
   root.appendChild(card);
   document.body.appendChild(root);
@@ -255,8 +247,6 @@ async function showCastingOverlayAndCast(skills, def, key) {
       skills.castSkill(key);
     } catch (_) {}
 
-    // Show casted confirmation
-    await setNumber(number, "⚡ Casted!", 550);
 
     // Restore mapping
     SKILLS[key] = prev;
