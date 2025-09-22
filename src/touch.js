@@ -59,6 +59,7 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
     _pointerId: null,
     _center: { x: 0, y: 0 },
     _radius: 0,
+    _capturedEl: null,
   };
 
   let lastAimPos = new THREE.Vector3(); // stores last computed aim position
@@ -122,15 +123,20 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
   }
 
   function onPointerDown(e) {
+    // Block native gestures (scroll/zoom) so pointer stream continues
+    try { e.preventDefault?.(); } catch {}
     if (joyState._pointerId !== null) return; // already tracking
     joyState._pointerId = e.pointerId;
     joyState.active = true;
     computeBase();
     updateJoyFromPointer(e.clientX, e.clientY);
-    (e.target).setPointerCapture?.(e.pointerId);
+    joyState._capturedEl = e.target;
+    try { joyState._capturedEl?.setPointerCapture?.(e.pointerId); } catch {}
   }
   function onPointerMove(e) {
     if (joyState._pointerId !== e.pointerId) return;
+    // Prevent scroll/overscroll from stealing the gesture
+    try { e.preventDefault?.(); } catch {}
     updateJoyFromPointer(e.clientX, e.clientY);
     // Joystick does NOT steer any AOE aim; only ensure attack preview hidden
     if (attackPreview) attackPreview.visible = false;
@@ -142,19 +148,20 @@ export function initTouchControls({ player, skills, effects, aimPreview, attackP
     joyState.x = 0;
     joyState.y = 0;
     resetKnob();
-    (e.target).releasePointerCapture?.(e.pointerId);
+    try { joyState._capturedEl?.releasePointerCapture?.(e.pointerId); } catch {}
+    joyState._capturedEl = null;
   }
 
   if (els.joyBase) {
-    els.joyBase.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointercancel", onPointerUp);
+    els.joyBase.addEventListener("pointerdown", onPointerDown, { passive: false });
+    window.addEventListener("pointermove", onPointerMove, { passive: false });
+    window.addEventListener("pointerup", onPointerUp, { passive: true });
+    window.addEventListener("pointercancel", onPointerUp, { passive: true });
     window.addEventListener("resize", computeBase);
     computeBase();
   }
   if (els.joyKnob) {
-    els.joyKnob.addEventListener("pointerdown", onPointerDown);
+    els.joyKnob.addEventListener("pointerdown", onPointerDown, { passive: false });
   }
 
   // Helpers
