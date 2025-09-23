@@ -101,6 +101,9 @@
   gap: 8px 12px;
   padding: 8px 0;
   border-bottom: 1px solid rgba(124,196,255,0.12);
+  overflow: visible;    /* allow native dropdowns to escape row */
+  position: relative;   /* create anchor context for popup */
+  z-index: 5;           /* above inner decorations */
 }
 .panel-content .row:last-child{ border-bottom: none; }
 .row-label{ color:#cfe9ff; font-weight:600; }
@@ -272,7 +275,7 @@
   max-height: min(96vh, 100dvh - 24px);
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* inner content scrolls */
+  overflow: visible; /* allow native dropdowns to display outside container */
   padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
 }
 
@@ -280,7 +283,7 @@
 .system-screen .panel-content{
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: visible; /* allow native dropdowns to overflow */
   -webkit-overflow-scrolling: touch;
 }
 
@@ -558,4 +561,25 @@
 .system-screen .segmented .seg-btn:focus-visible{
   outline: 2px solid rgba(255,217,74,0.8);
   outline-offset: -2px; /* keep ring inside pill */
+}
+
+/* Native select styling inside system screens */
+.system-screen select{
+  appearance: auto;
+  -webkit-appearance: menulist;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--system-border);
+  background: rgba(255,255,255,0.96);
+  color: var(--system-text);
+  font-weight: 800;
+  line-height: 1.1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  pointer-events: auto;
+  position: relative; /* ensure dropdown anchors correctly */
+  z-index: 3;         /* above internal decorations */
+}
+.system-screen select:focus-visible{
+  outline: 2px solid rgba(255,217,74,0.8);
+  outline-offset: 2px;
 }

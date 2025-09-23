@@ -88,6 +88,18 @@ export function createInputService({
 
   function cancelAim() { /* no-op: aiming removed */ }
 
+  // Do not intercept events on system UI or form controls (e.g., Settings select dropdown)
+  function shouldIgnoreForUI(e) {
+    try {
+      const t = e.target;
+      if (!t || !t.tagName) return false;
+      const tag = String(t.tagName).toUpperCase();
+      if (tag === "SELECT" || tag === "OPTION" || tag === "INPUT" || tag === "TEXTAREA" || tag === "LABEL" || tag === "BUTTON") return true;
+      if (t.closest && (t.closest(".system-screen") || t.closest("#settingsPanel"))) return true;
+    } catch (_) {}
+    return false;
+  }
+
   // Check if the event occurred over the renderer canvas (even if covered by overlays)
   function isEventOverRenderer(e) {
     try {
@@ -214,6 +226,8 @@ export function createInputService({
   }
 
   function onMouseDownCapture(e) {
+    // Allow native UI controls (e.g., select dropdown) to work
+    if (shouldIgnoreForUI(e)) return;
     if (!isEventOverRenderer(e)) return;
     // Right-click or left-click selection/aim confirm – we will handle here, and stop propagation
     try { raycast.updateMouseNDC(e); } catch (_) {}
@@ -297,6 +311,8 @@ export function createInputService({
   }
 
   function onContextMenuCapture(e) {
+    // Allow native UI controls (e.g., select dropdown) to work
+    if (shouldIgnoreForUI(e)) return;
     if (!isEventOverRenderer(e)) return;
     try {
       e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
