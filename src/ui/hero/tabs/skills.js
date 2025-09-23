@@ -92,7 +92,7 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
       setLoadoutAndSave && setLoadoutAndSave(next);
       safeDispatchLoadoutChanged();
       updateSkillBarLabels && updateSkillBarLabels();
-      if (typeof rerender === "function") rerender("skills");
+      if (typeof rerender === "function") rerender("skills", { currentLoadout: next });
     } catch (_) {}
   }
   function assignSkillTo(slotIndex, skillId) {

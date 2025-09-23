@@ -86,7 +86,7 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
 
   try { renderInfoTab(infoPanel, ctx); } catch (_) {}
 
-  try { renderSkillsTab(skillsPanel, ctx, (tab) => renderHeroScreen(tab, ctx)); } catch (_) {}
+  try { renderSkillsTab(skillsPanel, ctx, (tab, over) => renderHeroScreen(tab, Object.assign({}, ctx, over || {}))); } catch (_) {}
 
   try { renderBookTab(bookPanel, ctx); } catch (_) {}
 
