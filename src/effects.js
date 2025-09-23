@@ -203,6 +203,18 @@ export class EffectsManager {
     this.queue.push({ obj: s, until: now() + 0.12, fade: true, mat: s.material, scaleRate: 1.8 });
   }
 
+  // Colored variant for skill-tinted flashes
+  spawnHandFlashColored(player, color = 0x9fd8ff, left = false) {
+    const p = left ? leftHandWorldPos(player) : handWorldPos(player);
+    const s = new THREE.Mesh(
+      new THREE.SphereGeometry(0.28, 12, 12),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95 })
+    );
+    s.position.copy(p);
+    this.transient.add(s);
+    this.queue.push({ obj: s, until: now() + 0.14, fade: true, mat: s.material, scaleRate: 2.0 });
+  }
+
   /**
    * Spawn a small floating damage text at world position.
    * amount may be a number or string. Color is a hex number.

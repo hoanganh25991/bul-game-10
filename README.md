@@ -110,6 +110,14 @@ Documentation (by module):
   - Integration: input → state transitions; cooldown correctness
   - E2E: critical flows for skills, recall/portals, respawn
 
+## Credits
+
+Developed with passion by the Monk Journey team.
+
 ## License
 
-No license specified by the author.
+Copyright © 2025 Monk Journey Team. All Rights Reserved.
+
+This project is proprietary and confidential. Unauthorized reproduction, distribution, or disclosure is prohibited. No license, express or implied, to any intellectual property rights is granted by this document.
+
+See the [LICENSE](LICENSE) file for full details.
