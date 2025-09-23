@@ -42,20 +42,11 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     applyMapModifiersToEnemy,
   } = ctx;
 
-  // Ensure tab structure on right side
-  const layout = document.querySelector("#heroScreen .hero-layout");
-  const listContainer = document.getElementById("heroSkillsList");
-  if (!layout || !listContainer) return;
-  layout.innerHTML = "";
-
-  const title = document.createElement("h2");
-  try {
-    title.setAttribute("data-i18n", "hero.title");
-    title.textContent = t ? t("hero.title") : "Zeus";
-  } catch (_) {
-    title.textContent = "Zeus";
-  }
-  layout.appendChild(title);
+  // Ensure tab structure with unified screen layout (header/content/footer)
+  const content = document.querySelector("#heroScreen .panel-content");
+  if (!content) return;
+  content.innerHTML = "";
+  try { content.style.display = "flex"; content.style.flexDirection = "column"; } catch (_) {}
 
   // Tab bar (Skills / Info / Skillbook / Maps / Marks)
   const tabBar = document.createElement("div");
@@ -85,7 +76,7 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
   tabBar.appendChild(bookBtn);
   tabBar.appendChild(mapsBtn);
   tabBar.appendChild(marksBtn);
-  layout.appendChild(tabBar);
+  content.appendChild(tabBar);
 
   // Panels
   const infoPanel = document.createElement("div");
@@ -578,11 +569,11 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
   })();
 
   // Append panels
-  layout.appendChild(infoPanel);
-  layout.appendChild(skillsPanel);
-  layout.appendChild(bookPanel);
-  layout.appendChild(mapsPanel);
-  layout.appendChild(marksPanel);
+  content.appendChild(infoPanel);
+  content.appendChild(skillsPanel);
+  content.appendChild(bookPanel);
+  content.appendChild(mapsPanel);
+  content.appendChild(marksPanel);
 
   // Tab switching
   function activate(panel) {

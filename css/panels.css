@@ -268,7 +268,13 @@
   transform: translateY(-1px);
 }
 
-.tab-panel{ display:none; text-align:left; }
+.tab-panel{
+  display:none;
+  text-align:left;
+  /* Ensure active tab body can consume remaining space when needed */
+  flex: 1 1 auto;
+  min-height: 0;
+}
 .tab-panel.active{ display:block; }
 
 /* System screens: ensure content fits mobile viewports */
@@ -287,7 +293,10 @@
 .system-screen .panel-content{
   flex: 1;
   min-height: 0;
-  /* Enable vertical scrolling for the Settings content */
+  /* Create column layout: sticky tab bar above, panel body below */
+  display: flex;
+  flex-direction: column;
+  /* Enable vertical scrolling for the content area */
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch; /* smooth momentum scrolling on iOS */

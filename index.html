@@ -130,19 +130,21 @@
           </div>
         </div>
       </div>
+      <div class="panel-footer"></div>
     </div>
   </div>
 
 
   <!-- Hero Screen -->
-  <div id="heroScreen" class="screen hidden system-screen">
-    <button id="btnCloseHeroIcon" class="icon-btn small screen-close" aria-label="Close">✕</button>
-    <div class="screen-content hero-layout">
-      <h2 data-i18n="hero.title">Zeus</h2>
-      <div id="heroInfo"></div>
-      <h3 data-i18n="hero.skills">Kỹ năng</h3>
-      <div id="heroSkillsList"></div>
-      <button id="btnCloseHero" class="pill-btn" title="Close">✕</button>
+  <!-- Hero Screen -->
+  <div id="heroScreen" class="screen hidden system-screen" role="dialog" aria-modal="true" aria-labelledby="heroTitle">
+    <div class="screen-content">
+      <div class="panel-header">
+        <h2 id="heroTitle" data-i18n="hero.title">Zeus</h2>
+        <button class="icon-btn small screen-close" aria-label="Close">✕</button>
+      </div>
+      <div class="panel-content"></div>
+      <div class="panel-footer"></div>
     </div>
   </div>
 

@@ -2,11 +2,6 @@
    Hero screen and loadout styles (hero-layout, loadout, skill pool, hero actions)
 */
 
-.hero-layout{
-  text-align: left;
-  height: 100%;
-  min-height: 0;
-}
 
 .thunder.deco{
   position:absolute;
@@ -160,19 +155,9 @@
   font-weight: 800;
 }
 
-/* Layout sizing so content fits screen; inner panels scroll */
-.system-screen .screen-content.hero-layout{
-  height: min(94vh, 100dvh - 24px);
-  max-height: min(94vh, 100dvh - 24px);
-  overflow: hidden;
-}
+/* Layout sizing now handled by generic .system-screen .screen-content and .panel-content */
 
-.hero-layout .tab-panel{
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-}
+/* Tab panels scroll behavior handled by .panel-content (see panels.css) */
 
 /* Small responsive tweaks */
 @media (max-width: 720px) {

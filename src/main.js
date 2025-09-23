@@ -128,8 +128,6 @@ const btnSettingsScreen = document.getElementById("btnSettingsScreen");
 const btnCloseSettings = document.getElementById("btnCloseSettings");
 const settingsPanel = document.getElementById("settingsPanel");
 const btnHeroScreen = document.getElementById("btnHeroScreen");
-const btnCloseHero = document.getElementById("btnCloseHero");
-const btnCloseHeroIcon = document.getElementById("btnCloseHeroIcon");
 const heroScreen = document.getElementById("heroScreen");
 const introScreen = document.getElementById("introScreen");
 const btnStart = document.getElementById("btnStart");
@@ -240,9 +238,7 @@ function setFirstPerson(enabled) {
    try { renderHeroScreenUI(initialTab, ctx); } catch (_) {}
  }
  btnHeroScreen?.addEventListener("click", () => { showHeroScreen("skills"); heroScreen?.classList.remove("hidden"); });
- btnCloseHero?.addEventListener("click", () => { heroScreen?.classList.add("hidden"); });
- btnCloseHeroIcon?.addEventListener("click", () => { heroScreen?.classList.add("hidden"); });
-
+  
  // Generic top-right screen-close icons (ensure any element with .screen-close closes its parent .screen)
  document.querySelectorAll(".screen-close").forEach((b) => {
    b.addEventListener("click", (e) => {
@@ -483,111 +479,7 @@ if (sfxToggle) {
   });
 }
 
- // Setup Settings tabs (General / Environment / Controls)
-function ensureSettingsTabs(){
-  if (!settingsPanel || settingsPanel.dataset.tabsReady === "1") return;
-  const content = settingsPanel.querySelector(".panel-content");
-  if (!content) return;
-
-  // Collect existing rows
-  const rows = Array.from(content.querySelectorAll(".row"));
-  const generalPanel = document.createElement("div");
-  generalPanel.className = "tab-panel active";
-  const envPanel = document.createElement("div");
-  envPanel.className = "tab-panel";
-  const controlsPanel = document.createElement("div");
-  controlsPanel.className = "tab-panel";
-
-  // Move rows by detecting known elements
-  rows.forEach((row) => {
-    if (row.querySelector("#langVi") || row.querySelector("#settingsInstructions")) {
-      generalPanel.appendChild(row);
-    } else if (row.querySelector("#envRainToggle") || row.querySelector("#envDensity") || row.querySelector("#rainDensity") || row.querySelector("#zoomSlider")) {
-      envPanel.appendChild(row);
-    } else {
-      generalPanel.appendChild(row);
-    }
-  });
-
-  if (!controlsPanel.innerHTML) {
-    const r = document.createElement("div");
-    r.className = "row";
-    const lbl = document.createElement("span");
-    lbl.className = "row-label";
-    lbl.setAttribute("data-i18n", "settings.tabs.controls");
-    const val = document.createElement("div");
-    val.style.fontSize = "12px";
-    val.style.opacity = "0.75";
-    val.textContent = "—";
-    r.appendChild(lbl);
-    r.appendChild(val);
-    controlsPanel.appendChild(r);
-  }
-
-  // Initialize panel visibility
-  generalPanel.style.display = "block";
-  envPanel.style.display = "none";
-  controlsPanel.style.display = "none";
-
-  // Tab buttons
-  const tabBar = document.createElement("div");
-  tabBar.className = "tab-bar";
-  const tabs = [
-    { key: "general", labelKey: "settings.tabs.general", panel: generalPanel },
-    { key: "environment", labelKey: "settings.tabs.environment", panel: envPanel },
-    { key: "controls", labelKey: "settings.tabs.controls", panel: controlsPanel },
-  ];
-  // IMPORTANT: avoid shadowing the i18n function t by renaming the loop variable
-  tabs.forEach((tabDef, idx) => {
-    const btn = document.createElement("button");
-    btn.className = "tab-btn" + (idx === 0 ? " active" : "");
-    btn.setAttribute("data-i18n", tabDef.labelKey);
-    // Render translated label immediately; data-i18n keeps it updated when language changes
-    try { btn.textContent = t(tabDef.labelKey); } catch(_) { btn.textContent = tabDef.labelKey; }
-    btn.addEventListener("click", () => {
-      tabBar.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      [generalPanel, envPanel, controlsPanel].forEach((p) => {
-        p.classList.remove("active");
-        p.style.display = "none";
-      });
-      tabDef.panel.classList.add("active");
-      tabDef.panel.style.display = "block";
-    });
-    tabBar.appendChild(btn);
-  });
-
-  // Rebuild content
-  content.innerHTML = "";
-  content.appendChild(tabBar);
-  content.appendChild(generalPanel);
-  content.appendChild(envPanel);
-  content.appendChild(controlsPanel);
-  settingsPanel.dataset.tabsReady = "1";
-
-  // Insert Instruction Guide button into the Instructions row
-  try {
-    const instrRow = generalPanel.querySelector("#settingsInstructions");
-    if (instrRow && !instrRow.querySelector("#btnInstructionGuide")) {
-      const btn = document.createElement("button");
-      btn.id = "btnInstructionGuide";
-      btn.className = "primary";
-      btn.title = "Show guide";
-      btn.innerHTML = "👋 Guide";
-      btn.addEventListener("click", () => {
-        try { startInstructionGuideOverlay(); } catch (_) {}
-      });
-      instrRow.appendChild(btn);
-    }
-  } catch (_) {}
-
-  // Re-init quality/zoom controls after rebuilding tabs (safe if called multiple times)
-  try { initQualitySelect && initQualitySelect(); } catch (e) {}
-  try { initZoomControl && initZoomControl(); } catch (e) {}
-  try { window.applyTranslations && window.applyTranslations(settingsPanel); } catch (e) {}
-}
-
-// Settings UI initialized via setupSettingsScreen()
+ // Settings UI initialized via setupSettingsScreen()
 
 // Selection/aim indicators
 /* Load and apply saved loadout so runtime SKILLS.Q/W/E/R reflect player's choice */
