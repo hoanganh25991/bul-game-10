@@ -254,6 +254,12 @@ export function startInstructionGuide() {
       overlay.remove();
     } catch (_) {}
     window.__guideState = null;
+    // If we started from Settings, restore it
+    try {
+      const fn = window.__guideAfterCloseAction;
+      window.__guideAfterCloseAction = null;
+      typeof fn === "function" && fn();
+    } catch (_) {}
   }
 
   btnPrev.addEventListener("click", onPrev);
@@ -292,6 +298,24 @@ document.addEventListener("click", (ev) => {
   const t = ev.target;
   if (t && t.id === "btnInstructionGuide") {
     try {
+      // If settings panel is open, close it for unobstructed guide view
+      const settingsPanel = document.getElementById("settingsPanel");
+      let shouldReopen = false;
+      if (settingsPanel && !settingsPanel.classList.contains("hidden")) {
+        shouldReopen = true;
+        settingsPanel.classList.add("hidden");
+      }
+      if (shouldReopen) {
+        window.__guideAfterCloseAction = () => {
+          try {
+            settingsPanel.classList.remove("hidden");
+          } catch (_) {}
+        };
+      } else {
+        try {
+          window.__guideAfterCloseAction = null;
+        } catch (_) {}
+      }
       startInstructionGuide();
     } catch (_) {}
   }
