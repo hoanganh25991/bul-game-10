@@ -6,7 +6,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import { DEBUG } from "./config.js";
 import { COLOR, WORLD, SKILLS, VILLAGE_POS, REST_RADIUS, SCALING } from "./constants.js";
 import { initWorld, updateCamera, updateGridFollow, updateEnvironmentFollow, addResizeHandler, getTargetPixelRatio } from "./world.js";
-import { UIManager } from "./ui.js";
+import { UIManager } from "./ui/hud.js";
 import { Player, Enemy, getNearestEnemy, handWorldPos } from "./entities.js";
 import { EffectsManager, createGroundRing } from "./effects.js";
 import { SkillsSystem } from "./skills.js";
