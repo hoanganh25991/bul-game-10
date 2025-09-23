@@ -1011,7 +1011,7 @@ function animate() {
   try {
     const dir = getKeyMoveDir ? getKeyMoveDir() : { active: false };
     if (dir && dir.active && !player.frozen && !player.aimMode) {
-      const speed = 30;
+      const speed = 10;
       const base = player.pos();
       const px = base.x + dir.x * speed;
       const pz = base.z + dir.y * speed;
