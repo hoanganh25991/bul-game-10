@@ -8,6 +8,10 @@
       "environment": "Môi trường",
       "controls": "Điều khiển"
     },
+    "general": {
+      "fullscreen": "Toàn màn hình",
+      "fullscreenShort": "Bật"
+    },
     "env": {
       "rain": "Mưa",
       "density": "Mật độ môi trường",

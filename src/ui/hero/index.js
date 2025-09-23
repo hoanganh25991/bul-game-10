@@ -361,7 +361,7 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
 
     const list = document.createElement("div");
     list.className = "skillbook-list";
-    list.style.maxHeight = "340px";
+    list.style.maxHeight = "calc(100vh - 168px)";
     list.style.overflow = "auto";
     const ul = document.createElement("div");
     ul.style.display = "flex";
@@ -392,36 +392,11 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     detail.style.position = "relative";
     Object.assign(previewBtn.style, { position: "absolute", top: "8px", right: "8px", marginTop: "0" });
 
-    // Assign row (same UX as pool)
-    const assignRow = document.createElement("div");
-    assignRow.style.display = "flex";
-    assignRow.style.gap = "8px";
-    assignRow.style.marginTop = "8px";
-    const assignLabel2 = document.createElement("div");
-    assignLabel2.style.opacity = "0.9";
-    const btns2 = document.createElement("div");
-    btns2.style.display = "flex";
-    btns2.style.gap = "8px";
-    const assignBtns2 = ["Q","W","E","R"].map((k, i) => {
-      const b = document.createElement("button");
-      b.className = "pill-btn pill-btn--yellow";
-      b.textContent = k;
-      b.addEventListener("click", () => {
-        const s = assignRow.__skill;
-        if (s && s.id) assignSkillTo(i, s.id);
-      });
-      return b;
-    });
-    assignBtns2.forEach((b) => btns2.appendChild(b));
-    assignRow.appendChild(assignLabel2);
-    assignRow.appendChild(btns2);
-
     detail.appendChild(title);
     detail.appendChild(expl);
     detail.appendChild(icon);
     detail.appendChild(stats);
     detail.appendChild(imgBox);
-    detail.appendChild(assignRow);
     detail.appendChild(previewBtn);
 
     const typeExplain = {
@@ -471,9 +446,6 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
           window.__skillsRef && window.__skillsRef.previewSkill(s);
         } catch (_) {}
       };
-      // wire assign row for previewed skill
-      assignRow.__skill = s;
-      assignLabel2.textContent = `Assign ${s.name} (${s.short || ""}) ${getSkillIcon(s.short || s.name)} to slot:`;
     }
 
     SKILL_POOL.forEach((s) => {

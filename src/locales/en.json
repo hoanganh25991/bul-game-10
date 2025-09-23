@@ -8,6 +8,10 @@
       "environment": "Environment",
       "controls": "Controls"
     },
+    "general": {
+      "fullscreen": "Fullscreen",
+      "fullscreenShort": "On"
+    },
     "env": {
       "rain": "Rain",
       "density": "Density",
