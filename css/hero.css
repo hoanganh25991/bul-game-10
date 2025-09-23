@@ -286,3 +286,75 @@
   gap: 8px;
   cursor: pointer;
 }
+
+/* ====== States & Panels for Maps/Marks and Assign Bar ====== */
+
+/* Selected skill in pool */
+.skill-pool--list .skill-pool-item.selected {
+  background: rgba(124,196,255,0.10);
+  border-color: rgba(124,196,255,0.25);
+}
+
+/* Assign bar toggled by JS */
+.assign-bar.active {
+  display: block;
+}
+
+/* Maps panel */
+.maps-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.maps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow: auto;
+}
+.maps-row {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 8px;
+}
+.maps-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(124,196,255,0.15), rgba(255,255,255,0.06));
+  border: 1px solid rgba(255,255,255,0.12);
+  overflow: hidden;
+}
+.maps-title { font-weight: 600; }
+.maps-desc  { font-size: 12px; opacity: 0.85; }
+.maps-req   { font-size: 12px; opacity: 0.7; }
+.maps-elites{ font-size: 12px; opacity: 0.9; margin-top: 4px; }
+.maps-actions {
+  display: flex;
+  align-items: center;
+}
+
+/* Marks panel */
+.marks-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.marks-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.marks-list {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  row-gap: 6px;
+  column-gap: 8px;
+  align-items: center;
+  max-height: 240px;
+  overflow: auto;
+}

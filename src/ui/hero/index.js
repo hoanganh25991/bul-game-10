@@ -115,10 +115,10 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
   // Loadout slots (Q W E R)
   const keys = ["Q", "W", "E", "R"];
   const slotsWrap = document.createElement("div");
-  slotsWrap.className = "loadout-slots";
+  slotsWrap.className = "loadout-slots loadout-slots--compact";
   for (let i = 0; i < 4; i++) {
     const slot = document.createElement("div");
-    slot.className = "loadout-slot";
+    slot.className = "loadout-slot loadout-slot--compact";
     slot.dataset.slotIndex = String(i);
     const skillId = currentLoadout[i];
     const skillDef = SKILL_POOL.find((s) => s.id === skillId);
@@ -129,79 +129,19 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     slotsWrap.appendChild(slot);
   }
   rightCol.appendChild(slotsWrap);
-  try {
-    slotsWrap.style.display = "flex";
-    slotsWrap.style.flexDirection = "row";
-    slotsWrap.style.justifyContent = "center";
-    slotsWrap.style.alignItems = "center";
-    slotsWrap.style.gap = "10px";
-    slotsWrap.style.marginBottom = "8px";
-    slotsWrap.style.flexWrap = "nowrap";
-  } catch (_) {}
-  try {
-    Array.from(slotsWrap.children).forEach((slot) => {
-      slot.style.width = "64px";
-      slot.style.height = "64px";
-      slot.style.minWidth = "64px";
-      slot.style.padding = "0";
-      slot.style.border = "1px solid rgba(255,255,255,0.12)";
-      slot.style.borderRadius = "8px";
-      slot.style.display = "flex";
-      slot.style.flexDirection = "column";
-      slot.style.alignItems = "center";
-      slot.style.justifyContent = "center";
-      slot.style.position = "relative";
-      const nm = slot.querySelector(".slot-name");
-      if (nm) nm.style.display = "none";
-      const ic = slot.querySelector(".skill-icon");
-      if (ic) ic.style.fontSize = "22px";
-      const sh = slot.querySelector(".slot-short");
-      if (sh) {
-        sh.style.display = "block";
-        sh.style.position = "absolute";
-        sh.style.bottom = "4px";
-        sh.style.left = "50%";
-        sh.style.transform = "translateX(-50%)";
-        sh.style.fontSize = "10px";
-        sh.style.opacity = "0.9";
-      }
-      const ky = slot.querySelector(".slot-key");
-      if (ky) {
-        ky.style.position = "absolute";
-        ky.style.top = "2px";
-        ky.style.left = "4px";
-        ky.style.fontSize = "10px";
-        ky.style.opacity = "0.8";
-      }
-    });
-  } catch (_) {}
 
 
   const poolWrap = document.createElement("div");
-  poolWrap.className = "skill-pool";
-  // Force list layout (not grid)
-  try {
-    poolWrap.style.display = "flex";
-    poolWrap.style.flexDirection = "column";
-    poolWrap.style.gap = "6px";
-  } catch (_) {}
+  poolWrap.className = "skill-pool skill-pool--list";
   SKILL_POOL.forEach((s) => {
     const el = document.createElement("div");
     el.className = "skill-pool-item";
     el.dataset.skillId = s.id;
     // More informative list item: icon, name, short
-    el.style.display = "grid";
-    el.style.gridTemplateColumns = "28px 1fr";
-    el.style.alignItems = "center";
-    el.style.gap = "8px";
-    el.style.padding = "6px 8px";
-    el.style.border = "1px solid rgba(255,255,255,0.1)";
-    el.style.borderRadius = "6px";
-    el.style.cursor = "pointer";
-    el.innerHTML = `<div class="skill-icon" style="font-size:18px;">${getSkillIcon(s.short)}</div>
+    el.innerHTML = `<div class="skill-icon">${getSkillIcon(s.short)}</div>
                     <div class="skill-text">
-                      <div class="skill-name" style="font-weight:600;">${s.name}</div>
-                      <div class="skill-short" style="opacity:0.8;font-size:12px;">${s.short || ""}</div>
+                      <div class="skill-name">${s.name}</div>
+                      <div class="skill-short">${s.short || ""}</div>
                     </div>`;
     poolWrap.appendChild(el);
   });
@@ -247,21 +187,10 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
   // Assign bar (appears when a skill is selected; lets user pick Q/W/E/R)
   const assignBar = document.createElement("div");
   assignBar.className = "assign-bar";
-  Object.assign(assignBar.style, {
-    display: "none",
-    margin: "8px 0",
-    padding: "8px",
-    border: "1px solid rgba(255,255,255,0.12)",
-    borderRadius: "8px",
-    textAlign: "center",
-    background: "linear-gradient(135deg, rgba(124,196,255,0.10), rgba(255,255,255,0.04))",
-  });
   const assignLabel = document.createElement("div");
-  assignLabel.style.marginBottom = "6px";
+  assignLabel.className = "assign-label";
   const assignBtns = document.createElement("div");
-  assignBtns.style.display = "flex";
-  assignBtns.style.gap = "8px";
-  assignBtns.style.justifyContent = "center";
+  assignBtns.className = "assign-btns";
   const keysRow = ["Q","W","E","R"].map((k, i) => {
     const b = document.createElement("button");
     b.className = "pill-btn pill-btn--yellow";
@@ -280,10 +209,9 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     try {
       poolWrap.querySelectorAll(".skill-pool-item").forEach((it) => {
         it.classList.remove("selected");
-        it.style.background = "";
       });
     } catch (_) {}
-    assignBar.style.display = "none";
+    assignBar.classList.remove("active");
   });
   assignBtns.appendChild(cancelBtn);
   assignBar.appendChild(assignLabel);
@@ -308,17 +236,15 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
       poolWrap.querySelectorAll(".skill-pool-item").forEach((it) => {
         if (it.dataset.skillId === skillId) {
           it.classList.add("selected");
-          it.style.background = "rgba(124,196,255,0.10)";
         } else {
           it.classList.remove("selected");
-          it.style.background = "";
         }
       });
     } catch (_) {}
     const sd = SKILL_POOL.find((s) => s.id === skillId);
     const icon = getSkillIcon(sd ? sd.short : null);
     assignLabel.textContent = `Assign ${sd ? sd.name : ""} (${sd && sd.short ? sd.short : ""}) ${icon} to slot:`;
-    assignBar.style.display = "block";
+    assignBar.classList.add("active");
   }
 
   // Pool item interactions
@@ -336,42 +262,27 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
   (function buildSkillbookPanel() {
     const wrap = document.createElement("div");
     wrap.className = "skillbook";
-    wrap.style.display = "grid";
-    wrap.style.gridTemplateColumns = "1fr 2fr";
-    wrap.style.gap = "12px";
 
     const list = document.createElement("div");
     list.className = "skillbook-list";
-    list.style.maxHeight = "calc(100vh - 168px)";
-    list.style.overflow = "auto";
     const ul = document.createElement("div");
-    ul.style.display = "flex";
-    ul.style.flexDirection = "column";
-    ul.style.gap = "6px";
+    ul.className = "skillbook-ul";
     list.appendChild(ul);
 
     const detail = document.createElement("div");
     detail.className = "skillbook-detail";
-    detail.style.minHeight = "240px";
-    detail.style.padding = "8px";
-    detail.style.border = "1px solid rgba(255,255,255,0.1)";
-    detail.style.borderRadius = "6px";
     const title = document.createElement("h3");
     const icon = document.createElement("div");
-    icon.style.fontSize = "28px";
+    icon.className = "sb-icon";
     const expl = document.createElement("div");
-    expl.style.marginTop = "6px";
+    expl.className = "sb-expl";
     const stats = document.createElement("div");
-    stats.style.fontSize = "12px";
-    stats.style.opacity = "0.9";
-    stats.style.lineHeight = "1.6";
+    stats.className = "sb-stats";
     const imgBox = document.createElement("div");
-    imgBox.style.marginTop = "8px";
+    imgBox.className = "sb-imgBox";
     const previewBtn = document.createElement("button");
-    previewBtn.className = "pill-btn pill-btn--yellow";
+    previewBtn.className = "pill-btn pill-btn--yellow sb-preview";
     previewBtn.textContent = "▶️";
-    detail.style.position = "relative";
-    Object.assign(previewBtn.style, { position: "absolute", top: "8px", right: "8px", marginTop: "0" });
 
     detail.appendChild(title);
     detail.appendChild(expl);
@@ -460,16 +371,9 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     if (!mapManager) return;
     const wrap = document.createElement("div");
     wrap.className = "maps-panel";
-    wrap.style.display = "flex";
-    wrap.style.flexDirection = "column";
-    wrap.style.gap = "8px";
 
     const list = document.createElement("div");
-    list.style.display = "flex";
-    list.style.flexDirection = "column";
-    list.style.gap = "8px";
-    list.style.maxHeight = "300px";
-    list.style.overflow = "auto";
+    list.className = "maps-list";
     wrap.appendChild(list);
 
     function renderMaps() {
@@ -478,20 +382,10 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
         const items = mapManager.listMaps?.() || [];
         items.forEach((m) => {
           const row = document.createElement("div");
-          row.style.display = "grid";
-          row.style.gridTemplateColumns = "64px 1fr auto";
-          row.style.gap = "12px";
-          row.style.border = "1px solid rgba(255,255,255,0.1)";
-          row.style.borderRadius = "8px";
-          row.style.padding = "8px";
+          row.className = "maps-row";
 
           const thumb = document.createElement("div");
-          thumb.style.width = "64px";
-          thumb.style.height = "64px";
-          thumb.style.borderRadius = "6px";
-          thumb.style.background = "linear-gradient(135deg, rgba(124,196,255,0.15), rgba(255,255,255,0.06))";
-          thumb.style.border = "1px solid rgba(255,255,255,0.12)";
-          thumb.style.overflow = "hidden";
+          thumb.className = "maps-thumb";
           if (m.img) {
             thumb.style.backgroundImage = `url(${m.img})`;
             thumb.style.backgroundSize = "cover";
@@ -512,20 +406,16 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
 
           const info = document.createElement("div");
           const title = document.createElement("div");
-          title.style.fontWeight = "600";
+          title.className = "maps-title";
           title.textContent = `${m.name}${m.current ? " • Current" : ""}${(!m.unlocked ? " • Locked" : "")}`;
           const desc = document.createElement("div");
-          desc.style.fontSize = "12px";
-          desc.style.opacity = "0.85";
+          desc.className = "maps-desc";
           desc.textContent = m.desc || "";
           const req = document.createElement("div");
-          req.style.fontSize = "12px";
-          req.style.opacity = "0.7";
+          req.className = "maps-req";
           req.textContent = `Requires Lv ${m.requiredLevel}`;
           const elites = document.createElement("div");
-          elites.style.fontSize = "12px";
-          elites.style.opacity = "0.9";
-          elites.style.marginTop = "4px";
+          elites.className = "maps-elites";
           elites.textContent = (m.strongEnemies && m.strongEnemies.length) ? `Elites: ${m.strongEnemies.join(", ")}` : "";
 
           info.appendChild(title);
@@ -534,6 +424,7 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
           if (elites.textContent) info.appendChild(elites);
 
           const act = document.createElement("div");
+          act.className = "maps-actions";
           const btn = document.createElement("button");
           if (m.current) {
             btn.className = "pill-btn pill-btn--yellow";
@@ -581,23 +472,13 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     wrap.style.gap = "12px";
 
     const head = document.createElement("div");
-    head.style.display = "flex";
-    head.style.alignItems = "center";
-    head.style.justifyContent = "space-between";
+    head.className = "marks-head";
 
     const cd = document.createElement("span");
-    cd.style.fontSize = "12px";
-    cd.style.opacity = "0.8";
     head.appendChild(cd);
 
     const list = document.createElement("div");
-    list.style.display = "grid";
-    list.style.gridTemplateColumns = "1fr auto auto auto";
-    list.style.rowGap = "6px";
-    list.style.columnGap = "8px";
-    list.style.alignItems = "center";
-    list.style.maxHeight = "240px";
-    list.style.overflow = "auto";
+    list.className = "marks-list";
 
     function fmtTime(ts) {
       try {

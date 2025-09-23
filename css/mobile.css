@@ -82,10 +82,6 @@
     transform-origin: top left;
   }
 
-  #minimap {
-    height: 160px;
-  }
-
   #topRightGroup {
     transform: scale(0.7);
     transform-origin: top right;
@@ -102,8 +98,8 @@
   }
 }
 
-@media (max-height: 430px) {
+@media (max-height: 420px) {
   #minimap {
-    height: 160px;
+    max-height: 160px;
   }
 }
