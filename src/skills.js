@@ -100,6 +100,20 @@ export class SkillsSystem {
     this._pendingShake = Math.max(this._pendingShake || 0, v || 0);
   }
 
+  // Burst arcs around a center point to enrich visuals (color-tinted)
+  _burstArcs(center, radius, def, count = 3) {
+    try {
+      const fx = this._fx(def);
+      const base = center.clone().add(new THREE.Vector3(0, 0.8, 0));
+      for (let i = 0; i < Math.max(1, count); i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const r = Math.random() * Math.max(4, radius);
+        const to = center.clone().add(new THREE.Vector3(Math.cos(ang) * r, 0.4 + Math.random() * 0.8, Math.sin(ang) * r));
+        this.effects.spawnArcNoisePath(base, to, fx.arc, 0.08, 2);
+      }
+    } catch (_) {}
+  }
+
   // ----- Cooldowns -----
   startCooldown(key, seconds) {
     this.cooldowns[key] = now() + seconds;
@@ -369,6 +383,7 @@ export class SkillsSystem {
 
     // Visual: central strike + radial
     this.effects.spawnStrike(point, SK.radius, this._fx(SK).ring); this._requestShake(this._fx(SK).shake);
+    this._burstArcs(point, SK.radius, SK);
     audio.sfx("boom");
 
     // Damage enemies in radius and apply slow if present
@@ -443,6 +458,7 @@ export class SkillsSystem {
         : this.player.pos().clone().add(new THREE.Vector3(0, 1.6, 0));
     const to = target.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
     this.effects.spawnElectricBeamAuto(from, to, this._fx(SK).beam, 0.12); this._requestShake(this._fx(SK).shake);
+    this.effects.spawnArcNoisePath(from, to, this._fx(SK).arc, 0.08, 2);
     audio.sfx("beam");
     const dmg = this.scaleSkillDamage(SK.dmg || 0);
     target.takeDamage(dmg);
@@ -467,6 +483,7 @@ export class SkillsSystem {
 
     // Radial damage around player
     this.effects.spawnStrike(this.player.pos(), SK.radius, this._fx(SK).ring); this._requestShake(this._fx(SK).shake);
+    this._burstArcs(this.player.pos(), SK.radius, SK);
     audio.sfx("boom");
     this.enemies.forEach((en) => {
       if (en.alive && distance2D(en.pos(), this.player.pos()) <= (SK.radius + 2.5)) {
