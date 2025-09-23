@@ -18,7 +18,17 @@ export class Entity {
   takeDamage(amount) {
     if (!this.alive) return;
     if (this.invulnUntil && now() < this.invulnUntil) return;
-    this.hp -= amount;
+
+    // Optional defense reduction (e.g., from shield/buff)
+    let dmg = amount;
+    try {
+      if (this.defenseUntil && now() < this.defenseUntil) {
+        const pct = Math.min(0.95, Math.max(0, this.defensePct || 0));
+        dmg = Math.max(0, Math.floor(dmg * (1 - pct)));
+      }
+    } catch (_) {}
+
+    this.hp -= dmg;
     if (this.hp <= 0) {
       this.hp = 0;
       this.alive = false;
@@ -62,6 +72,14 @@ export class Player extends Entity {
     this.aimMode = false; // aim mode while placing targeted skills
     this.aimModeSkill = null; // which skill initiated aim mode (e.g., 'W')
     this.staticField = { active: false, until: 0, nextTick: 0 };
+
+    // Optional transient combat modifiers (set by skills)
+    this.speedBoostMul = 1;
+    this.speedBoostUntil = 0;
+    this.atkSpeedMul = 1;
+    this.atkSpeedUntil = 0;
+    this.defensePct = 0;
+    this.defenseUntil = 0;
 
     // Blue light glow on the character
     const light = new THREE.PointLight(0x66b3ff, 1.2, 45, 2);

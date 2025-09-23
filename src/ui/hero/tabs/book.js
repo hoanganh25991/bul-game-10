@@ -58,6 +58,7 @@ export function renderBookTab(panelEl, ctx = {}) {
     dash: "Quickly dash forward.",
     blink: "Teleport toward direction/point.",
     clone: "Summons a lightning image that periodically zaps nearby foes.",
+    shield: "Reduces incoming damage for a short time; may grant brief invulnerability on cast.",
   };
 
   function computeDamage(s) {

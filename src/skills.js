@@ -160,10 +160,12 @@ export class SkillsSystem {
     const dist = distance2D(attacker.pos(), target.pos());
     if (dist > WORLD.attackRange * (WORLD.attackRangeMult || 1)) return false;
 
-    attacker.nextBasicReady = time + WORLD.basicAttackCooldown;
+    const activeMul = (attacker.atkSpeedUntil && now() < attacker.atkSpeedUntil) ? (attacker.atkSpeedMul || 1) : 1;
+    const basicCd = WORLD.basicAttackCooldown / Math.max(0.5, activeMul);
+    attacker.nextBasicReady = time + basicCd;
     if (attacker === this.player) {
       // Mirror basic attack cooldown into UI like other skills
-      this.startCooldown("Basic", WORLD.basicAttackCooldown);
+      this.startCooldown("Basic", basicCd);
     }
     const from =
       attacker === this.player && this.player.mesh.userData.handAnchor
@@ -232,6 +234,8 @@ export class SkillsSystem {
         return this._castDash(key);
       case "clone":
         return this._castClone(key);
+      case "shield":
+        return this._castShield(key);
       default:
         // If skill definitions don't include a type (legacy), fall back to original key handlers
         if (key === "Q") return this.castQ_ChainLightning();
@@ -280,6 +284,7 @@ export class SkillsSystem {
     this.effects.spawnArcNoisePath(lastPoint, hitPoint, 0xbfe9ff, 0.08);
     const dmgHit = this.scaleSkillDamage(SK.dmg || 0);
     current.takeDamage(dmgHit);
+    if (SK.slowFactor) { current.slowUntil = now() + (SK.slowDuration || 1.2); current.slowFactor = SK.slowFactor; }
     audio.sfx("chain_hit");
     // popup for chain hit
     try { this.effects.spawnDamagePopup(current.pos(), dmgHit, 0xbfe9ff); } catch (e) {}
@@ -502,15 +507,45 @@ export class SkillsSystem {
     const dur = Math.max(1, SK.buffDuration || 8);
     this.damageBuffMult = mult;
     this.damageBuffUntil = now() + dur;
-    // Optional speed boost stored on player for movement system
+    // Optional movement speed boost
     if (SK.speedMult) {
       this.player.speedBoostMul = Math.max(1.0, SK.speedMult);
       this.player.speedBoostUntil = now() + dur;
+    }
+    // Optional attack speed boost (affects basic attack cooldown)
+    if (SK.atkSpeedMult) {
+      this.player.atkSpeedMul = Math.max(0.5, SK.atkSpeedMult);
+      this.player.atkSpeedUntil = now() + dur;
+    }
+    // Optional temporary damage reduction (defense)
+    if (SK.defensePct) {
+      this.player.defensePct = Math.min(0.95, Math.max(0.05, SK.defensePct));
+      this.player.defenseUntil = now() + dur;
     }
     try {
       this.effects.spawnHandFlash(this.player);
       this.effects.spawnStrike(this.player.pos(), 6, 0x9fd8ff);
       audio.sfx("cast_nova");
+    } catch (e) {}
+  }
+
+  _castShield(key) {
+    const SK = SKILLS[key]; if (!SK) return;
+    if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    this.player.spend(SK.mana);
+    this.startCooldown(key, SK.cd);
+    const dur = Math.max(1, SK.duration || 6);
+    const pct = Math.min(0.95, Math.max(0.05, SK.shieldPct || SK.defensePct || 0.4));
+    this.player.defensePct = pct;
+    this.player.defenseUntil = now() + dur;
+    // Optional brief invulnerability window on cast
+    if (SK.invulnDuration) {
+      this.player.invulnUntil = Math.max(this.player.invulnUntil || 0, now() + Math.max(0, SK.invulnDuration));
+    }
+    try {
+      this.effects.spawnHandFlash(this.player);
+      this.effects.spawnStrike(this.player.pos(), 5, 0x88ffd0);
+      audio.sfx("aura_on");
     } catch (e) {}
   }
 

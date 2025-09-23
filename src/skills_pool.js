@@ -1,17 +1,28 @@
 /**
- * Zeus Skill Pool (20 skills)
- * Types:
- * - "chain": chain lightning between enemies
- * - "aoe": ground-targeted circular AOE
- * - "aura": toggle aura around player (ticks damage, costs mana per tick)
- * - "storm": random strikes in radius over duration
- * - "beam": instant single-target zap to nearest enemy in range
- * - "nova": instant radial burst around player
+ * Zeus Skill Pool — Enhanced and diversified
+ * Types supported by engine:
+ * - "chain": chain lightning between enemies (range, jumps, jumpRange, dmg, optional slowFactor/slowDuration)
+ * - "aoe": ground-targeted circular AOE (radius, dmg, optional slowFactor/slowDuration)
+ * - "aura": toggle aura around player (radius, tick, dmg, duration, manaPerTick)
+ * - "storm": random strikes in radius over duration (radius, strikes, dmg, duration)
+ * - "beam": instant single-target zap to nearest enemy in range (range, dmg)
+ * - "nova": instant radial burst around player (radius, dmg)
+ * - "heal": restore HP instantly (heal)
+ * - "mana": restore MP instantly (restore)
+ * - "buff": timed self buff (buffMult, buffDuration, optional speedMult, atkSpeedMult, defensePct)
+ * - "dash": quick dash forward (distance)
+ * - "blink": teleport toward direction/point (range)
+ * - "clone": summon a thunder image that periodically zaps nearby foes (duration, rate, radius, dmg)
+ * - "shield": temporary damage reduction, optional brief invulnerability (duration, shieldPct/defensePct, invulnDuration)
  *
- * Each skill provides only the params relevant to its type.
- * All numbers are tuned near the original Q/W/E/R for parity.
+ * Numbers are tuned to create distinct identities:
+ *  - Some big-impact long-cooldown nukes
+ *  - Strong utility/defense with meaningful tradeoffs
+ *  - Movement/tempo tools (dash/blink/haste)
+ *  - Sustains (heal/mana) with pacing
  */
 export const SKILL_POOL = [
+  // Core lightning kit — refined
   {
     id: "chain_lightning",
     name: "Chain Lightning",
@@ -23,6 +34,8 @@ export const SKILL_POOL = [
     jumps: 5,
     jumpRange: 24,
     dmg: 24,
+    slowFactor: 0.25,
+    slowDuration: 0.9,
   },
   {
     id: "lightning_bolt",
@@ -61,7 +74,8 @@ export const SKILL_POOL = [
     dmg: 20,
     duration: 7,
   },
-  // Additional skills (variants)
+
+  // Beams / Novas
   {
     id: "zeus_bolt",
     name: "Zeus Bolt",
@@ -82,6 +96,8 @@ export const SKILL_POOL = [
     radius: 14,
     dmg: 30,
   },
+
+  // Auras (variants)
   {
     id: "overcharge_aura",
     name: "Overcharge Aura",
@@ -95,6 +111,34 @@ export const SKILL_POOL = [
     duration: 9,
     manaPerTick: 2.5,
   },
+  {
+    id: "crackling_field",
+    name: "Crackling Field",
+    short: "C-Field",
+    type: "aura",
+    cd: 14,
+    mana: 0,
+    radius: 13,
+    tick: 0.6,
+    dmg: 7,
+    duration: 8,
+    manaPerTick: 2,
+  },
+  {
+    id: "static_overload",
+    name: "Static Overload",
+    short: "Over",
+    type: "aura",
+    cd: 16,
+    mana: 0,
+    radius: 15,
+    tick: 0.55,
+    dmg: 9,
+    duration: 9,
+    manaPerTick: 3,
+  },
+
+  // Beams and tools
   {
     id: "ball_lightning",
     name: "Ball Lightning",
@@ -116,6 +160,18 @@ export const SKILL_POOL = [
     dmg: 28,
   },
   {
+    id: "shockwave",
+    name: "Shockwave",
+    short: "Shock",
+    type: "beam",
+    cd: 2.8,
+    mana: 15,
+    range: 40,
+    dmg: 24,
+  },
+
+  // Storm variants
+  {
     id: "sky_wrath",
     name: "Sky Wrath",
     short: "Wrath",
@@ -127,6 +183,32 @@ export const SKILL_POOL = [
     dmg: 18,
     duration: 5.5,
   },
+  {
+    id: "thunderdome",
+    name: "Thunderdome",
+    short: "Dome",
+    type: "storm",
+    cd: 24,
+    mana: 60,
+    radius: 32,
+    strikes: 28,
+    dmg: 18,
+    duration: 8,
+  },
+  {
+    id: "ion_storm",
+    name: "Ion Storm",
+    short: "Ion",
+    type: "storm",
+    cd: 20,
+    mana: 50,
+    radius: 28,
+    strikes: 20,
+    dmg: 19,
+    duration: 6.5,
+  },
+
+  // AOEs — control and burst
   {
     id: "tempest_ring",
     name: "Tempest Ring",
@@ -150,65 +232,6 @@ export const SKILL_POOL = [
     dmg: 24,
   },
   {
-    id: "crackling_field",
-    name: "Crackling Field",
-    short: "C-Field",
-    type: "aura",
-    cd: 14,
-    mana: 0,
-    radius: 13,
-    tick: 0.6,
-    dmg: 7,
-    duration: 8,
-    manaPerTick: 2,
-  },
-  {
-    id: "thundersurge",
-    name: "Thundersurge",
-    short: "Surge",
-    type: "chain",
-    cd: 6,
-    mana: 26,
-    range: 42,
-    jumps: 4,
-    jumpRange: 22,
-    dmg: 28,
-  },
-  {
-    id: "forked_lightning",
-    name: "Forked Lightning",
-    short: "Fork",
-    type: "chain",
-    cd: 7,
-    mana: 24,
-    range: 40,
-    jumps: 6,
-    jumpRange: 20,
-    dmg: 20,
-  },
-  {
-    id: "thunderdome",
-    name: "Thunderdome",
-    short: "Dome",
-    type: "storm",
-    cd: 24,
-    mana: 60,
-    radius: 32,
-    strikes: 28,
-    dmg: 18,
-    duration: 8,
-  },
-  {
-    id: "shockwave",
-    name: "Shockwave",
-    short: "Shock",
-    type: "beam",
-    cd: 2.8,
-    mana: 15,
-    range: 40,
-    dmg: 24,
-  },
-  {
     id: "magneto_burst",
     name: "Magneto Burst",
     short: "Burst",
@@ -221,30 +244,49 @@ export const SKILL_POOL = [
     slowDuration: 1.3,
   },
   {
-    id: "ion_storm",
-    name: "Ion Storm",
-    short: "Ion",
-    type: "storm",
-    cd: 20,
-    mana: 50,
-    radius: 28,
-    strikes: 20,
-    dmg: 19,
-    duration: 6.5,
+    id: "static_prison",
+    name: "Static Prison",
+    short: "Prison",
+    type: "aoe",
+    cd: 16,
+    mana: 38,
+    radius: 14,
+    dmg: 18,
+    slowFactor: 0.7,
+    slowDuration: 2.8,
+  },
+
+  // Chains — variants and control
+  {
+    id: "thundersurge",
+    name: "Thundersurge",
+    short: "Surge",
+    type: "chain",
+    cd: 6,
+    mana: 26,
+    range: 42,
+    jumps: 4,
+    jumpRange: 22,
+    dmg: 28,
+    slowFactor: 0.2,
+    slowDuration: 1.0,
   },
   {
-    id: "static_overload",
-    name: "Static Overload",
-    short: "Over",
-    type: "aura",
-    cd: 16,
-    mana: 0,
-    radius: 15,
-    tick: 0.55,
-    dmg: 9,
-    duration: 9,
-    manaPerTick: 3,
+    id: "forked_lightning",
+    name: "Forked Lightning",
+    short: "Fork",
+    type: "chain",
+    cd: 7,
+    mana: 24,
+    range: 40,
+    jumps: 6,
+    jumpRange: 20,
+    dmg: 20,
+    slowFactor: 0.15,
+    slowDuration: 1.2,
   },
+
+  // Sustain / Utility
   {
     id: "thunder_mend",
     name: "Thunder Mend",
@@ -253,6 +295,15 @@ export const SKILL_POOL = [
     cd: 14,
     mana: 24,
     heal: 55
+  },
+  {
+    id: "divine_mend",
+    name: "Divine Mend",
+    short: "Mend+",
+    type: "heal",
+    cd: 30,
+    mana: 40,
+    heal: 160
   },
   {
     id: "storm_sip",
@@ -264,6 +315,17 @@ export const SKILL_POOL = [
     restore: 40
   },
   {
+    id: "mana_well",
+    name: "Mana Well",
+    short: "Well",
+    type: "mana",
+    cd: 28,
+    mana: 0,
+    restore: 120
+  },
+
+  // Buffs — damage, haste, fortify
+  {
     id: "overload_buff",
     name: "Overload",
     short: "Buff",
@@ -274,6 +336,55 @@ export const SKILL_POOL = [
     buffDuration: 8,
     speedMult: 1.35
   },
+  {
+    id: "surge_of_haste",
+    name: "Surge of Haste",
+    short: "Haste",
+    type: "buff",
+    cd: 22,
+    mana: 32,
+    buffMult: 1.15,
+    buffDuration: 7,
+    speedMult: 1.25,
+    atkSpeedMult: 1.6
+  },
+  {
+    id: "fortify",
+    name: "Fortify",
+    short: "Fort",
+    type: "buff",
+    cd: 26,
+    mana: 28,
+    buffMult: 1.1,
+    buffDuration: 8,
+    defensePct: 0.35
+  },
+
+  // Shields — new defensive archetype
+  {
+    id: "storm_barrier",
+    name: "Storm Barrier",
+    short: "Barrier",
+    type: "shield",
+    cd: 18,
+    mana: 28,
+    duration: 6,
+    shieldPct: 0.45,
+    invulnDuration: 0.25
+  },
+  {
+    id: "tempest_guard",
+    name: "Tempest Guard",
+    short: "Guard",
+    type: "shield",
+    cd: 26,
+    mana: 34,
+    duration: 5,
+    shieldPct: 0.6,
+    invulnDuration: 0.5
+  },
+
+  // Mobility
   {
     id: "lightning_dash",
     name: "Lightning Dash",
@@ -292,6 +403,8 @@ export const SKILL_POOL = [
     mana: 24,
     range: 24
   },
+
+  // Companion/clone
   {
     id: "thunder_image",
     name: "Thunder Image",
@@ -304,9 +417,33 @@ export const SKILL_POOL = [
     radius: 26,
     dmg: 18
   },
+
+  // Big-impact long cooldowns — nukes/supers
+  {
+    id: "zeus_judgement",
+    name: "Zeus' Judgement",
+    short: "Judg",
+    type: "nova",
+    cd: 42,
+    mana: 80,
+    radius: 28,
+    dmg: 165
+  },
+  {
+    id: "maelstrom",
+    name: "Maelstrom",
+    short: "Mael",
+    type: "storm",
+    cd: 40,
+    mana: 72,
+    radius: 34,
+    strikes: 36,
+    dmg: 22,
+    duration: 9
+  },
 ];
 
 /**
- * Default loadout mapping to original Q/W/E/R equivalents.
+ * Default loadout mapping stays close to the original Q/W/E/R
  */
 export const DEFAULT_LOADOUT = ["chain_lightning", "lightning_bolt", "static_field", "thunderstorm"];
