@@ -272,6 +272,7 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     padding: "8px",
     border: "1px solid rgba(255,255,255,0.12)",
     borderRadius: "8px",
+    textAlign: "center",
     background: "linear-gradient(135deg, rgba(124,196,255,0.10), rgba(255,255,255,0.04))",
   });
   const assignLabel = document.createElement("div");
