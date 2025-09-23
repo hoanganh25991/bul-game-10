@@ -483,10 +483,6 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     wrap.style.flexDirection = "column";
     wrap.style.gap = "8px";
 
-    const title = document.createElement("h3");
-    title.textContent = (t && t("hero.tabs.maps")) || "Maps";
-    wrap.appendChild(title);
-
     const list = document.createElement("div");
     list.style.display = "flex";
     list.style.flexDirection = "column";
@@ -607,12 +603,10 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     head.style.display = "flex";
     head.style.alignItems = "center";
     head.style.justifyContent = "space-between";
-    const titleMarks = document.createElement("h3");
-    titleMarks.textContent = (t && t("hero.tabs.marks")) || "Marks";
+
     const cd = document.createElement("span");
     cd.style.fontSize = "12px";
     cd.style.opacity = "0.8";
-    head.appendChild(titleMarks);
     head.appendChild(cd);
 
     const list = document.createElement("div");

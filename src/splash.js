@@ -102,19 +102,28 @@ export function initSplash() {
           if (startBtn) {
             // Wait for explicit player action
             startBtn.addEventListener("click", () => {
-              // Best-effort fullscreen request (desktop browsers)
+              // Respect UI preference for fullscreen (default true if unset)
+              let allowFs = true;
               try {
-                const el = document.documentElement;
-                if (el.requestFullscreen) {
-                  el.requestFullscreen().catch(() => {});
-                } else if (el.webkitRequestFullscreen) {
-                  el.webkitRequestFullscreen();
-                } else if (el.mozRequestFullScreen) {
-                  el.mozRequestFullScreen();
-                } else if (el.msRequestFullscreen) {
-                  el.msRequestFullscreen();
-                }
-              } catch (e) {}
+                const prefs = JSON.parse(localStorage.getItem("uiPrefs") || "{}");
+                if (typeof prefs.fullscreen === "boolean") allowFs = prefs.fullscreen;
+              } catch (_) {}
+
+              if (allowFs) {
+                // Best-effort fullscreen request (desktop browsers)
+                try {
+                  const el = document.documentElement;
+                  if (el.requestFullscreen) {
+                    el.requestFullscreen().catch(() => {});
+                  } else if (el.webkitRequestFullscreen) {
+                    el.webkitRequestFullscreen();
+                  } else if (el.mozRequestFullScreen) {
+                    el.mozRequestFullScreen();
+                  } else if (el.msRequestFullscreen) {
+                    el.msRequestFullscreen();
+                  }
+                } catch (e) {}
+              }
               cleanupAndCloseSplash();
             }, { once: true });
           } else {
