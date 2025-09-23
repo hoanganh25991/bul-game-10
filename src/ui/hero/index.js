@@ -143,11 +143,31 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
 
   const poolWrap = document.createElement("div");
   poolWrap.className = "skill-pool";
+  // Force list layout (not grid)
+  try {
+    poolWrap.style.display = "flex";
+    poolWrap.style.flexDirection = "column";
+    poolWrap.style.gap = "6px";
+  } catch (_) {}
   SKILL_POOL.forEach((s) => {
     const el = document.createElement("div");
     el.className = "skill-pool-item";
     el.dataset.skillId = s.id;
-    el.innerHTML = `<div class="skill-icon">${getSkillIcon(s.short)}</div><div class="skill-name">${s.name}</div><button class="assign pill-btn pill-btn--yellow" title="Assign">✅</button>`;
+    // More informative list item: icon, name, short
+    el.style.display = "grid";
+    el.style.gridTemplateColumns = "28px 1fr auto";
+    el.style.alignItems = "center";
+    el.style.gap = "8px";
+    el.style.padding = "6px 8px";
+    el.style.border = "1px solid rgba(255,255,255,0.1)";
+    el.style.borderRadius = "6px";
+    el.style.cursor = "pointer";
+    el.innerHTML = `<div class="skill-icon" style="font-size:18px;">${getSkillIcon(s.short)}</div>
+                    <div class="skill-text">
+                      <div class="skill-name" style="font-weight:600;">${s.name}</div>
+                      <div class="skill-short" style="opacity:0.8;font-size:12px;">${s.short || ""}</div>
+                    </div>
+                    <button class="assign pill-btn pill-btn--yellow" title="Assign">Assign</button>`;
     poolWrap.appendChild(el);
   });
   container.appendChild(poolWrap);
@@ -169,8 +189,72 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
   actions.appendChild(resetBtn);
   container.appendChild(actions);
 
-  // Interaction handling
+  // Interaction handling + improved UX for assignment
   let selectedSlotIndex = null;
+  let selectedSkillId = null;
+
+  // Helper to apply loadout changes and refresh UI
+  function applyLoadoutChange(next) {
+    try {
+      setLoadoutAndSave(next);
+      try { window.dispatchEvent(new Event("loadout-changed")); } catch (_) {}
+      renderHeroScreen("skills", Object.assign({}, ctx, { currentLoadout: next }));
+      updateSkillBarLabels && updateSkillBarLabels();
+    } catch (_) {}
+  }
+  function assignSkillTo(slotIndex, skillId) {
+    const next = currentLoadout.slice();
+    next[slotIndex] = skillId;
+    applyLoadoutChange(next);
+  }
+
+  // Assign bar (appears when a skill is selected; lets user pick Q/W/E/R)
+  const assignBar = document.createElement("div");
+  assignBar.className = "assign-bar";
+  Object.assign(assignBar.style, {
+    display: "none",
+    margin: "8px 0",
+    padding: "8px",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: "8px",
+    background: "linear-gradient(135deg, rgba(124,196,255,0.10), rgba(255,255,255,0.04))",
+  });
+  const assignLabel = document.createElement("div");
+  assignLabel.style.marginBottom = "6px";
+  const assignBtns = document.createElement("div");
+  assignBtns.style.display = "flex";
+  assignBtns.style.gap = "8px";
+  const keysRow = ["Q","W","E","R"].map((k, i) => {
+    const b = document.createElement("button");
+    b.className = "pill-btn pill-btn--yellow";
+    b.textContent = k;
+    b.addEventListener("click", () => {
+      if (selectedSkillId != null) assignSkillTo(i, selectedSkillId);
+    });
+    return b;
+  });
+  keysRow.forEach((b) => assignBtns.appendChild(b));
+  const cancelBtn = document.createElement("button");
+  cancelBtn.className = "pill-btn";
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.addEventListener("click", () => {
+    selectedSkillId = null;
+    try {
+      poolWrap.querySelectorAll(".skill-pool-item").forEach((it) => {
+        it.classList.remove("selected");
+        it.style.background = "";
+      });
+    } catch (_) {}
+    assignBar.style.display = "none";
+  });
+  assignBtns.appendChild(cancelBtn);
+  assignBar.appendChild(assignLabel);
+  assignBar.appendChild(assignBtns);
+
+  // Insert assign bar just below slots and above pool
+  container.insertBefore(assignBar, poolHeader);
+
+  // Slots selection / clear
   slotsWrap.querySelectorAll(".loadout-slot").forEach((slotEl) => {
     slotEl.addEventListener("click", () => {
       slotsWrap.querySelectorAll(".loadout-slot").forEach((s) => s.classList.remove("selected"));
@@ -183,38 +267,50 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
       const idx = parseInt(slotEl.dataset.slotIndex, 10);
       const next = currentLoadout.slice();
       next[idx] = null;
-      try {
-        setLoadoutAndSave(next);
-        try { window.dispatchEvent(new Event("loadout-changed")); } catch (_) {}
-        renderHeroScreen("skills", Object.assign({}, ctx, { currentLoadout: next }));
-        updateSkillBarLabels && updateSkillBarLabels();
-      } catch (_) {}
+      applyLoadoutChange(next);
     });
   });
+
+  function showAssignBar(skillId) {
+    selectedSkillId = skillId;
+    // highlight the selected item
+    try {
+      poolWrap.querySelectorAll(".skill-pool-item").forEach((it) => {
+        if (it.dataset.skillId === skillId) {
+          it.classList.add("selected");
+          it.style.background = "rgba(124,196,255,0.10)";
+        } else {
+          it.classList.remove("selected");
+          it.style.background = "";
+        }
+      });
+    } catch (_) {}
+    const sd = SKILL_POOL.find((s) => s.id === skillId);
+    const icon = getSkillIcon(sd ? sd.short : null);
+    assignLabel.textContent = `Assign ${sd ? sd.name : ""} (${sd && sd.short ? sd.short : ""}) ${icon} to slot:`;
+    assignBar.style.display = "block";
+  }
+
+  // Pool item interactions
   poolWrap.querySelectorAll(".skill-pool-item").forEach((itemEl) => {
     const skillId = itemEl.dataset.skillId;
 
-    const assign = () => {
-      const slotToAssign = selectedSlotIndex !== null ? selectedSlotIndex : 0;
-      const next = currentLoadout.slice();
-      next[slotToAssign] = skillId;
-      try {
-        setLoadoutAndSave(next);
-        try { window.dispatchEvent(new Event("loadout-changed")); } catch (_) {}
-        renderHeroScreen("skills", Object.assign({}, ctx, { currentLoadout: next }));
-        updateSkillBarLabels && updateSkillBarLabels();
-      } catch (_) {}
-    };
+    // Click on row = select and show assign bar (no instant assign)
+    itemEl.addEventListener("click", () => {
+      showAssignBar(skillId);
+    });
 
-    // Click anywhere on the item assigns to the selected slot (or Q by default)
-    itemEl.addEventListener("click", assign);
-
-    // Dedicated assign button (visible affordance)
+    // Assign button:
     const btn = itemEl.querySelector(".assign");
     if (btn) {
       btn.addEventListener("click", (ev) => {
         ev.stopPropagation();
-        assign();
+        if (selectedSlotIndex !== null) {
+          assignSkillTo(selectedSlotIndex, skillId);
+        } else {
+          // no slot selected -> prompt with assign bar
+          showAssignBar(skillId);
+        }
       });
     }
   });
@@ -260,11 +356,36 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     detail.style.position = "relative";
     Object.assign(previewBtn.style, { position: "absolute", top: "8px", right: "8px", marginTop: "0" });
 
+    // Assign row (same UX as pool)
+    const assignRow = document.createElement("div");
+    assignRow.style.display = "flex";
+    assignRow.style.gap = "8px";
+    assignRow.style.marginTop = "8px";
+    const assignLabel2 = document.createElement("div");
+    assignLabel2.style.opacity = "0.9";
+    const btns2 = document.createElement("div");
+    btns2.style.display = "flex";
+    btns2.style.gap = "8px";
+    const assignBtns2 = ["Q","W","E","R"].map((k, i) => {
+      const b = document.createElement("button");
+      b.className = "pill-btn pill-btn--yellow";
+      b.textContent = k;
+      b.addEventListener("click", () => {
+        const s = assignRow.__skill;
+        if (s && s.id) assignSkillTo(i, s.id);
+      });
+      return b;
+    });
+    assignBtns2.forEach((b) => btns2.appendChild(b));
+    assignRow.appendChild(assignLabel2);
+    assignRow.appendChild(btns2);
+
     detail.appendChild(title);
     detail.appendChild(expl);
     detail.appendChild(icon);
     detail.appendChild(stats);
     detail.appendChild(imgBox);
+    detail.appendChild(assignRow);
     detail.appendChild(previewBtn);
 
     const typeExplain = {
@@ -314,6 +435,9 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
           window.__skillsRef && window.__skillsRef.previewSkill(s);
         } catch (_) {}
       };
+      // wire assign row for previewed skill
+      assignRow.__skill = s;
+      assignLabel2.textContent = `Assign ${s.name} (${s.short || ""}) ${getSkillIcon(s.short || s.name)} to slot:`;
     }
 
     SKILL_POOL.forEach((s) => {
