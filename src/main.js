@@ -50,6 +50,7 @@ function getSkillIcon(short) {
 // Bootstrapping world, UI, effects
 // ------------------------------------------------------------
 const { renderer, scene, camera, ground, cameraOffset, cameraShake } = initWorld();
+const _baseCameraOffset = cameraOffset.clone();
 const ui = new UIManager();
 const effects = new EffectsManager(scene);
 const mapManager = createMapManager();
@@ -330,8 +331,12 @@ function initQualitySelect() {
       const v = String(sel.value || "high").toLowerCase();
       const valid = v === "low" || v === "medium" || v === "high";
       const nextQ = valid ? v : "high";
-      // persist
-      try { localStorage.setItem("renderPrefs", JSON.stringify({ quality: nextQ })); } catch (_) {}
+      // persist (preserve other fields like zoom)
+      try {
+        const prev = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
+        prev.quality = nextQ;
+        localStorage.setItem("renderPrefs", JSON.stringify(prev));
+      } catch (_) {}
       // keep local variable consistent
       renderQuality = nextQ;
       // Apply immediately
@@ -344,6 +349,48 @@ function initQualitySelect() {
   }
 }
 try { initQualitySelect(); } catch (_) {}
+try { initZoomControl && initZoomControl(); } catch (_) {}
+
+/* Render zoom: range slider (0.6..1.6) */
+function initZoomControl() {
+  const sel = document.getElementById("zoomSlider");
+  if (!sel) return;
+
+  // Initialize from persisted prefs or default 1.0
+  let z = 1;
+  try {
+    const prefs = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
+    if (typeof prefs.zoom === "number") z = prefs.zoom;
+  } catch (_) {}
+
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  z = clamp(Number.isFinite(parseFloat(z)) ? parseFloat(z) : 1, 0.6, 1.6);
+
+  try { sel.value = String(z); } catch (_) {}
+
+  // Apply immediately on init
+  try {
+    cameraOffset.copy(_baseCameraOffset.clone().multiplyScalar(z));
+  } catch (_) {}
+
+  // Bind once
+  if (!sel.dataset.bound) {
+    const onChange = () => {
+      const v = clamp(parseFloat(sel.value), 0.6, 1.6) || 1;
+      try {
+        cameraOffset.copy(_baseCameraOffset.clone().multiplyScalar(v));
+      } catch (_) {}
+      try {
+        const prev = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
+        prev.zoom = v;
+        localStorage.setItem("renderPrefs", JSON.stringify(prev));
+      } catch (_) {}
+    };
+    sel.addEventListener("input", onChange);
+    sel.addEventListener("change", onChange);
+    sel.dataset.bound = "1";
+  }
+}
 
 /* Settings: Audio toggles (Music / SFX) */
 const musicToggle = document.getElementById("musicToggle");
@@ -396,7 +443,7 @@ function ensureSettingsTabs(){
   rows.forEach((row) => {
     if (row.querySelector("#langVi") || row.querySelector("#settingsInstructions")) {
       generalPanel.appendChild(row);
-    } else if (row.querySelector("#envRainToggle") || row.querySelector("#envDensity") || row.querySelector("#rainDensity")) {
+    } else if (row.querySelector("#envRainToggle") || row.querySelector("#envDensity") || row.querySelector("#rainDensity") || row.querySelector("#zoomSlider")) {
       envPanel.appendChild(row);
     } else {
       generalPanel.appendChild(row);
@@ -475,8 +522,9 @@ function ensureSettingsTabs(){
     }
   } catch (_) {}
 
-  // Re-init quality select after rebuilding tabs (safe if called multiple times)
+  // Re-init quality/zoom controls after rebuilding tabs (safe if called multiple times)
   try { initQualitySelect && initQualitySelect(); } catch (e) {}
+  try { initZoomControl && initZoomControl(); } catch (e) {}
   try { window.applyTranslations && window.applyTranslations(settingsPanel); } catch (e) {}
 }
 

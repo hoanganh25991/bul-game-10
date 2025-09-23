@@ -14,6 +14,7 @@
       "rainDensity": "Rain Density"
     },
     "render": {
+      "zoom": "Zoom",
       "quality": "Quality",
       "high": "High",
       "medium": "Medium",
