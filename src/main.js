@@ -578,25 +578,6 @@ function ensureSettingsTabs(){
   try { window.applyTranslations && window.applyTranslations(settingsPanel); } catch (e) {}
 }
 
-function ensureGuideButton() {
-  try {
-    const root = settingsPanel;
-    if (!root) return;
-    const instrRow = root.querySelector("#settingsInstructions");
-    if (!instrRow) return;
-    if (!instrRow.querySelector("#btnInstructionGuide")) {
-      const btn = document.createElement("button");
-      btn.id = "btnInstructionGuide";
-      btn.className = "primary";
-      btn.title = "Show guide";
-      btn.innerHTML = "👋 Guide";
-      btn.addEventListener("click", () => {
-        try { startInstructionGuide(); } catch (_) {}
-      });
-      instrRow.appendChild(btn);
-    }
-  } catch (_) {}
-}
 // Settings UI initialized via setupSettingsScreen()
 
 // Selection/aim indicators
