@@ -8,14 +8,6 @@ export function startInstructionGuide() {
 
   const steps = [
     {
-      key: "camera",
-      get el() {
-        return document.getElementById("btnCamera");
-      },
-      title: "Camera Toggle",
-      desc: "Tap to toggle first-person camera.",
-    },
-    {
       key: "settings",
       get el() {
         return document.getElementById("btnSettingsScreen");
@@ -30,6 +22,14 @@ export function startInstructionGuide() {
       },
       title: "Hero Screen",
       desc: "View hero info and configure skills and loadout.",
+    },
+    {
+      key: "camera",
+      get el() {
+        return document.getElementById("btnCamera");
+      },
+      title: "Camera Toggle",
+      desc: "Tap to toggle first-person camera.",
     },
     {
       key: "skills",
