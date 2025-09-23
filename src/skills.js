@@ -49,6 +49,7 @@ export class SkillsSystem {
     this.damageBuffMult = 1;
     // Clone-like scheduled strikes (thunder image)
     this.clones = [];
+    this._pendingShake = 0;
   }
 
   // ----- Damage scaling helpers -----
@@ -66,6 +67,37 @@ export class SkillsSystem {
     const levelMult = Math.pow(SCALING.hero.skillDamageGrowth, lvl - 1);
     const buffMult = this.damageBuffUntil && now() < this.damageBuffUntil ? this.damageBuffMult || 1 : 1;
     return Math.max(1, Math.floor((base || 0) * levelMult * buffMult));
+  }
+  
+  // VFX helpers driven by skill.effects configuration
+  _fx(def) {
+    const e = (def && def.effects) || {};
+    return {
+      beam: e.beamColor ?? e.beam ?? 0x8fd3ff,
+      impact: e.impactColor ?? e.impact ?? 0x9fd3ff,
+      ring: e.ringColor ?? e.ring ?? 0x9fd8ff,
+      arc: e.arcColor ?? e.arc ?? 0xbfe9ff,
+      hand: e.handColor ?? e.hand ?? 0x9fd8ff,
+      shake: e.shake ?? 0
+    };
+  }
+
+  _vfxCastFlash(def) {
+    const fx = this._fx(def);
+    try {
+      if (this.effects.spawnHandFlashColored) {
+        this.effects.spawnHandFlashColored(this.player, fx.hand);
+      } else {
+        this.effects.spawnHandFlash(this.player);
+      }
+      this.effects.spawnHandLink(this.player, 0.06);
+      this.effects.spawnHandCrackle(this.player, false, 1.0);
+      this.effects.spawnHandCrackle(this.player, true, 1.0);
+    } catch (_) {}
+  }
+
+  _requestShake(v) {
+    this._pendingShake = Math.max(this._pendingShake || 0, v || 0);
   }
 
   // ----- Cooldowns -----
@@ -280,15 +312,15 @@ export class SkillsSystem {
     let jumps = (SK.jumps || 0) + 1;
     while (current && jumps-- > 0) {
       const hitPoint = current.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
-    this.effects.spawnElectricBeamAuto(lastPoint, hitPoint, 0x8fd3ff, 0.12);
-    this.effects.spawnArcNoisePath(lastPoint, hitPoint, 0xbfe9ff, 0.08);
+    this.effects.spawnElectricBeamAuto(lastPoint, hitPoint, this._fx(SK).beam, 0.12);
+    this.effects.spawnArcNoisePath(lastPoint, hitPoint, this._fx(SK).arc, 0.08);
     const dmgHit = this.scaleSkillDamage(SK.dmg || 0);
     current.takeDamage(dmgHit);
     if (SK.slowFactor) { current.slowUntil = now() + (SK.slowDuration || 1.2); current.slowFactor = SK.slowFactor; }
     audio.sfx("chain_hit");
     // popup for chain hit
     try { this.effects.spawnDamagePopup(current.pos(), dmgHit, 0xbfe9ff); } catch (e) {}
-    this.effects.spawnStrike(current.pos(), 1.2, 0x9fd3ff);
+    this.effects.spawnStrike(current.pos(), 1.2, this._fx(SK).impact);
     this.effects.spawnHitDecal(current.pos());
       lastPoint = hitPoint;
       candidates = this.enemies.filter(
@@ -336,7 +368,7 @@ export class SkillsSystem {
     } catch (e) {}
 
     // Visual: central strike + radial
-    this.effects.spawnStrike(point, SK.radius, 0x9fd8ff);
+    this.effects.spawnStrike(point, SK.radius, this._fx(SK).ring); this._requestShake(this._fx(SK).shake);
     audio.sfx("boom");
 
     // Damage enemies in radius and apply slow if present
@@ -410,7 +442,7 @@ export class SkillsSystem {
         ? handWorldPos(this.player)
         : this.player.pos().clone().add(new THREE.Vector3(0, 1.6, 0));
     const to = target.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
-    this.effects.spawnElectricBeamAuto(from, to, 0x8fd3ff, 0.12);
+    this.effects.spawnElectricBeamAuto(from, to, this._fx(SK).beam, 0.12); this._requestShake(this._fx(SK).shake);
     audio.sfx("beam");
     const dmg = this.scaleSkillDamage(SK.dmg || 0);
     target.takeDamage(dmg);
@@ -424,7 +456,7 @@ export class SkillsSystem {
     if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
 
     this.player.spend(SK.mana);
-    this.startCooldown(key, SK.cd);
+    this.startCooldown(key, SK.cd); this._requestShake(this._fx(SK).shake);
     audio.sfx("cast_nova");
     this.effects.spawnHandFlash(this.player);
     try {
@@ -434,7 +466,7 @@ export class SkillsSystem {
     } catch (e) {}
 
     // Radial damage around player
-    this.effects.spawnStrike(this.player.pos(), SK.radius, 0x9fd8ff);
+    this.effects.spawnStrike(this.player.pos(), SK.radius, this._fx(SK).ring); this._requestShake(this._fx(SK).shake);
     audio.sfx("boom");
     this.enemies.forEach((en) => {
       if (en.alive && distance2D(en.pos(), this.player.pos()) <= (SK.radius + 2.5)) {
@@ -479,7 +511,7 @@ export class SkillsSystem {
     const amt = Math.max(1, SK.heal || SK.amount || 30);
     this.player.hp = Math.min(this.player.maxHP, this.player.hp + amt);
     try { this.effects.spawnHandFlash(this.player); audio.sfx("aura_on"); } catch (e) {}
-    try { this.effects.spawnStrike(this.player.pos(), 5, 0x9fd8ff); } catch (_) {}
+    try { this.effects.spawnStrike(this.player.pos(), 5, this._fx(SK).impact); } catch (_) {}
   }
 
   _castMana(key) {
@@ -494,7 +526,7 @@ export class SkillsSystem {
     const amt = Math.max(1, SK.restore || SK.manaRestore || 25);
     this.player.mp = Math.min(this.player.maxMP, this.player.mp + amt);
     try { this.effects.spawnHandFlash(this.player, true); audio.sfx("cast_chain"); } catch (e) {}
-    try { this.effects.spawnStrike(this.player.pos(), 4, 0xbfe9ff); } catch (_) {}
+    try { this.effects.spawnStrike(this.player.pos(), 4, this._fx(SK).impact); } catch (_) {}
   }
 
   _castBuff(key) {
@@ -524,7 +556,7 @@ export class SkillsSystem {
     }
     try {
       this.effects.spawnHandFlash(this.player);
-      this.effects.spawnStrike(this.player.pos(), 6, 0x9fd8ff);
+      this.effects.spawnStrike(this.player.pos(), 6, this._fx(SK).impact);
       audio.sfx("cast_nova");
     } catch (e) {}
   }
@@ -544,7 +576,7 @@ export class SkillsSystem {
     }
     try {
       this.effects.spawnHandFlash(this.player);
-      this.effects.spawnStrike(this.player.pos(), 5, 0x88ffd0);
+      this.effects.spawnStrike(this.player.pos(), 5, this._fx(SK).impact);
       audio.sfx("aura_on");
     } catch (e) {}
   }
@@ -789,6 +821,12 @@ export class SkillsSystem {
     this.runClones();
     // Cooldown UI every frame
     this.updateCooldownUI();
+
+    if (cameraShake && (this._pendingShake || 0) > 0) {
+      cameraShake.mag = Math.max(cameraShake.mag || 0, this._pendingShake);
+      cameraShake.until = now() + 0.22;
+      this._pendingShake = 0;
+    }
 
   }
 }

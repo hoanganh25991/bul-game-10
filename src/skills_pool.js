@@ -1,25 +1,13 @@
 /**
- * Zeus Skill Pool — Enhanced and diversified
- * Types supported by engine:
- * - "chain": chain lightning between enemies (range, jumps, jumpRange, dmg, optional slowFactor/slowDuration)
- * - "aoe": ground-targeted circular AOE (radius, dmg, optional slowFactor/slowDuration)
- * - "aura": toggle aura around player (radius, tick, dmg, duration, manaPerTick)
- * - "storm": random strikes in radius over duration (radius, strikes, dmg, duration)
- * - "beam": instant single-target zap to nearest enemy in range (range, dmg)
- * - "nova": instant radial burst around player (radius, dmg)
- * - "heal": restore HP instantly (heal)
- * - "mana": restore MP instantly (restore)
- * - "buff": timed self buff (buffMult, buffDuration, optional speedMult, atkSpeedMult, defensePct)
- * - "dash": quick dash forward (distance)
- * - "blink": teleport toward direction/point (range)
- * - "clone": summon a thunder image that periodically zaps nearby foes (duration, rate, radius, dmg)
- * - "shield": temporary damage reduction, optional brief invulnerability (duration, shieldPct/defensePct, invulnDuration)
+ * Zeus Skill Pool — Enhanced with per-skill VFX "effects" and diversified roles
  *
- * Numbers are tuned to create distinct identities:
- *  - Some big-impact long-cooldown nukes
- *  - Strong utility/defense with meaningful tradeoffs
- *  - Movement/tempo tools (dash/blink/haste)
- *  - Sustains (heal/mana) with pacing
+ * effects:
+ *  - beam: beam/electric color (hex)
+ *  - impact: strike/decal color (hex)
+ *  - ring: ground ring color (hex)
+ *  - arc: secondary arc color (hex)
+ *  - hand: hand flash tint (hex)
+ *  - shake: camera shake magnitude (0..1)
  */
 export const SKILL_POOL = [
   // Core lightning kit — refined
@@ -36,6 +24,7 @@ export const SKILL_POOL = [
     dmg: 24,
     slowFactor: 0.25,
     slowDuration: 0.9,
+    effects: { beam: 0xdff3ff, arc: 0xbfe9ff, impact: 0x9fd8ff, ring: 0x7fc7ff, hand: 0x9fd8ff, shake: 0.2 },
   },
   {
     id: "lightning_bolt",
@@ -48,6 +37,7 @@ export const SKILL_POOL = [
     dmg: 35,
     slowFactor: 0.45,
     slowDuration: 1.5,
+    effects: { ring: 0xffa54d, impact: 0xffd86a, arc: 0xffbb66, hand: 0xffd86a, shake: 0.35 },
   },
   {
     id: "static_field",
@@ -61,6 +51,7 @@ export const SKILL_POOL = [
     dmg: 8,
     duration: 10,
     manaPerTick: 2,
+    effects: { ring: 0x7fc7ff, impact: 0x7fc7ff, hand: 0x9fd8ff, shake: 0.1 },
   },
   {
     id: "thunderstorm",
@@ -73,6 +64,7 @@ export const SKILL_POOL = [
     strikes: 22,
     dmg: 20,
     duration: 7,
+    effects: { impact: 0xb5e2ff, ring: 0x88ccff, hand: 0x9fd8ff, shake: 0.45 },
   },
 
   // Beams / Novas
@@ -85,6 +77,7 @@ export const SKILL_POOL = [
     mana: 14,
     range: 36,
     dmg: 22,
+    effects: { beam: 0xdff6ff, impact: 0xdeeaff, hand: 0xdff3ff, shake: 0.2 },
   },
   {
     id: "ion_nova",
@@ -95,6 +88,7 @@ export const SKILL_POOL = [
     mana: 26,
     radius: 14,
     dmg: 30,
+    effects: { ring: 0x66ffe0, impact: 0x99ffee, hand: 0x66ffe0, shake: 0.35 },
   },
 
   // Auras (variants)
@@ -110,6 +104,7 @@ export const SKILL_POOL = [
     dmg: 6,
     duration: 9,
     manaPerTick: 2.5,
+    effects: { ring: 0xffef85, impact: 0xffd86a, hand: 0xffd86a, shake: 0.18 },
   },
   {
     id: "crackling_field",
@@ -123,6 +118,7 @@ export const SKILL_POOL = [
     dmg: 7,
     duration: 8,
     manaPerTick: 2,
+    effects: { ring: 0x9fd8ff, impact: 0x9fd8ff, hand: 0x9fd8ff, shake: 0.15 },
   },
   {
     id: "static_overload",
@@ -136,6 +132,7 @@ export const SKILL_POOL = [
     dmg: 9,
     duration: 9,
     manaPerTick: 3,
+    effects: { ring: 0xbfe9ff, impact: 0x7fc7ff, hand: 0xbfe9ff, shake: 0.2 },
   },
 
   // Beams and tools
@@ -148,6 +145,7 @@ export const SKILL_POOL = [
     mana: 16,
     range: 48,
     dmg: 20,
+    effects: { beam: 0x88ccff, impact: 0xa0ddff, hand: 0x88ccff, shake: 0.22 },
   },
   {
     id: "arc_spear",
@@ -158,6 +156,7 @@ export const SKILL_POOL = [
     mana: 18,
     range: 52,
     dmg: 28,
+    effects: { beam: 0xff88e6, impact: 0xffa5ee, hand: 0xff88e6, shake: 0.28 },
   },
   {
     id: "shockwave",
@@ -168,6 +167,7 @@ export const SKILL_POOL = [
     mana: 15,
     range: 40,
     dmg: 24,
+    effects: { beam: 0xff6050, impact: 0xff8a7a, hand: 0xff7563, shake: 0.3 },
   },
 
   // Storm variants
@@ -182,6 +182,7 @@ export const SKILL_POOL = [
     strikes: 14,
     dmg: 18,
     duration: 5.5,
+    effects: { impact: 0xcc99ff, ring: 0xa97bff, hand: 0xbf8cff, shake: 0.35 },
   },
   {
     id: "thunderdome",
@@ -194,6 +195,7 @@ export const SKILL_POOL = [
     strikes: 28,
     dmg: 18,
     duration: 8,
+    effects: { impact: 0x88bbff, ring: 0x66aaff, hand: 0x88bbff, shake: 0.6 },
   },
   {
     id: "ion_storm",
@@ -206,6 +208,7 @@ export const SKILL_POOL = [
     strikes: 20,
     dmg: 19,
     duration: 6.5,
+    effects: { impact: 0x88ffee, ring: 0x66ffe0, hand: 0x66ffe0, shake: 0.38 },
   },
 
   // AOEs — control and burst
@@ -220,6 +223,7 @@ export const SKILL_POOL = [
     dmg: 32,
     slowFactor: 0.4,
     slowDuration: 1.2,
+    effects: { ring: 0x7dd3ff, impact: 0x9bdfff, hand: 0x9fd8ff, shake: 0.32 },
   },
   {
     id: "storm_pulse",
@@ -230,6 +234,7 @@ export const SKILL_POOL = [
     mana: 22,
     radius: 12,
     dmg: 24,
+    effects: { ring: 0x88ccff, impact: 0xa0ddff, hand: 0x88ccff, shake: 0.26 },
   },
   {
     id: "magneto_burst",
@@ -242,6 +247,7 @@ export const SKILL_POOL = [
     dmg: 34,
     slowFactor: 0.5,
     slowDuration: 1.3,
+    effects: { ring: 0xff6a6a, impact: 0xff9494, hand: 0xff7a7a, shake: 0.4 },
   },
   {
     id: "static_prison",
@@ -254,6 +260,7 @@ export const SKILL_POOL = [
     dmg: 18,
     slowFactor: 0.7,
     slowDuration: 2.8,
+    effects: { ring: 0xc080ff, impact: 0xe0a0ff, hand: 0xc080ff, shake: 0.36 },
   },
 
   // Chains — variants and control
@@ -270,6 +277,7 @@ export const SKILL_POOL = [
     dmg: 28,
     slowFactor: 0.2,
     slowDuration: 1.0,
+    effects: { beam: 0xcfefff, arc: 0xbfe9ff, impact: 0xa8e0ff, ring: 0x8fd3ff, hand: 0xa8e0ff, shake: 0.24 },
   },
   {
     id: "forked_lightning",
@@ -284,6 +292,7 @@ export const SKILL_POOL = [
     dmg: 20,
     slowFactor: 0.15,
     slowDuration: 1.2,
+    effects: { beam: 0x88e0ff, arc: 0xa0eaff, impact: 0x88ccff, ring: 0x7fc7ff, hand: 0x88ccff, shake: 0.22 },
   },
 
   // Sustain / Utility
@@ -294,7 +303,8 @@ export const SKILL_POOL = [
     type: "heal",
     cd: 14,
     mana: 24,
-    heal: 55
+    heal: 55,
+    effects: { impact: 0x85ffb2, ring: 0x66ff99, hand: 0x85ffc1, shake: 0.18 },
   },
   {
     id: "divine_mend",
@@ -303,7 +313,8 @@ export const SKILL_POOL = [
     type: "heal",
     cd: 30,
     mana: 40,
-    heal: 160
+    heal: 160,
+    effects: { impact: 0x66ff99, ring: 0x55ff88, hand: 0x88ffd0, shake: 0.25 },
   },
   {
     id: "storm_sip",
@@ -312,7 +323,8 @@ export const SKILL_POOL = [
     type: "mana",
     cd: 12,
     mana: 0,
-    restore: 40
+    restore: 40,
+    effects: { impact: 0x88aaff, ring: 0x99bbff, hand: 0x88ccff, shake: 0.1 },
   },
   {
     id: "mana_well",
@@ -321,7 +333,8 @@ export const SKILL_POOL = [
     type: "mana",
     cd: 28,
     mana: 0,
-    restore: 120
+    restore: 120,
+    effects: { impact: 0x66ccff, ring: 0x55bbff, hand: 0x66ccff, shake: 0.2 },
   },
 
   // Buffs — damage, haste, fortify
@@ -334,7 +347,8 @@ export const SKILL_POOL = [
     mana: 30,
     buffMult: 1.4,
     buffDuration: 8,
-    speedMult: 1.35
+    speedMult: 1.35,
+    effects: { impact: 0xffd86a, ring: 0xffef85, hand: 0xffd86a, shake: 0.22 },
   },
   {
     id: "surge_of_haste",
@@ -346,7 +360,8 @@ export const SKILL_POOL = [
     buffMult: 1.15,
     buffDuration: 7,
     speedMult: 1.25,
-    atkSpeedMult: 1.6
+    atkSpeedMult: 1.6,
+    effects: { impact: 0xfff07a, ring: 0xffe16a, hand: 0xffe16a, shake: 0.24 },
   },
   {
     id: "fortify",
@@ -357,10 +372,11 @@ export const SKILL_POOL = [
     mana: 28,
     buffMult: 1.1,
     buffDuration: 8,
-    defensePct: 0.35
+    defensePct: 0.35,
+    effects: { impact: 0x88ffd0, ring: 0x66ffc2, hand: 0x88ffd0, shake: 0.18 },
   },
 
-  // Shields — new defensive archetype
+  // Shields — defensive archetype
   {
     id: "storm_barrier",
     name: "Storm Barrier",
@@ -370,7 +386,8 @@ export const SKILL_POOL = [
     mana: 28,
     duration: 6,
     shieldPct: 0.45,
-    invulnDuration: 0.25
+    invulnDuration: 0.25,
+    effects: { impact: 0x88ffd0, ring: 0x66ffc2, hand: 0x66ffc2, shake: 0.22 },
   },
   {
     id: "tempest_guard",
@@ -381,7 +398,8 @@ export const SKILL_POOL = [
     mana: 34,
     duration: 5,
     shieldPct: 0.6,
-    invulnDuration: 0.5
+    invulnDuration: 0.5,
+    effects: { impact: 0xffe085, ring: 0xffcf6a, hand: 0xffe085, shake: 0.28 },
   },
 
   // Mobility
@@ -392,7 +410,8 @@ export const SKILL_POOL = [
     type: "dash",
     cd: 7,
     mana: 16,
-    distance: 14
+    distance: 14,
+    effects: { impact: 0x9fd8ff, ring: 0x9fd8ff, hand: 0x9fd8ff, shake: 0.12 },
   },
   {
     id: "blink_strike",
@@ -401,7 +420,8 @@ export const SKILL_POOL = [
     type: "blink",
     cd: 12,
     mana: 24,
-    range: 24
+    range: 24,
+    effects: { impact: 0xbfe9ff, ring: 0xbfe9ff, hand: 0xbfe9ff, shake: 0.14 },
   },
 
   // Companion/clone
@@ -415,7 +435,8 @@ export const SKILL_POOL = [
     duration: 7,
     rate: 0.5,
     radius: 26,
-    dmg: 18
+    dmg: 18,
+    effects: { impact: 0x9fd8ff, ring: 0x9fd8ff, hand: 0x9fd8ff, shake: 0.2 },
   },
 
   // Big-impact long cooldowns — nukes/supers
@@ -427,7 +448,8 @@ export const SKILL_POOL = [
     cd: 42,
     mana: 80,
     radius: 28,
-    dmg: 165
+    dmg: 165,
+    effects: { ring: 0xffe085, impact: 0xffc14d, hand: 0xffd86a, shake: 0.9 },
   },
   {
     id: "maelstrom",
@@ -439,7 +461,8 @@ export const SKILL_POOL = [
     radius: 34,
     strikes: 36,
     dmg: 22,
-    duration: 9
+    duration: 9,
+    effects: { ring: 0xa0e0ff, impact: 0x80d0ff, hand: 0x88ccff, shake: 0.7 },
   },
 ];
 
