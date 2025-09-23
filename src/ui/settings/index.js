@@ -6,6 +6,8 @@
    - Audio controls (music, sfx)
 */
 import { t as tI18n } from "../../i18n.js";
+import { renderGeneralTab } from "./tabs/general.js";
+import { renderEnvironmentTab } from "./tabs/environment.js";
 
 export function setupSettingsScreen({
   t = tI18n,
@@ -50,18 +52,14 @@ export function setupSettingsScreen({
     ensureSettingsTabs(settingsPanel, t, startInstructionGuide);
   } catch (_) {}
 
-  // Audio toggles
-  initAudioControls(audioCtl);
-
-  // Environment controls
-  initEnvironmentControls(environment);
-
-  // Render controls
-  initQualitySelect(render, t);
-  initZoomControl(render);
-
-  // UI controls
-  initFullscreenControl();
+  // Bind domain tabs once
+  try {
+    const content = settingsPanel?.querySelector(".panel-content");
+    const generalPanel = content?.querySelector("#tabGeneral");
+    const envPanel = content?.querySelector("#tabEnvironment");
+    renderGeneralTab(generalPanel, { t, audioCtl, render });
+    renderEnvironmentTab(envPanel, { environment });
+  } catch (_) {}
 }
 
 /* ---------------- Tabs and Guide ---------------- */
