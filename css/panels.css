@@ -280,8 +280,12 @@
 .system-screen .panel-content{
   flex: 1;
   min-height: 0;
-  overflow: visible; /* allow native dropdowns to overflow */
-  -webkit-overflow-scrolling: touch;
+  /* Enable vertical scrolling for the Settings content */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* smooth momentum scrolling on iOS */
+  overscroll-behavior: contain;      /* prevent scroll chaining to body */
+  touch-action: pan-y;               /* improve touch scroll responsiveness */
 }
 
 /* Tab hover/focus polish */
