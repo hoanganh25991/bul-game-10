@@ -1,3 +1,4 @@
+import { t, loadLocale, getLanguage } from "../i18n.js";
 /* Guided Instruction Overlay (focus ring + hand + tooltip)
    Extracted from main.js into a reusable module.
 */
@@ -111,7 +112,7 @@ export function startInstructionGuide() {
   tipTitle.className = "guide-tooltip-title";
   const tipClose = document.createElement("button");
   tipClose.className = "guide-close";
-  tipClose.setAttribute("aria-label", "Close guide");
+  tipClose.setAttribute("aria-label", t("guide.nav.close") || "Close guide");
   tipClose.textContent = "✕";
   tipHeader.appendChild(tipTitle);
   tipHeader.appendChild(tipClose);
@@ -121,10 +122,10 @@ export function startInstructionGuide() {
   tipNav.className = "guide-nav";
   const btnPrev = document.createElement("button");
   btnPrev.className = "secondary";
-  btnPrev.textContent = "Previous";
+  btnPrev.textContent = t("guide.nav.previous") || "Previous";
   const btnNext = document.createElement("button");
   btnNext.className = "primary";
-  btnNext.textContent = "Next";
+  btnNext.textContent = t("guide.nav.next") || "Next";
   tipNav.appendChild(btnPrev);
   tipNav.appendChild(btnNext);
   tip.appendChild(tipHeader);
@@ -201,12 +202,24 @@ export function startInstructionGuide() {
     const rect = positionFor(s.el, 10);
     placeFocus(rect);
     placeHand(rect);
-    tipTitle.textContent = s.title || "";
-    tipBody.textContent = s.desc || "";
+
+    const titleKey = `guide.${s.key}.title`;
+    const descKey = `guide.${s.key}.desc`;
+    let titleText = t(titleKey);
+    let descText = t(descKey);
+    if (titleText === titleKey) titleText = s.title || "";
+    if (descText === descKey) descText = s.desc || "";
+    tipTitle.textContent = titleText;
+    tipBody.textContent = descText;
+
     placeTip(rect);
 
     btnPrev.disabled = idx === 0;
-    btnNext.textContent = idx === steps.length - 1 ? "Done" : "Next";
+    btnPrev.textContent = t("guide.nav.previous") || "Previous";
+    btnNext.textContent =
+      idx === steps.length - 1
+        ? (t("guide.nav.done") || "Done")
+        : (t("guide.nav.next") || "Next");
   }
 
   function onNext() {
@@ -252,6 +265,17 @@ export function startInstructionGuide() {
 
   window.__guideState = { active: true, index: 0, steps, overlay, focus, hand, tip };
   setStep(0);
+
+  try {
+    loadLocale(getLanguage()).then(() => {
+      if (window.__guideState && window.__guideState.active) {
+        setStep(window.__guideState.index);
+        try {
+          tipClose.setAttribute("aria-label", t("guide.nav.close") || "Close guide");
+        } catch (_) {}
+      }
+    });
+  } catch (_) {}
 
   try {
     window.__guideClose = close;

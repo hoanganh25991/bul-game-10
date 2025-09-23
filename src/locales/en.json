@@ -78,5 +78,46 @@
   "start": {
     "title": "Journey of the Thunder God",
     "story": "The world has slipped into shadow. Waking phantoms roam the land; only one god can summon the storm again. Lead Zeus — the thunder god — through wild forests, ruined villages and battlefields, slaying hordes of creatures and restoring order."
+  },
+  "guide": {
+    "button": "Guide",
+    "nav": {
+      "previous": "Previous",
+      "next": "Next",
+      "done": "Done",
+      "close": "Close guide"
+    },
+    "settings": {
+      "title": "Settings",
+      "desc": "Open and adjust game options, environment, and audio."
+    },
+    "hero": {
+      "title": "Hero Screen",
+      "desc": "View hero info and configure skills and loadout."
+    },
+    "camera": {
+      "title": "Camera Toggle",
+      "desc": "Tap to toggle first-person camera."
+    },
+    "portal": {
+      "title": "Portal",
+      "desc": "Tap to open a teleport portal."
+    },
+    "mark": {
+      "title": "Mark Location",
+      "desc": "Tap to drop a flag to mark this place on the map."
+    },
+    "skills": {
+      "title": "Skills",
+      "desc": "Tap Basic or Q/W/E/R to use skills. Cooldown shows in the ring."
+    },
+    "hud": {
+      "title": "HUD",
+      "desc": "HP/MP/XP bars show your status. Level is at the right."
+    },
+    "joystick": {
+      "title": "Joystick",
+      "desc": "Drag to move your hero. On desktop, right-click to move."
+    }
   }
 }

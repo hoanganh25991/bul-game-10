@@ -78,5 +78,45 @@
   "start": {
     "title": "Hành trình của Thần Sấm",
     "story": "Thế giới chìm trong u ám. Những bóng đêm tỉnh dậy, và chỉ một vị thần có thể gọi sấm sét trở lại. Hãy dẫn Zeus — vị thần sấm — qua rừng hoang, làng mạc đổ nát và chiến trường, tiêu diệt lũ quái và khôi phục trật tự."
+    },
+  "guide": {
+    "nav": {
+      "previous": "Trước",
+      "next": "Tiếp",
+      "done": "Xong",
+      "close": "Đóng hướng dẫn"
+    },
+    "settings": {
+      "title": "Cài đặt",
+      "desc": "Mở và điều chỉnh tùy chọn, môi trường và âm thanh."
+    },
+    "hero": {
+      "title": "Màn hình Tướng",
+      "desc": "Xem thông tin tướng và cấu hình kỹ năng, trang bị."
+    },
+    "camera": {
+      "title": "Chuyển góc nhìn",
+      "desc": "Chạm để bật/tắt góc nhìn người thứ nhất."
+    },
+    "portal": {
+      "title": "Cổng dịch chuyển",
+      "desc": "Chạm để mở cổng dịch chuyển."
+    },
+    "mark": {
+      "title": "Đánh dấu vị trí",
+      "desc": "Chạm để cắm cờ đánh dấu vị trí trên bản đồ."
+    },
+    "skills": {
+      "title": "Kỹ năng",
+      "desc": "Chạm Basic hoặc Q/W/E/R để dùng kỹ năng. Thời gian hồi hiện ở vòng."
+    },
+    "hud": {
+      "title": "HUD",
+      "desc": "Thanh HP/MP/XP hiển thị trạng thái. Cấp ở bên phải."
+    },
+    "joystick": {
+      "title": "Joystick",
+      "desc": "Kéo để di chuyển. Trên máy tính, nhấp phải để di chuyển."
     }
+  }
 }
