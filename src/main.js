@@ -944,6 +944,9 @@ window.addEventListener("keydown", (e) => {
     if (k === "ArrowDown") keyMove.down = true;
     if (k === "ArrowLeft") keyMove.left = true;
     if (k === "ArrowRight") keyMove.right = true;
+
+    // Arrow movement pings handled continuously in animate(); reset timer to fire immediately
+    try { __arrowContPingT = 0; } catch (_) {}
   }
 });
 window.addEventListener("keyup", (e) => {
@@ -964,6 +967,9 @@ let lastT = now();
 
 let __aiStride = renderQuality === "low" ? 3 : (renderQuality === "medium" ? 2 : 1);
 let __aiOffset = 0;
+const __MOVE_PING_INTERVAL = 0.3; // seconds between continuous move pings (joystick/arrow). Match right-click cadence.
+let __joyContPingT = 0;
+let __arrowContPingT = 0;
 
 function animate() {
   requestAnimationFrame(animate);
@@ -979,14 +985,42 @@ function animate() {
     if (typeof touch !== "undefined" && touch) {
       const joy = touch.getMoveDir?.();
       if (joy && joy.active && !player.frozen && !player.aimMode) {
-        const speed = 30; // target distance ahead in world units
+        const speed = 10; // target distance ahead in world units
         const base = player.pos();
         const px = base.x + joy.x * speed;
         const pz = base.z + joy.y * speed;
         player.moveTarget = new THREE.Vector3(px, 0, pz);
         player.attackMove = false;
         player.target = null;
+
+        // Continuous move ping while joystick held; match right-click indicator exactly
+        try {
+          const tnow = now();
+          if (!__joyContPingT || tnow >= __joyContPingT) {
+            effects.spawnMovePing(new THREE.Vector3(px, 0, pz));
+            __joyContPingT = tnow + __MOVE_PING_INTERVAL;
+          }
+        } catch (e) {}
+      } else {
+        try { __joyContPingT = 0; } catch (_) {}
       }
+    }
+  } catch (_) {}
+
+  // Continuous move pings for arrow-key movement; match right-click indicator exactly
+  try {
+    const dir = getKeyMoveDir ? getKeyMoveDir() : { active: false };
+    if (dir && dir.active && !player.frozen && !player.aimMode) {
+      const speed = 30;
+      const base = player.pos();
+      const px = base.x + dir.x * speed;
+      const pz = base.z + dir.y * speed;
+      if (!__arrowContPingT || t >= __arrowContPingT) {
+        effects.spawnMovePing(new THREE.Vector3(px, 0, pz));
+        __arrowContPingT = t + __MOVE_PING_INTERVAL;
+      }
+    } else {
+      __arrowContPingT = 0;
     }
   } catch (_) {}
 
