@@ -1,22 +1,81 @@
 import { SKILLS } from "../constants.js";
 
 /**
- * Returns a small emoji/SVG-like placeholder for a skill short name.
- * Kept minimal to avoid asset dependencies.
+ * Returns an emoji icon for a skill label. Heuristic, no assets required.
+ * Accepts skill short name or label; matches many archetypes.
  */
 export function getSkillIcon(short) {
   if (!short) return "—";
-  const k = String(short).slice(0, 3).toLowerCase();
+  const s = String(short).toLowerCase();
+
+  // Keyword helpers
+  const has = (kw) => s.includes(kw);
+  const any = (...kws) => kws.some((k) => has(k));
+
+  // Healing / sustain
+  if (any("heal", "mend", "restore")) return "💖";
+  if (any("mana", "well", "sip")) return "💧";
+
+  // Buffs / speed / attack speed / overload
+  if (any("haste", "speed")) return "🏃‍♂️";
+  if (any("buff", "over", "overload", "capacitor")) return "🔆";
+
+  // Defense / shield / aegis / guard / barrier / aegis
+  if (any("shield", "aegis", "guard", "barrier", "fort", "aeg")) return "🛡️";
+
+  // Mobility
+  if (any("dash")) return "💨";
+  if (any("blink", "step", "tele")) return "✨";
+
+  // Summons / companion / clone / image / totem / satellite
+  if (any("clone", "image")) return "👥";
+  if (any("totem", "rod", "tot")) return "🗿";
+  if (any("sat", "satell")) return "🛰️";
+
+  // Mark / vulnerability / rod / ionize
+  if (any("mark", "rod", "ion")) return "🎯";
+
+  // Chain / fork / tether
+  if (any("chain", "fork", "tether")) return "🔗";
+
+  // Beams / bolts / spears / sky spear
+  if (any("bolt", "beam", "spear", "spear", "spear", "sky")) return "⚡";
+
+  // AOEs / circles / rings / nova / pulse / burst / shockwave
+  if (any("nova", "ring", "circle", "pulse", "burst", "aoe", "shock")) return "💥";
+
+  // Storms / tempest / wrath / dome / mael / thunder
+  if (any("storm", "tempest", "wrath", "dome", "mael", "thunder")) return "⛈️";
+
+  // Prison / root / lock / static prison / conduct(ive) ground / rumble field
+  if (any("prison", "root", "lock", "conduct", "ground", "rumble", "field")) return "⛓️";
+
+  // Ball lightning
+  if (any("ball", "orb", "sphere")) return "🧿";
+
+  // Exotic/ultimates
+  if (any("judg")) return "⚖️";
+  if (any("atomic", "catacly", "supercell")) return "☢️";
+  if (any("hammer")) return "🔨";
+  if (any("mirror")) return "🪞";
+  if (any("roar")) return "🗣️";
+  if (any("rider", "cloud")) return "☁️";
+
+  // Static / electric / battery
+  if (any("static")) return "🔌";
+  if (any("magnet", "magneto")) return "🧲";
+
+  // Fallbacks
+  const k = s.slice(0, 3);
   const map = {
-    chn: "⚡", // chain
-    bol: "⚡", // bolt/chain-ish
-    stc: "🔌", // static
-    str: "⛈️", // storm
+    chn: "🔗",
+    bol: "⚡",
+    stc: "🔌",
+    str: "⛈️",
     bam: "🔋",
     nov: "✴️",
     aoe: "💥",
-    "n/a": "⚡",
-    atk: "⚡", // basic attack icon
+    atk: "⚡",
   };
   return map[k] || "⚡";
 }
