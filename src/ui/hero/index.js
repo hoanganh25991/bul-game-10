@@ -51,28 +51,34 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
   // Tab bar (Skills / Info / Skillbook / Maps / Marks)
   const tabBar = document.createElement("div");
   tabBar.className = "tab-bar";
-  const skillsBtn = document.createElement("button");
-  skillsBtn.className = "tab-btn" + ((initialTab !== "info" && initialTab !== "book" && initialTab !== "maps" && initialTab !== "marks") ? " active" : "");
-  skillsBtn.setAttribute("data-i18n", "hero.tabs.skills");
-  skillsBtn.textContent = (t && t("hero.tabs.skills")) || "Skills";
+
   const infoBtn = document.createElement("button");
   infoBtn.className = "tab-btn" + (initialTab === "info" ? " active" : "");
   infoBtn.setAttribute("data-i18n", "hero.tabs.info");
   infoBtn.textContent = (t && t("hero.tabs.info")) || "Info";
+
+  const skillsBtn = document.createElement("button");
+  skillsBtn.className = "tab-btn" + ((initialTab !== "info" && initialTab !== "book" && initialTab !== "maps" && initialTab !== "marks") ? " active" : "");
+  skillsBtn.setAttribute("data-i18n", "hero.tabs.skills");
+  skillsBtn.textContent = (t && t("hero.tabs.skills")) || "Skills";
+
   const bookBtn = document.createElement("button");
   bookBtn.className = "tab-btn" + (initialTab === "book" ? " active" : "");
   bookBtn.setAttribute("data-i18n", "hero.tabs.skillbook");
   bookBtn.textContent = (t && t("hero.tabs.skillbook")) || "Skillbook";
+
   const mapsBtn = document.createElement("button");
   mapsBtn.className = "tab-btn" + (initialTab === "maps" ? " active" : "");
   mapsBtn.setAttribute("data-i18n", "hero.tabs.maps");
   mapsBtn.textContent = (t && t("hero.tabs.maps")) || "Maps";
+
   const marksBtn = document.createElement("button");
   marksBtn.className = "tab-btn" + (initialTab === "marks" ? " active" : "");
   marksBtn.setAttribute("data-i18n", "hero.tabs.marks");
   marksBtn.textContent = (t && t("hero.tabs.marks")) || "Marks";
-  tabBar.appendChild(skillsBtn);
+
   tabBar.appendChild(infoBtn);
+  tabBar.appendChild(skillsBtn);
   tabBar.appendChild(bookBtn);
   tabBar.appendChild(mapsBtn);
   tabBar.appendChild(marksBtn);
@@ -141,7 +147,7 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     const el = document.createElement("div");
     el.className = "skill-pool-item";
     el.dataset.skillId = s.id;
-    el.innerHTML = `<div class="skill-icon">${getSkillIcon(s.short)}</div><div class="skill-name">${s.name}</div>`;
+    el.innerHTML = `<div class="skill-icon">${getSkillIcon(s.short)}</div><div class="skill-name">${s.name}</div><button class="assign pill-btn pill-btn--yellow" title="Assign">✅</button>`;
     poolWrap.appendChild(el);
   });
   container.appendChild(poolWrap);
@@ -185,7 +191,8 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
   });
   poolWrap.querySelectorAll(".skill-pool-item").forEach((itemEl) => {
     const skillId = itemEl.dataset.skillId;
-    itemEl.addEventListener("click", () => {
+
+    const assign = () => {
       const slotToAssign = selectedSlotIndex !== null ? selectedSlotIndex : 0;
       const next = currentLoadout.slice();
       next[slotToAssign] = skillId;
@@ -194,7 +201,19 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
         renderHeroScreen("skills", ctx);
         updateSkillBarLabels && updateSkillBarLabels();
       } catch (_) {}
-    });
+    };
+
+    // Click anywhere on the item assigns to the selected slot (or Q by default)
+    itemEl.addEventListener("click", assign);
+
+    // Dedicated assign button (visible affordance)
+    const btn = itemEl.querySelector(".assign");
+    if (btn) {
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        assign();
+      });
+    }
   });
 
   // Build Skillbook panel content (list + details + preview)
