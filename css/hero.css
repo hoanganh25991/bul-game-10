@@ -80,7 +80,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 10px;
-  max-height: 320px;
+  max-height: calc(100vh - 168px);;
   overflow: auto;
   padding: 6px 0;
   pointer-events: auto;
@@ -145,7 +145,7 @@
 
 /* Small responsive tweaks */
 @media (max-width: 720px) {
-  .loadout-slots { flex-direction: column; }
+  .loadout-slots { flex-direction: row; }
   .loadout-slot { min-width: 0; width: 100%; }
   .skill-pool { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }

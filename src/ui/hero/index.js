@@ -150,7 +150,7 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
   rightCol.appendChild(slotsWrap);
   try {
     slotsWrap.style.display = "flex";
-    slotsWrap.style.flexDirection = "column";
+    slotsWrap.style.flexDirection = "row";
     slotsWrap.style.justifyContent = "center";
     slotsWrap.style.alignItems = "center";
     slotsWrap.style.gap = "10px";

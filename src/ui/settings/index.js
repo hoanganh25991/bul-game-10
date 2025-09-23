@@ -25,6 +25,15 @@ export function setupSettingsScreen({
       ensureSettingsTabs(settingsPanel, t, startInstructionGuide);
     } catch (_) {}
     settingsPanel?.classList.toggle("hidden");
+
+    // Apply fullscreen on open if toggle is enabled (user gesture context)
+    try {
+      const fsEl = document.getElementById("fullscreenToggle");
+      if (fsEl && !settingsPanel?.classList.contains("hidden") && fsEl.checked) {
+        enterFullscreen();
+      }
+    } catch (_) {}
+
     // Ensure background music keeps playing independently of settings visibility
     try {
       if (audioCtl?.getMusicEnabled?.()) {
@@ -50,6 +59,9 @@ export function setupSettingsScreen({
   // Render controls
   initQualitySelect(render, t);
   initZoomControl(render);
+
+  // UI controls
+  initFullscreenControl();
 }
 
 /* ---------------- Tabs and Guide ---------------- */
@@ -83,6 +95,24 @@ function ensureSettingsTabs(settingsPanel, t, startInstructionGuide) {
 
   generalPanel.style.display = "block";
   envPanel.style.display = "none";
+
+  // Inject Fullscreen toggle row into General tab
+  const fsRow = document.createElement("div");
+  fsRow.className = "row";
+  fsRow.innerHTML = `
+    <span class="row-label" data-i18n="settings.general.fullscreen">Fullscreen</span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <label style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="fullscreenToggle" />
+        <span data-i18n="settings.general.fullscreenShort">On</span>
+      </label>
+    </div>
+  `;
+  try {
+    generalPanel.insertBefore(fsRow, generalPanel.firstChild || null);
+  } catch (_) {
+    generalPanel.appendChild(fsRow);
+  }
 
   const tabBar = document.createElement("div");
   tabBar.className = "tab-bar";
@@ -531,6 +561,65 @@ function attachSliderValueDisplay(inputEl, format) {
   inputEl.addEventListener("change", update);
 
   inputEl.dataset.valueBadgeBound = "1";
+}
+
+/* ---------------- UI: Fullscreen ---------------- */
+function isFullscreen() {
+  try {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  } catch (_) {
+    return false;
+  }
+}
+function enterFullscreen() {
+  try {
+    const el = document.documentElement;
+    if (el.requestFullscreen) return el.requestFullscreen();
+    if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+  } catch (_) {}
+}
+function exitFullscreen() {
+  try {
+    if (document.exitFullscreen) return document.exitFullscreen();
+    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+  } catch (_) {}
+}
+function initFullscreenControl() {
+  const el = document.getElementById("fullscreenToggle");
+  if (!el) return;
+
+  // Load pref (default true)
+  let pref;
+  try {
+    pref = JSON.parse(localStorage.getItem("uiPrefs") || "{}").fullscreen;
+  } catch (_) {}
+  const defaultVal = typeof pref === "boolean" ? pref : true;
+  try { el.checked = defaultVal; } catch (_) {}
+
+  // Sync checkbox with current state (if user exited via ESC)
+  try {
+    document.addEventListener("fullscreenchange", () => {
+      try { el.checked = isFullscreen(); } catch (_) {}
+    });
+    document.addEventListener("webkitfullscreenchange", () => {
+      try { el.checked = isFullscreen(); } catch (_) {}
+    });
+  } catch (_) {}
+
+  // Toggle handler
+  el.addEventListener("change", () => {
+    const enabled = !!el.checked;
+    if (enabled && !isFullscreen()) {
+      enterFullscreen();
+    } else if (!enabled && isFullscreen()) {
+      exitFullscreen();
+    }
+    try {
+      const prev = JSON.parse(localStorage.getItem("uiPrefs") || "{}");
+      prev.fullscreen = enabled;
+      localStorage.setItem("uiPrefs", JSON.stringify(prev));
+    } catch (_) {}
+  });
 }
 
 /* ---------------- Utils ---------------- */
