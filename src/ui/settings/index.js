@@ -96,23 +96,7 @@ function ensureSettingsTabs(settingsPanel, t, startInstructionGuide) {
   generalPanel.style.display = "block";
   envPanel.style.display = "none";
 
-  // Inject Fullscreen toggle row into General tab
-  const fsRow = document.createElement("div");
-  fsRow.className = "row";
-  fsRow.innerHTML = `
-    <span class="row-label" data-i18n="settings.general.fullscreen">Fullscreen</span>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <label style="display:flex;align-items:center;gap:8px;">
-        <input type="checkbox" id="fullscreenToggle" />
-        <span data-i18n="settings.general.fullscreenShort">On</span>
-      </label>
-    </div>
-  `;
-  try {
-    generalPanel.insertBefore(fsRow, generalPanel.firstChild || null);
-  } catch (_) {
-    generalPanel.appendChild(fsRow);
-  }
+  /* Fullscreen toggle row is now defined statically in index.html */
 
   const tabBar = document.createElement("div");
   tabBar.className = "tab-bar";
