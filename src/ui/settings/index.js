@@ -64,8 +64,6 @@ function ensureSettingsTabs(settingsPanel, t, startInstructionGuide) {
   generalPanel.className = "tab-panel active";
   const envPanel = document.createElement("div");
   envPanel.className = "tab-panel";
-  const controlsPanel = document.createElement("div");
-  controlsPanel.className = "tab-panel";
 
   rows.forEach((row) => {
     if (row.querySelector("#langVi") || row.querySelector("#settingsInstructions")) {
@@ -83,31 +81,14 @@ function ensureSettingsTabs(settingsPanel, t, startInstructionGuide) {
     }
   });
 
-  if (!controlsPanel.innerHTML) {
-    const r = document.createElement("div");
-    r.className = "row";
-    const lbl = document.createElement("span");
-    lbl.className = "row-label";
-    lbl.setAttribute("data-i18n", "settings.tabs.controls");
-    const val = document.createElement("div");
-    val.style.fontSize = "12px";
-    val.style.opacity = "0.75";
-    val.textContent = "—";
-    r.appendChild(lbl);
-    r.appendChild(val);
-    controlsPanel.appendChild(r);
-  }
-
   generalPanel.style.display = "block";
   envPanel.style.display = "none";
-  controlsPanel.style.display = "none";
 
   const tabBar = document.createElement("div");
   tabBar.className = "tab-bar";
   const tabs = [
     { key: "general", labelKey: "settings.tabs.general", panel: generalPanel },
     { key: "environment", labelKey: "settings.tabs.environment", panel: envPanel },
-    { key: "controls", labelKey: "settings.tabs.controls", panel: controlsPanel },
   ];
   tabs.forEach((tabDef, idx) => {
     const btn = document.createElement("button");
@@ -121,7 +102,7 @@ function ensureSettingsTabs(settingsPanel, t, startInstructionGuide) {
     btn.addEventListener("click", () => {
       tabBar.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      [generalPanel, envPanel, controlsPanel].forEach((p) => {
+      [generalPanel, envPanel].forEach((p) => {
         p.classList.remove("active");
         p.style.display = "none";
       });
@@ -135,7 +116,6 @@ function ensureSettingsTabs(settingsPanel, t, startInstructionGuide) {
   content.appendChild(tabBar);
   content.appendChild(generalPanel);
   content.appendChild(envPanel);
-  content.appendChild(controlsPanel);
   settingsPanel.dataset.tabsReady = "1";
 
   try {

@@ -113,9 +113,6 @@ export function applyTranslations(root = document) {
 export function renderInstructions(container) {
   if (!container) return;
   container.innerHTML = "";
-  const title = document.createElement("div");
-  title.className = "instr-title";
-  title.textContent = t("instructions.title");
   const ul = document.createElement("div");
   const items = t("instructions.items");
   if (Array.isArray(items)) {
@@ -130,7 +127,6 @@ export function renderInstructions(container) {
     li.textContent = items;
     ul.appendChild(li);
   }
-  container.appendChild(title);
   container.appendChild(ul);
 }
 
