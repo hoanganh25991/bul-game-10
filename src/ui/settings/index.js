@@ -234,11 +234,18 @@ function initEnvironmentControls(environment) {
 
   if (envDensity) {
     try {
-      envDensity.value = clamp01i(envDensityIndex, 0, (environment.ENV_PRESETS?.length || 3) - 1);
+      const len = (environment.ENV_PRESETS?.length || 3);
+      const idx = clamp01i(envDensityIndex, 0, len - 1);
+      const uiVal = 1 + Math.round((idx / Math.max(1, len - 1)) * 9);
+      envDensity.value = String(uiVal);
     } catch (_) {}
+    // Show numeric value next to slider (UI scale 1..10)
+    try { attachSliderValueDisplay(envDensity, (v) => String(v)); } catch (_) {}
     const onEnvDensityChange = (ev) => {
-      const v = parseInt(ev.target.value, 10);
-      envDensityIndex = clamp01i(Number.isFinite(v) ? v : 1, 0, (environment.ENV_PRESETS?.length || 3) - 1);
+      const vv = parseInt(ev.target.value, 10);
+      const len = (environment.ENV_PRESETS?.length || 3);
+      const ui = Math.min(Math.max(1, Number.isFinite(vv) ? vv : 5), 10);
+      envDensityIndex = Math.min(Math.max(0, Math.round(((ui - 1) / 9) * (len - 1))), len - 1);
       const preset = environment.ENV_PRESETS?.[envDensityIndex] || {};
       // Recreate environment
       try {
@@ -258,24 +265,28 @@ function initEnvironmentControls(environment) {
       persistEnvPrefs(envRainState, envDensityIndex, envRainLevel);
       environment.setState?.({ env, envRainState, envDensityIndex, envRainLevel });
     };
-    envDensity.addEventListener("input", onEnvDensityChange);
+    // Apply only on commit (no live drag updates)
     envDensity.addEventListener("change", onEnvDensityChange);
   }
 
   if (rainDensity) {
     try {
-      rainDensity.value = clamp01i(envRainLevel, 0, 2);
+      const uiVal = 1 + Math.round((clamp01i(envRainLevel, 0, 2) / 2) * 9);
+      rainDensity.value = String(uiVal);
     } catch (_) {}
+    // Show numeric value next to slider (UI scale 1..10)
+    try { attachSliderValueDisplay(rainDensity, (v) => String(v)); } catch (_) {}
     const onRainDensityChange = (ev) => {
-      const v = parseInt(ev.target.value, 10);
-      envRainLevel = clamp01i(Number.isFinite(v) ? v : 1, 0, 2);
+      const vv = parseInt(ev.target.value, 10);
+      const ui = Math.min(Math.max(1, Number.isFinite(vv) ? vv : 5), 10);
+      envRainLevel = Math.round(((ui - 1) / 9) * 2);
       try {
         env && typeof env.setRainLevel === "function" && env.setRainLevel(envRainLevel);
       } catch (_) {}
       persistEnvPrefs(envRainState, envDensityIndex, envRainLevel);
       environment.setState?.({ env, envRainState, envDensityIndex, envRainLevel });
     };
-    rainDensity.addEventListener("input", onRainDensityChange);
+    // Apply only on commit (no live drag updates)
     rainDensity.addEventListener("change", onRainDensityChange);
   }
 }
@@ -350,8 +361,11 @@ function initZoomControl(render) {
   z = clampNum(z, 0.6, 1.6);
 
   try {
-    sel.value = String(z);
+    const uiVal = 1 + Math.round(((z - 0.6) / 1.0) * 9);
+    sel.value = String(Math.max(1, Math.min(10, uiVal)));
   } catch (_) {}
+  // Show numeric value next to slider (UI scale 1..10)
+  try { attachSliderValueDisplay(sel, (v) => String(v)); } catch (_) {}
 
   try {
     render.cameraOffset?.copy?.(render.baseCameraOffset?.clone?.().multiplyScalar(z));
@@ -359,17 +373,18 @@ function initZoomControl(render) {
 
   if (!sel.dataset.bound) {
     const onChange = () => {
-      const v = clampNum(parseFloat(sel.value), 0.6, 1.6) || 1;
+      const ui = Math.max(1, Math.min(10, parseInt(sel.value, 10) || 5));
+      const zoom = 0.6 + ((ui - 1) / 9) * 1.0;
       try {
-        render.cameraOffset?.copy?.(render.baseCameraOffset?.clone?.().multiplyScalar(v));
+        render.cameraOffset?.copy?.(render.baseCameraOffset?.clone?.().multiplyScalar(zoom));
       } catch (_) {}
       try {
         const prev = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
-        prev.zoom = v;
+        prev.zoom = zoom;
         localStorage.setItem("renderPrefs", JSON.stringify(prev));
       } catch (_) {}
     };
-    sel.addEventListener("input", onChange);
+    // Apply only on commit (no live drag updates)
     sel.addEventListener("change", onChange);
     sel.dataset.bound = "1";
   }
@@ -487,6 +502,45 @@ function showReloadConfirm(t) {
       try { root.remove(); } catch (_) { if (root && root.parentNode) root.parentNode.removeChild(root); }
     }
   });
+}
+
+/* ---------------- Slider value badge ---------------- */
+function attachSliderValueDisplay(inputEl, format) {
+  if (!inputEl || inputEl.dataset.valueBadgeBound === "1") return;
+  const fmt = typeof format === "function" ? format : (v) => String(v);
+
+  // Create a small value bubble right after the input
+  const badge = document.createElement("span");
+  badge.className = "slider-value";
+  Object.assign(badge.style, {
+    marginLeft: "6px",
+    fontSize: "12px",
+    color: "#bfe5ff",
+    opacity: "0.9",
+    minWidth: "36px",
+    textAlign: "right",
+    userSelect: "none"
+  });
+
+  function update() {
+    try {
+      badge.textContent = fmt(inputEl.value);
+    } catch (_) {
+      badge.textContent = String(inputEl.value);
+    }
+  }
+
+  try {
+    inputEl.insertAdjacentElement("afterend", badge);
+  } catch (_) {
+    if (inputEl.parentNode) inputEl.parentNode.appendChild(badge);
+  }
+  update();
+
+  inputEl.addEventListener("input", update);
+  inputEl.addEventListener("change", update);
+
+  inputEl.dataset.valueBadgeBound = "1";
 }
 
 /* ---------------- Utils ---------------- */

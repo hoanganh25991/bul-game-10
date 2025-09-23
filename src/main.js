@@ -324,11 +324,16 @@ if (envRainToggle) {
   });
 }
 if (envDensity) {
-  // set initial slider value (clamped)
-  envDensity.value = Math.min(Math.max(0, envDensityIndex), ENV_PRESETS.length - 1);
+  // set initial slider value on UI scale (1..10)
+  const len = ENV_PRESETS.length;
+  const idx = Math.min(Math.max(0, envDensityIndex), len - 1);
+  const uiVal = 1 + Math.round((idx / Math.max(1, len - 1)) * 9);
+  envDensity.value = String(uiVal);
   const onEnvDensityChange = (ev) => {
-    const v = parseInt(ev.target.value, 10) || 1;
-    envDensityIndex = Math.min(Math.max(0, v), ENV_PRESETS.length - 1);
+    const vv = parseInt(ev.target.value, 10);
+    const len = ENV_PRESETS.length;
+    const ui = Math.min(Math.max(1, Number.isFinite(vv) ? vv : 5), 10);
+    envDensityIndex = Math.min(Math.max(0, Math.round(((ui - 1) / 9) * (len - 1))), len - 1);
     const preset = ENV_PRESETS[envDensityIndex];
     // Recreate environment with new density while preserving rain state and rain level
     try { if (env && env.root && env.root.parent) env.root.parent.remove(env.root); } catch (e) {}
@@ -342,7 +347,6 @@ if (envDensity) {
     // persist
     try { localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex, rainLevel: envRainLevel })); } catch (_) {}
   };
-  envDensity.addEventListener("input", onEnvDensityChange);
   envDensity.addEventListener("change", onEnvDensityChange);
 }
 
@@ -350,16 +354,18 @@ if (envDensity) {
 const rainDensity = document.getElementById("rainDensity");
 if (rainDensity) {
   try {
-    rainDensity.value = Math.min(Math.max(0, Number.isFinite(parseInt(_envPrefs.rainLevel, 10)) ? parseInt(_envPrefs.rainLevel, 10) : 1), 2);
+    const lvl = Math.min(Math.max(0, Number.isFinite(parseInt(_envPrefs.rainLevel, 10)) ? parseInt(_envPrefs.rainLevel, 10) : 1), 2);
+    const uiVal = 1 + Math.round((lvl / 2) * 9);
+    rainDensity.value = String(uiVal);
   } catch (_) {}
   const onRainDensityChange = (ev) => {
-    const v = parseInt(ev.target.value, 10);
-    const lvl = Math.min(Math.max(0, Number.isFinite(v) ? v : 1), 2);
-    envRainLevel = lvl;
-    try { env && typeof env.setRainLevel === "function" && env.setRainLevel(lvl); } catch (_) {}
+    const vv = parseInt(ev.target.value, 10);
+    const ui = Math.min(Math.max(1, Number.isFinite(vv) ? vv : 5), 10);
+    const lvl = Math.round(((ui - 1) / 9) * 2);
+    envRainLevel = Math.min(Math.max(0, lvl), 2);
+    try { env && typeof env.setRainLevel === "function" && env.setRainLevel(envRainLevel); } catch (_) {}
     try { localStorage.setItem("envPrefs", JSON.stringify({ rain: envRainState, density: envDensityIndex, rainLevel: envRainLevel })); } catch (_) {}
   };
-  rainDensity.addEventListener("input", onRainDensityChange);
   rainDensity.addEventListener("change", onRainDensityChange);
 }
 
@@ -416,7 +422,10 @@ function initZoomControl() {
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   z = clamp(Number.isFinite(parseFloat(z)) ? parseFloat(z) : 1, 0.6, 1.6);
 
-  try { sel.value = String(z); } catch (_) {}
+  try {
+    const uiVal = 1 + Math.round(((z - 0.6) / 1.0) * 9);
+    sel.value = String(Math.max(1, Math.min(10, uiVal)));
+  } catch (_) {}
 
   // Apply immediately on init
   try {
@@ -426,17 +435,17 @@ function initZoomControl() {
   // Bind once
   if (!sel.dataset.bound) {
     const onChange = () => {
-      const v = clamp(parseFloat(sel.value), 0.6, 1.6) || 1;
+      const ui = Math.max(1, Math.min(10, parseInt(sel.value, 10) || 5));
+      const zoom = 0.6 + ((ui - 1) / 9) * 1.0;
       try {
-        cameraOffset.copy(_baseCameraOffset.clone().multiplyScalar(v));
+        cameraOffset.copy(_baseCameraOffset.clone().multiplyScalar(zoom));
       } catch (_) {}
       try {
         const prev = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
-        prev.zoom = v;
+        prev.zoom = zoom;
         localStorage.setItem("renderPrefs", JSON.stringify(prev));
       } catch (_) {}
     };
-    sel.addEventListener("input", onChange);
     sel.addEventListener("change", onChange);
     sel.dataset.bound = "1";
   }
@@ -1858,6 +1867,21 @@ window.addEventListener("keydown", (e) => {
     portals.recallToVillage(player, setCenterMsg);
   } else if (k === "s") {
     stopPlayer();
+  } else if (k === "m") {
+    try {
+      const remain = portals.getMarkCooldownMs?.() ?? 0;
+      if (remain > 0) {
+        const s = Math.ceil(remain / 1000);
+        setCenterMsg(`Mark ready in ${s}s`);
+        setTimeout(() => clearCenterMsg(), 1200);
+      } else {
+        const m = portals.addPersistentMarkAt?.(player.pos());
+        if (m) {
+          setCenterMsg("Flag placed");
+          setTimeout(() => clearCenterMsg(), 1100);
+        }
+      }
+    } catch (_) {}
   } else if (k === "escape") {
     // no-op (aiming removed)
   }
