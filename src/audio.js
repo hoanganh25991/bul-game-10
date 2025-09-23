@@ -463,6 +463,54 @@ export const audio = (() => {
     } catch (_) {}
   }
 
+  // Query if any background music is currently active (stream or generative)
+  function isMusicActive() {
+    try {
+      if (state.musicTimer) return true;
+      if (state.streamEl) return !state.streamEl.paused;
+    } catch (_) {}
+    return false;
+  }
+
+  // Ensure background music continues to play. If a stream URL is provided:
+  // - If already streaming same URL, just resume and apply volume/loop
+  // - Otherwise start/restart streaming that URL.
+  // If no URL is provided, resume current stream or start generative music.
+  function ensureBackgroundMusic(url = null, opts = {}) {
+    if (!state.musicEnabled) return;
+    ensureCtx(); resume();
+    if (url) {
+      if (state.streamEl) {
+        const same =
+          typeof state.streamEl.src === "string" &&
+          (state.streamEl.src.indexOf(url) !== -1 || state.streamEl.src === url);
+        if (same) {
+          try {
+            if (typeof opts.volume === "number") setMusicVolume(opts.volume);
+          } catch (_) {}
+          try {
+            if (opts.loop !== undefined) state.streamEl.loop = !!opts.loop;
+          } catch (_) {}
+          try {
+            if (state.streamEl.paused) state.streamEl.play().catch(() => {});
+          } catch (_) {}
+        } else {
+          startStreamMusic(url, opts);
+        }
+      } else {
+        startStreamMusic(url, opts);
+      }
+    } else {
+      if (state.streamEl) {
+        try {
+          if (state.streamEl.paused) state.streamEl.play().catch(() => {});
+        } catch (_) {}
+      } else if (!state.musicTimer) {
+        startMusic();
+      }
+    }
+  }
+
   function attachPageVisibilityHandlers() {
     if (state._focusHandlersAttached) return;
     state._focusHandlersAttached = true;
@@ -470,14 +518,22 @@ export const audio = (() => {
     const onHide = () => { pauseForBackground(); };
     const onShow = () => { resumeFromForeground(); };
 
+    // Only react to actual page/tab visibility changes.
+    // Do NOT pause on window blur/focus, which can occur during in-app UI interactions.
     try {
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "hidden") onHide();
-        else onShow();
-      }, true);
+      document.addEventListener(
+        "visibilitychange",
+        () => {
+          if (document.visibilityState === "hidden") onHide();
+          else onShow();
+        },
+        true
+      );
     } catch (_) {}
-    try { window.addEventListener("blur", onHide, true); } catch (_) {}
-    try { window.addEventListener("focus", onShow, true); } catch (_) {}
+
+    // Optionally handle page lifecycle events (e.g., bfcache)
+    try { window.addEventListener("pagehide", onHide, true); } catch (_) {}
+    try { window.addEventListener("pageshow", onShow, true); } catch (_) {}
   }
 
   return {
@@ -493,6 +549,8 @@ export const audio = (() => {
     setMusicVolume,
     pauseForBackground,
     resumeFromForeground,
+    isMusicActive,
+    ensureBackgroundMusic,
     attachPageVisibilityHandlers,
   };
 })();

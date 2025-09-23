@@ -25,6 +25,14 @@ export function setupSettingsScreen({
       ensureSettingsTabs(settingsPanel, t, startInstructionGuide);
     } catch (_) {}
     settingsPanel?.classList.toggle("hidden");
+    // Ensure background music keeps playing independently of settings visibility
+    try {
+      if (audioCtl?.getMusicEnabled?.()) {
+        audioCtl.audio?.resumeFromForeground?.();
+        // Safe to call; will (re)start stream or resume element on user gesture
+        audioCtl.audio?.startStreamMusic?.("audio/Ice and Snow.mp3", { volume: 0.35, loop: true });
+      }
+    } catch (_) {}
   });
   btnCloseSettings?.addEventListener("click", () => settingsPanel?.classList.add("hidden"));
 

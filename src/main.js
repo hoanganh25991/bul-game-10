@@ -86,7 +86,7 @@ const __startMusicOnce = (ev) => {
   if (!musicEnabled) return;
   try {
     // FreePD CC0: "Ice and Snow" — soft, atmospheric, focus-friendly
-    audio.startStreamMusic("audio/Ice and Snow.mp3", { volume: 0.35, loop: true });
+    audio.ensureBackgroundMusic("audio/Ice and Snow.mp3", { volume: 0.35, loop: true });
   } catch (e) {
     // Fallback to generative if streaming fails
     try { audio.setMusicVolume(0.35); audio.startMusic(); } catch (_) {}
@@ -217,6 +217,7 @@ function showHeroScreen(initialTab = "skills") {
     clearCenterMsg,
     applyMapModifiersToEnemy,
   };
+  try { audio.ensureBackgroundMusic("audio/Ice and Snow.mp3", { volume: 0.35, loop: true }); } catch (_) {}
   try { renderHeroScreenUI(initialTab, ctx); } catch (_) {}
 }
 btnHeroScreen?.addEventListener("click", () => { showHeroScreen("skills"); heroScreen?.classList.remove("hidden"); });
@@ -440,7 +441,7 @@ if (musicToggle) {
     if (musicEnabled) {
       // Start background music immediately
       try {
-        audio.startStreamMusic("audio/Ice and Snow.mp3", { volume: 0.35, loop: true });
+        audio.ensureBackgroundMusic("audio/Ice and Snow.mp3", { volume: 0.35, loop: true });
       } catch (e) {
         try { audio.setMusicVolume(0.35); audio.startMusic(); } catch (_) {}
       }
