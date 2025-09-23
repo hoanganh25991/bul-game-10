@@ -64,6 +64,7 @@ export const audio = (() => {
   // Attach autoplay-safe resume on first user gesture
   function startOnFirstUserGesture(el) {
     if (!el) el = document;
+    try { attachPageVisibilityHandlers(); } catch (_) {}
     const h = () => {
       try { init(); } catch (_) {}
       try {
@@ -441,6 +442,44 @@ export const audio = (() => {
     }
   }
 
+  // Pause/resume helpers for page focus/visibility changes
+  function pauseForBackground() {
+    try {
+      ensureCtx();
+      if (ctx && ctx.state !== "suspended") ctx.suspend();
+    } catch (_) {}
+    // Pause streaming element to stop network/decoding while in background
+    try { if (state.streamEl) state.streamEl.pause(); } catch (_) {}
+  }
+
+  function resumeFromForeground() {
+    try { ensureCtx(); resume(); } catch (_) {}
+    // Resume streamed element if active
+    try {
+      if (state.streamEl) {
+        const p = state.streamEl.play();
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      }
+    } catch (_) {}
+  }
+
+  function attachPageVisibilityHandlers() {
+    if (state._focusHandlersAttached) return;
+    state._focusHandlersAttached = true;
+
+    const onHide = () => { pauseForBackground(); };
+    const onShow = () => { resumeFromForeground(); };
+
+    try {
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") onHide();
+        else onShow();
+      }, true);
+    } catch (_) {}
+    try { window.addEventListener("blur", onHide, true); } catch (_) {}
+    try { window.addEventListener("focus", onShow, true); } catch (_) {}
+  }
+
   return {
     init,
     startOnFirstUserGesture,
@@ -452,5 +491,8 @@ export const audio = (() => {
     setEnabled,
     setSfxVolume,
     setMusicVolume,
+    pauseForBackground,
+    resumeFromForeground,
+    attachPageVisibilityHandlers,
   };
 })();
