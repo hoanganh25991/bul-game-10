@@ -24,7 +24,7 @@ import { loadOrDefault, saveLoadout, resolveLoadout } from "./loadout.js";
 import { audio } from "./audio.js";
 import { createVillagesSystem } from "./villages.js";
 import { createMapManager } from "./maps.js";
-import { initHeroPreview } from "./hero_preview.js";
+import { initHeroPreview } from "./ui/hero/preview.js";
 import { startInstructionGuide as startInstructionGuideOverlay } from "./ui/guide.js";
 import { setupSettingsScreen } from "./ui/settings/index.js";
 import { renderHeroScreen as renderHeroScreenUI } from "./ui/hero/index.js";
