@@ -17,7 +17,7 @@ export function getTargetPixelRatio() {
     return 1;
   }
   if (quality === "medium") {
-    return 1.25;
+    return 1.0;
   }
   if (quality === "high") {
     // Cap to 2x to avoid excessive GPU cost on ultra-high DPI
@@ -32,7 +32,9 @@ export function getTargetPixelRatio() {
  * Appends renderer canvas to document.body.
  */
 export function initWorld() {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+  const prefs = (() => { try { return JSON.parse(localStorage.getItem("renderPrefs") || "{}"); } catch (_) { return {}; } })();
+  const q = typeof prefs.quality === "string" ? prefs.quality : "high";
+  const renderer = new THREE.WebGLRenderer({ antialias: q === "high", alpha: true, powerPreference: "high-performance" });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(getTargetPixelRatio());
   document.body.prepend(renderer.domElement);

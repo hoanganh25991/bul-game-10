@@ -32,6 +32,22 @@ export function startInstructionGuide() {
       desc: "Tap to toggle first-person camera.",
     },
     {
+      key: "portal",
+      get el() {
+        return document.getElementById("btnPortal");
+      },
+      title: "Portal",
+      desc: "Tap to open a teleport portal.",
+    },
+    {
+      key: "mark",
+      get el() {
+        return document.getElementById("btnMark");
+      },
+      title: "Mark Location",
+      desc: "Tap to drop a flag to mark this place on the map.",
+    },
+    {
       key: "skills",
       get el() {
         return document.getElementById("skillWheel") || document.getElementById("btnBasic");

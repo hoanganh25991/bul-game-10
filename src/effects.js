@@ -22,8 +22,13 @@ export function createGroundRing(innerR, outerR, color, opacity = 0.6) {
 
 // Manages transient effects (lines, flashes) and indicator meshes (rings, pings)
 export class EffectsManager {
-  constructor(scene) {
+  constructor(scene, opts = {}) {
     this.scene = scene;
+    this.quality =
+      (opts && opts.quality) ||
+      (typeof localStorage !== "undefined"
+        ? (JSON.parse(localStorage.getItem("renderPrefs") || "{}").quality || "high")
+        : "high");
 
     this.transient = new THREE.Group();
     scene.add(this.transient);
@@ -68,7 +73,8 @@ export class EffectsManager {
     const material = new THREE.LineBasicMaterial({ color, linewidth: 2 });
     const line = new THREE.Line(geometry, material);
     this.transient.add(line);
-    this.queue.push({ obj: line, until: now() + life, fade: true, mat: material });
+    const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
+    this.queue.push({ obj: line, until: now() + life * lifeMul, fade: true, mat: material });
   }
 
   // Jagged electric beam with small fork
@@ -78,7 +84,8 @@ export class EffectsManager {
     const up = new THREE.Vector3(0, 1, 0);
 
     const points = [];
-    for (let i = 0; i <= segments; i++) {
+    const seg = Math.max(4, Math.round(segments * (this.quality === "low" ? 0.5 : (this.quality === "medium" ? 0.75 : 1))));
+    for (let i = 0; i <= seg; i++) {
       const t = i / segments;
       const p = from.clone().lerp(to, t);
       const amp = Math.sin(Math.PI * t) * amplitude;
@@ -92,7 +99,8 @@ export class EffectsManager {
     const material = new THREE.LineBasicMaterial({ color });
     const line = new THREE.Line(geometry, material);
     this.transient.add(line);
-    this.queue.push({ obj: line, until: now() + life, fade: true, mat: material });
+    const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
+    this.queue.push({ obj: line, until: now() + life * lifeMul, fade: true, mat: material });
 
     // occasional fork flicker
     const length = dir.length() || 1;
@@ -103,7 +111,8 @@ export class EffectsManager {
       const m2 = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.8 });
       const l2 = new THREE.Line(g2, m2);
       this.transient.add(l2);
-      this.queue.push({ obj: l2, until: now() + life * 0.7, fade: true, mat: m2 });
+      const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
+      this.queue.push({ obj: l2, until: now() + life * lifeMul * 0.7, fade: true, mat: m2 });
     }
   }
 
@@ -115,12 +124,16 @@ export class EffectsManager {
     const up = new THREE.Vector3(0, 1, 0);
 
     const segments = Math.max(8, Math.min(18, Math.round(8 + length * 0.5)));
+    const seg = Math.max(6, Math.round(segments * (this.quality === "low" ? 0.5 : (this.quality === "medium" ? 0.75 : 1))));
     const amplitude = Math.min(1.2, 0.35 + length * 0.03);
     const count = length < 12 ? 1 : (length < 28 ? 2 : 3);
 
-    for (let n = 0; n < count; n++) {
+    const countCap = this.quality === "low" ? 1 : (this.quality === "medium" ? 2 : 3);
+    const passes = Math.min(count, countCap);
+
+    for (let n = 0; n < passes; n++) {
       const pts = [];
-      for (let i = 0; i <= segments; i++) {
+      for (let i = 0; i <= seg; i++) {
         const t = i / segments;
         const p = from.clone().lerp(to, t);
         const amp = Math.sin(Math.PI * t) * amplitude;
@@ -134,7 +147,8 @@ export class EffectsManager {
       const m = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
       const l = new THREE.Line(g, m);
       this.transient.add(l);
-      this.queue.push({ obj: l, until: now() + life, fade: true, mat: m });
+      const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
+      this.queue.push({ obj: l, until: now() + life * lifeMul, fade: true, mat: m });
     }
 
     if (length > 6) {
@@ -144,7 +158,8 @@ export class EffectsManager {
       const m2 = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.8 });
       const l2 = new THREE.Line(g2, m2);
       this.transient.add(l2);
-      this.queue.push({ obj: l2, until: now() + life * 0.7, fade: true, mat: m2 });
+      const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
+      this.queue.push({ obj: l2, until: now() + life * lifeMul * 0.7, fade: true, mat: m2 });
     }
   }
 
@@ -169,7 +184,7 @@ export class EffectsManager {
     this.spawnBeam(from, to, color, 0.12);
 
     // Radial sparks
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < (this.quality === "low" ? 1 : (this.quality === "medium" ? 2 : 4)); i++) {
       const ang = Math.random() * Math.PI * 2;
       const r = Math.random() * radius;
       const p2 = point.clone().add(new THREE.Vector3(Math.cos(ang) * r, 0.2 + Math.random() * 1.2, Math.sin(ang) * r));
@@ -193,6 +208,10 @@ export class EffectsManager {
    * amount may be a number or string. Color is a hex number.
    */
   spawnDamagePopup(worldPos, amount, color = 0xffe1e1) {
+    // Throttle popups on lower qualities to reduce CanvasTexture churn
+    const q = this.quality || "high";
+    if (q === "low" && Math.random() > 0.3) return;
+    if (q === "medium" && Math.random() > 0.6) return;
     if (!worldPos) return;
     const text = String(Math.floor(Number(amount) || amount));
     const w = 160;
@@ -240,7 +259,8 @@ export class EffectsManager {
   spawnHandCrackle(player, left = false, strength = 1) {
     if (!player) return;
     const origin = left ? leftHandWorldPos(player) : handWorldPos(player);
-    const count = Math.max(1, Math.round(2 + Math.random() * 2 * strength));
+    const qMul = this.quality === "low" ? 0.4 : (this.quality === "medium" ? 0.6 : 1);
+    const count = Math.max(1, Math.round((2 + Math.random() * 2 * strength) * qMul));
     for (let i = 0; i < count; i++) {
       const dir = new THREE.Vector3((Math.random() - 0.5), (Math.random() - 0.2), (Math.random() - 0.5)).normalize();
       const len = 0.35 + Math.random() * 0.5 * strength;

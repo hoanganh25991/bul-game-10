@@ -37,6 +37,16 @@ export class UIManager {
 
     // Center message
     this.deathMsgEl = document.getElementById("deathMsg");
+
+    // Quality-aware minimap throttling to reduce CPU on medium/low devices
+    try {
+      const prefs = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
+      this._quality = prefs && typeof prefs.quality === "string" ? prefs.quality : "high";
+    } catch (_) {
+      this._quality = "high";
+    }
+    this._miniIntervalMs = this._quality === "low" ? 150 : (this._quality === "medium" ? 90 : 0); // ~6-11 FPS
+    this._miniLastT = 0;
   }
 
   getCooldownElements() {
@@ -71,6 +81,13 @@ export class UIManager {
   updateMinimap(player, enemies, portals, villages) {
     const ctx = this.miniCtx;
     if (!ctx || !this.minimap || !player) return;
+
+    // Throttle minimap updates on medium/low to reduce CPU cost
+    const nowT = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    if (this._miniIntervalMs > 0) {
+      if (nowT - (this._miniLastT || 0) < this._miniIntervalMs) return;
+      this._miniLastT = nowT;
+    }
 
     ctx.clearRect(0, 0, 200, 200);
     // background

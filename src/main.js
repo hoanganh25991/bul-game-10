@@ -55,7 +55,12 @@ function getSkillIcon(short) {
 const { renderer, scene, camera, ground, cameraOffset, cameraShake } = initWorld();
 const _baseCameraOffset = cameraOffset.clone();
 const ui = new UIManager();
-const effects = new EffectsManager(scene);
+// Render quality preference (persisted). Default to "high".
+const _renderPrefs = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
+let renderQuality = (typeof _renderPrefs.quality === "string" && ["low", "medium", "high"].includes(_renderPrefs.quality))
+  ? _renderPrefs.quality
+  : "high";
+const effects = new EffectsManager(scene, { quality: renderQuality });
 const mapManager = createMapManager();
 
 // Load environment preferences from localStorage (persist rain + density)
@@ -72,7 +77,7 @@ const ENV_PRESETS = [
 ];
 
 envDensityIndex = Math.min(Math.max(0, envDensityIndex), ENV_PRESETS.length - 1);
-let env = initEnvironment(scene, Object.assign({}, ENV_PRESETS[envDensityIndex], { enableRain: envRainState }));
+let env = initEnvironment(scene, Object.assign({}, ENV_PRESETS[envDensityIndex], { enableRain: envRainState, quality: renderQuality }));
 try {
   if (envRainState && env && typeof env.setRainLevel === "function") {
     env.setRainLevel(Math.min(Math.max(0, envRainLevel), 2));
@@ -89,11 +94,7 @@ const _audioPrefs = JSON.parse(localStorage.getItem("audioPrefs") || "{}");
 let musicEnabled = _audioPrefs.music !== false; // default true
 let sfxEnabled = _audioPrefs.sfx !== false;     // default true
 
-// Render quality preference (persisted). Default to "high".
-const _renderPrefs = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
-let renderQuality = (typeof _renderPrefs.quality === "string" && ["low", "medium", "high"].includes(_renderPrefs.quality))
-  ? _renderPrefs.quality
-  : "high";
+// renderQuality initialized above from renderPrefs
 
 audio.startOnFirstUserGesture(document);
 /* Apply SFX volume per preference (default 0.5 when enabled) */
@@ -331,7 +332,7 @@ if (envDensity) {
     const preset = ENV_PRESETS[envDensityIndex];
     // Recreate environment with new density while preserving rain state and rain level
     try { if (env && env.root && env.root.parent) env.root.parent.remove(env.root); } catch (e) {}
-    env = initEnvironment(scene, Object.assign({}, preset, { enableRain: envRainState }));
+    env = initEnvironment(scene, Object.assign({}, preset, { enableRain: envRainState, quality: renderQuality }));
     try {
       if (envRainState && env && typeof env.setRainLevel === "function") {
         env.setRainLevel(Math.min(Math.max(0, envRainLevel), 2));
@@ -396,6 +397,28 @@ function initQualitySelect() {
       try {
         renderer.setPixelRatio(getTargetPixelRatio());
         renderer.setSize(window.innerWidth, window.innerHeight);
+      } catch (_) {}
+      // Update live quality knobs without reload:
+      try { effects.quality = renderQuality; } catch (_) {}
+      try {
+        ui._quality = renderQuality;
+        ui._miniIntervalMs = renderQuality === "low" ? 150 : (renderQuality === "medium" ? 90 : 0);
+        ui._miniLastT = 0;
+      } catch (_) {}
+      // Re-init environment with new quality (preserve density/rain)
+      try { if (env && env.root && env.root.parent) env.root.parent.remove(env.root); } catch (_) {}
+      try {
+        const preset = ENV_PRESETS[Math.min(Math.max(0, envDensityIndex), ENV_PRESETS.length - 1)];
+        env = initEnvironment(scene, Object.assign({}, preset, { enableRain: envRainState, quality: renderQuality }));
+        if (envRainState && env && typeof env.setRainLevel === "function") {
+          env.setRainLevel(Math.min(Math.max(0, envRainLevel), 2));
+        }
+        updateEnvironmentFollow(env, player);
+      } catch (_) {}
+      // Adjust AI stride according to quality
+      try {
+        __aiStride = renderQuality === "low" ? 3 : (renderQuality === "medium" ? 2 : 1);
+        __aiOffset = 0;
       } catch (_) {}
     });
     sel.dataset.bound = "1";
@@ -1575,8 +1598,14 @@ function applyMapModifiersToEnemy(en) {
   } catch (_) {}
 }
 // Enemies
+const ENEMY_COUNT_BY_QUALITY = {
+  high: WORLD.enemyCount,
+  medium: Math.max(30, Math.floor(WORLD.enemyCount * 0.4)),
+  low: Math.max(20, Math.floor(WORLD.enemyCount * 0.25)),
+};
+const enemyCountTarget = ENEMY_COUNT_BY_QUALITY[renderQuality] || WORLD.enemyCount;
 const enemies = [];
-for (let i = 0; i < WORLD.enemyCount; i++) {
+for (let i = 0; i < enemyCountTarget; i++) {
   const angle = Math.random() * Math.PI * 2;
   const r = WORLD.enemySpawnRadius * (0.4 + Math.random() * 0.8);
   const pos = new THREE.Vector3(
@@ -1912,6 +1941,9 @@ window.addEventListener("keyup", (e) => {
 // ------------------------------------------------------------
 let lastMoveDir = new THREE.Vector3(0, 0, 0);
 let lastT = now();
+
+let __aiStride = renderQuality === "low" ? 3 : (renderQuality === "medium" ? 2 : 1);
+let __aiOffset = 0;
 
 function animate() {
   requestAnimationFrame(animate);
@@ -2255,7 +2287,9 @@ function updatePlayer(dt) {
 }
 
 function updateEnemies(dt) {
-  enemies.forEach((en) => {
+  __aiOffset = (__aiOffset + 1) % __aiStride;
+  enemies.forEach((en, __idx) => {
+    if ((__idx % __aiStride) !== __aiOffset) return;
     if (!en.alive) {
       // Death cleanup, SFX, and XP grant + schedule respawn
       if (!en._xpGranted) {

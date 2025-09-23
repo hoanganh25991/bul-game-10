@@ -34,6 +34,31 @@ export function initEnvironment(scene, options = {}) {
     options
   );
 
+  // Quality preset scaling for environment complexity
+  try { cfg.quality = cfg.quality || (JSON.parse(localStorage.getItem("renderPrefs") || "{}").quality || "high"); } catch (_) { cfg.quality = cfg.quality || "high"; }
+  const __q = cfg.quality;
+  // Scale prop counts based on quality unless explicitly overridden by options
+  if (__q === "medium") {
+    cfg.treeCount = Math.floor(cfg.treeCount * 0.6);
+    cfg.rockCount = Math.floor(cfg.rockCount * 0.6);
+    cfg.flowerCount = Math.floor(cfg.flowerCount * 0.5);
+    cfg.villageCount = Math.max(1, Math.floor(cfg.villageCount * 0.8));
+    cfg.rainCount = Math.floor(cfg.rainCount * 0.6);
+  } else if (__q === "low") {
+    cfg.treeCount = Math.floor(cfg.treeCount * 0.35);
+    cfg.rockCount = Math.floor(cfg.rockCount * 0.45);
+    cfg.flowerCount = Math.floor(cfg.flowerCount * 0.35);
+    cfg.villageCount = 1;
+    cfg.enableWater = false;
+    cfg.rainCount = Math.floor(cfg.rainCount * 0.33);
+  }
+  // Road segments based on quality
+  const __roadSegs = __q === "low" ? 36 : (__q === "medium" ? 80 : 140);
+  // Whether to add light sources on houses (skip on low, dim on medium)
+  const __houseLights = __q === "high" ? "full" : (__q === "medium" ? "dim" : "none");
+  // Fireflies density factor
+  const __fireflyMul = __q === "low" ? 0.25 : (__q === "medium" ? 0.5 : 1);
+
   const root = new THREE.Group();
   root.name = "environment";
   scene.add(root);
@@ -268,16 +293,21 @@ export function initEnvironment(scene, options = {}) {
         house.scale.setScalar(sc);
 
         // Add a warm lantern and small emissive bulb near each house to match village ambiance
-        const lanternLight = new THREE.PointLight(0xffd8a8, 0.9, 6, 2);
-        lanternLight.position.set(0.6, 0.8, 0.6);
-        lanternLight.castShadow = false;
-        house.add(lanternLight);
+        if (__houseLights !== "none") {
+          const intensity = __houseLights === "dim" ? 0.4 : 0.9;
+          const dist = __houseLights === "dim" ? 4 : 6;
+          const decay = 2;
+          const lanternLight = new THREE.PointLight(0xffd8a8, intensity, dist, decay);
+          lanternLight.position.set(0.6, 0.8, 0.6);
+          lanternLight.castShadow = false;
+          house.add(lanternLight);
+        }
 
         const lanternBulb = new THREE.Mesh(
           new THREE.SphereGeometry(0.08, 8, 8),
-          new THREE.MeshStandardMaterial({ emissive: 0xffd8a8, emissiveIntensity: 1.2, color: 0x663300, roughness: 0.7 })
+          new THREE.MeshStandardMaterial({ emissive: 0xffd8a8, emissiveIntensity: (__houseLights === "none" ? 0.9 : 1.2), color: 0x663300, roughness: 0.7 })
         );
-        lanternBulb.position.copy(lanternLight.position);
+        lanternBulb.position.set(0.6, 0.8, 0.6);
         house.add(lanternBulb);
 
         // small ground decoration near house entrance
@@ -355,7 +385,7 @@ export function initEnvironment(scene, options = {}) {
         const ctrl = mid.clone().addScaledVector(perp, (i % 2 === 0 ? 1 : -1) * curveAmt);
         ctrl.y = 0.0;
 
-        const road = createCurvedRoad([a, ctrl, b], 6, 140, 0x2b2420);
+        const road = createCurvedRoad([a, ctrl, b], 6, __roadSegs, 0x2b2420);
         roadsGroup.add(road);
       }
 
@@ -368,7 +398,8 @@ export function initEnvironment(scene, options = {}) {
   // Fireflies: small glowing points around village centers for ambiance
   const fireflies = new THREE.Group();
   villageCenters.forEach((center, idx) => {
-    const count = 24 + Math.floor(Math.random() * 16);
+    const baseCount = 24 + Math.floor(Math.random() * 16);
+    const count = Math.max(0, Math.floor(baseCount * __fireflyMul));
     const positions = new Float32Array(count * 3);
     for (let j = 0; j < count; j++) {
       const a = Math.random() * Math.PI * 2;
@@ -448,6 +479,7 @@ export function initEnvironment(scene, options = {}) {
   // ----------------
   // Update loop (animate water & rain)
   // ----------------
+  let __lastSwayT = 0;
   function update(t, dt) {
     // simple water shimmer: slightly change rotation/scale or material roughness
     if (water && water.material) {
@@ -462,13 +494,17 @@ export function initEnvironment(scene, options = {}) {
     }
 
     // subtle tree/foliage sway: animate any object with userData.swayPhase
-    root.traverse((obj) => {
-      if (obj.userData && typeof obj.userData.swayPhase !== "undefined") {
-        const phase = obj.userData.swayPhase || 0;
-        const amp = obj.userData.swayAmp || 0.006;
-        obj.rotation.z = Math.sin(t + phase) * amp;
-      }
-    });
+    const doSway = (__q === "high") || (__q === "medium" && (t - __lastSwayT) > 0.12);
+    if (doSway) {
+      __lastSwayT = t;
+      root.traverse((obj) => {
+        if (obj.userData && typeof obj.userData.swayPhase !== "undefined") {
+          const phase = obj.userData.swayPhase || 0;
+          const amp = obj.userData.swayAmp || 0.006;
+          obj.rotation.z = Math.sin(t + phase) * amp;
+        }
+      });
+    }
 
     if (rain.enabled && rain.points) {
       const pos = rain.points.geometry.attributes.position.array;
