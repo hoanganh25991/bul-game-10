@@ -1,0 +1,627 @@
+/* Hero Screen UI (Skills/Info/Skillbook/Maps/Marks)
+   Extracted from main.js into a reusable module.
+   Usage:
+     import { renderHeroScreen } from "./ui/hero/index.js";
+     renderHeroScreen("skills", { ...ctx });
+*/
+import { SCALING } from "../../constants.js";
+
+function getSkillIcon(short) {
+  if (!short) return "—";
+  const k = String(short).slice(0, 3).toLowerCase();
+  const map = {
+    chn: "⚡",
+    bol: "⚡",
+    stc: "🔌",
+    str: "⛈️",
+    bam: "🔋",
+    nov: "✴️",
+    aoe: "💥",
+    "n/a": "⚡",
+    atk: "⚡",
+  };
+  return map[k] || "⚡";
+}
+
+export function renderHeroScreen(initialTab = "skills", ctx = {}) {
+  const {
+    t,
+    player,
+    SKILL_POOL,
+    DEFAULT_LOADOUT,
+    currentLoadout,
+    setLoadoutAndSave,
+    updateSkillBarLabels,
+    mapManager,
+    portals,
+    enemies,
+    effects,
+    WORLD,
+    setCenterMsg,
+    clearCenterMsg,
+    applyMapModifiersToEnemy,
+  } = ctx;
+
+  // Ensure tab structure on right side
+  const layout = document.querySelector("#heroScreen .hero-layout");
+  const listContainer = document.getElementById("heroSkillsList");
+  if (!layout || !listContainer) return;
+  layout.innerHTML = "";
+
+  const title = document.createElement("h2");
+  try {
+    title.setAttribute("data-i18n", "hero.title");
+    title.textContent = t ? t("hero.title") : "Zeus";
+  } catch (_) {
+    title.textContent = "Zeus";
+  }
+  layout.appendChild(title);
+
+  // Tab bar (Skills / Info / Skillbook / Maps / Marks)
+  const tabBar = document.createElement("div");
+  tabBar.className = "tab-bar";
+  const skillsBtn = document.createElement("button");
+  skillsBtn.className = "tab-btn" + ((initialTab !== "info" && initialTab !== "book" && initialTab !== "maps" && initialTab !== "marks") ? " active" : "");
+  skillsBtn.setAttribute("data-i18n", "hero.tabs.skills");
+  skillsBtn.textContent = (t && t("hero.tabs.skills")) || "Skills";
+  const infoBtn = document.createElement("button");
+  infoBtn.className = "tab-btn" + (initialTab === "info" ? " active" : "");
+  infoBtn.setAttribute("data-i18n", "hero.tabs.info");
+  infoBtn.textContent = (t && t("hero.tabs.info")) || "Info";
+  const bookBtn = document.createElement("button");
+  bookBtn.className = "tab-btn" + (initialTab === "book" ? " active" : "");
+  bookBtn.setAttribute("data-i18n", "hero.tabs.skillbook");
+  bookBtn.textContent = (t && t("hero.tabs.skillbook")) || "Skillbook";
+  const mapsBtn = document.createElement("button");
+  mapsBtn.className = "tab-btn" + (initialTab === "maps" ? " active" : "");
+  mapsBtn.setAttribute("data-i18n", "hero.tabs.maps");
+  mapsBtn.textContent = (t && t("hero.tabs.maps")) || "Maps";
+  const marksBtn = document.createElement("button");
+  marksBtn.className = "tab-btn" + (initialTab === "marks" ? " active" : "");
+  marksBtn.setAttribute("data-i18n", "hero.tabs.marks");
+  marksBtn.textContent = (t && t("hero.tabs.marks")) || "Marks";
+  tabBar.appendChild(skillsBtn);
+  tabBar.appendChild(infoBtn);
+  tabBar.appendChild(bookBtn);
+  tabBar.appendChild(mapsBtn);
+  tabBar.appendChild(marksBtn);
+  layout.appendChild(tabBar);
+
+  // Panels
+  const infoPanel = document.createElement("div");
+  infoPanel.className = "tab-panel" + (initialTab === "info" ? " active" : "");
+  const skillsPanel = document.createElement("div");
+  skillsPanel.className = "tab-panel" + ((initialTab !== "info" && initialTab !== "book" && initialTab !== "maps" && initialTab !== "marks") ? " active" : "");
+  const bookPanel = document.createElement("div");
+  bookPanel.className = "tab-panel" + (initialTab === "book" ? " active" : "");
+  const mapsPanel = document.createElement("div");
+  mapsPanel.className = "tab-panel" + (initialTab === "maps" ? " active" : "");
+  const marksPanel = document.createElement("div");
+  marksPanel.className = "tab-panel" + (initialTab === "marks" ? " active" : "");
+  // Initialize visibility based on initialTab
+  infoPanel.style.display = (initialTab === "info") ? "block" : "none";
+  skillsPanel.style.display = ((initialTab !== "info" && initialTab !== "book" && initialTab !== "maps" && initialTab !== "marks") ? "block" : "none");
+  bookPanel.style.display = (initialTab === "book") ? "block" : "none";
+  mapsPanel.style.display = (initialTab === "maps") ? "block" : "none";
+  marksPanel.style.display = (initialTab === "marks") ? "block" : "none";
+
+  // Info content
+  const info = document.createElement("div");
+  info.className = "hero-info";
+  try {
+    info.innerHTML = `<div>${t ? t("hero.info.level") : "Level"}: ${player.level || 1}</div><div>${t ? t("hero.info.hp") : "HP"}: ${Math.floor(player.hp)}/${player.maxHP}</div><div>${t ? t("hero.info.mp") : "MP"}: ${Math.floor(player.mp)}/${player.maxMP}</div>`;
+  } catch (_) {
+    info.textContent = "—";
+  }
+  infoPanel.appendChild(info);
+
+  // Skills content
+  const container = document.createElement("div");
+  container.id = "heroSkillsList";
+  skillsPanel.appendChild(container);
+
+  // Loadout slots (Q W E R)
+  const keys = ["Q", "W", "E", "R"];
+  const slotsWrap = document.createElement("div");
+  slotsWrap.className = "loadout-slots";
+  for (let i = 0; i < 4; i++) {
+    const slot = document.createElement("div");
+    slot.className = "loadout-slot";
+    slot.dataset.slotIndex = String(i);
+    const skillId = currentLoadout[i];
+    const skillDef = SKILL_POOL.find((s) => s.id === skillId);
+    slot.innerHTML = `<div class="slot-key">${keys[i]}</div>
+                      <div class="skill-icon">${getSkillIcon(skillDef ? skillDef.short : null)}</div>
+                      <div class="slot-short">${skillDef ? skillDef.short : "—"}</div>
+                      <div class="slot-name">${skillDef ? skillDef.name : (t ? t("hero.slot.empty") : "Empty")}</div>
+                      <button class="slot-clear">${(t && t("hero.slot.clear")) || "Clear"}</button>`;
+    slotsWrap.appendChild(slot);
+  }
+  container.appendChild(slotsWrap);
+
+  const poolHeader = document.createElement("div");
+  poolHeader.className = "skill-pool-header";
+  poolHeader.textContent = (t && t("hero.pool")) || "Skill Pool";
+  container.appendChild(poolHeader);
+
+  const poolWrap = document.createElement("div");
+  poolWrap.className = "skill-pool";
+  SKILL_POOL.forEach((s) => {
+    const el = document.createElement("div");
+    el.className = "skill-pool-item";
+    el.dataset.skillId = s.id;
+    el.innerHTML = `<div class="skill-icon">${getSkillIcon(s.short)}</div><div class="skill-name">${s.name}</div><button class="assign">${(t && t("hero.assign")) || "Assign"}</button>`;
+    poolWrap.appendChild(el);
+  });
+  container.appendChild(poolWrap);
+
+  const actions = document.createElement("div");
+  actions.className = "hero-actions";
+  const resetBtn = document.createElement("button");
+  resetBtn.textContent = (t && t("hero.slot.reset")) || "Reset";
+  resetBtn.addEventListener("click", () => {
+    const next = DEFAULT_LOADOUT.slice();
+    try {
+      setLoadoutAndSave(next);
+      renderHeroScreen("skills", ctx);
+      updateSkillBarLabels && updateSkillBarLabels();
+    } catch (_) {}
+  });
+  actions.appendChild(resetBtn);
+  container.appendChild(actions);
+
+  // Interaction handling
+  let selectedSlotIndex = null;
+  slotsWrap.querySelectorAll(".loadout-slot").forEach((slotEl) => {
+    slotEl.addEventListener("click", () => {
+      slotsWrap.querySelectorAll(".loadout-slot").forEach((s) => s.classList.remove("selected"));
+      slotEl.classList.add("selected");
+      selectedSlotIndex = parseInt(slotEl.dataset.slotIndex, 10);
+    });
+    const clearBtn = slotEl.querySelector(".slot-clear");
+    clearBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const idx = parseInt(slotEl.dataset.slotIndex, 10);
+      const next = currentLoadout.slice();
+      next[idx] = null;
+      try {
+        setLoadoutAndSave(next);
+        renderHeroScreen("skills", ctx);
+        updateSkillBarLabels && updateSkillBarLabels();
+      } catch (_) {}
+    });
+  });
+  poolWrap.querySelectorAll(".skill-pool-item").forEach((itemEl) => {
+    const skillId = itemEl.dataset.skillId;
+    itemEl.addEventListener("click", () => {
+      const slotToAssign = selectedSlotIndex !== null ? selectedSlotIndex : 0;
+      const next = currentLoadout.slice();
+      next[slotToAssign] = skillId;
+      try {
+        setLoadoutAndSave(next);
+        renderHeroScreen("skills", ctx);
+        updateSkillBarLabels && updateSkillBarLabels();
+      } catch (_) {}
+    });
+    const btn = itemEl.querySelector(".assign");
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const slotToAssign = selectedSlotIndex !== null ? selectedSlotIndex : 0;
+      const next = currentLoadout.slice();
+      next[slotToAssign] = skillId;
+      try {
+        setLoadoutAndSave(next);
+        renderHeroScreen("skills", ctx);
+        updateSkillBarLabels && updateSkillBarLabels();
+      } catch (_) {}
+    });
+  });
+
+  // Build Skillbook panel content (list + details + preview)
+  (function buildSkillbookPanel() {
+    const wrap = document.createElement("div");
+    wrap.className = "skillbook";
+    wrap.style.display = "grid";
+    wrap.style.gridTemplateColumns = "1fr 2fr";
+    wrap.style.gap = "12px";
+
+    const list = document.createElement("div");
+    list.className = "skillbook-list";
+    list.style.maxHeight = "340px";
+    list.style.overflow = "auto";
+    const ul = document.createElement("div");
+    ul.style.display = "flex";
+    ul.style.flexDirection = "column";
+    ul.style.gap = "6px";
+    list.appendChild(ul);
+
+    const detail = document.createElement("div");
+    detail.className = "skillbook-detail";
+    detail.style.minHeight = "240px";
+    detail.style.padding = "8px";
+    detail.style.border = "1px solid rgba(255,255,255,0.1)";
+    detail.style.borderRadius = "6px";
+    const title = document.createElement("h3");
+    const icon = document.createElement("div");
+    icon.style.fontSize = "28px";
+    const stats = document.createElement("div");
+    stats.style.fontSize = "12px";
+    stats.style.opacity = "0.9";
+    stats.style.lineHeight = "1.6";
+    const expl = document.createElement("div");
+    expl.style.marginTop = "6px";
+    const imgBox = document.createElement("div");
+    imgBox.style.marginTop = "8px";
+    const previewBtn = document.createElement("button");
+    previewBtn.textContent = "Preview";
+    previewBtn.style.marginTop = "10px";
+
+    detail.appendChild(title);
+    detail.appendChild(icon);
+    detail.appendChild(stats);
+    detail.appendChild(expl);
+    detail.appendChild(imgBox);
+    detail.appendChild(previewBtn);
+
+    const typeExplain = {
+      chain: "Chains between nearby enemies, hitting multiple targets.",
+      aoe: "Ground-targeted area. Damages enemies within its radius.",
+      aura: "Toggle aura around hero. Ticks damage periodically while draining mana.",
+      storm: "Multiple random strikes in a radius over time.",
+      beam: "Instant zap to nearest enemy in range.",
+      nova: "Radial burst around hero.",
+      heal: "Restores hero HP instantly.",
+      mana: "Restores hero MP instantly.",
+      buff: "Temporarily increases damage and speed.",
+      dash: "Quickly dash forward.",
+      blink: "Teleport toward direction/point.",
+      clone: "Summons a lightning image that periodically zaps nearby foes.",
+    };
+
+    function computeDamage(s) {
+      const base = s.dmg || 0;
+      const lvl = Math.max(1, (player && player.level) || 1);
+      const mult = Math.pow(SCALING.hero.skillDamageGrowth, Math.max(0, lvl - 1));
+      return Math.floor(base * mult);
+    }
+
+    function renderDetail(s) {
+      title.textContent = `${s.name} (${s.short || ""})`;
+      icon.textContent = getSkillIcon(s.short || s.name);
+      const dmgLine = typeof s.dmg === "number" ? `Damage: ${computeDamage(s)} (base ${s.dmg})` : "";
+      const lines = [
+        `Type: ${s.type}`,
+        s.cd != null ? `Cooldown: ${s.cd}s` : "",
+        s.mana != null ? `Mana: ${s.mana}` : "",
+        s.radius != null ? `Radius: ${s.radius}` : "",
+        s.range != null ? `Range: ${s.range}` : "",
+        s.jumps != null ? `Jumps: ${s.jumps}` : "",
+        s.jumpRange != null ? `Jump Range: ${s.jumpRange}` : "",
+        s.tick != null ? `Tick: ${s.tick}s` : "",
+        s.duration != null ? `Duration: ${s.duration}s` : "",
+        s.slowFactor != null ? `Slow: ${Math.round(s.slowFactor * 100)}%` : "",
+        s.slowDuration != null ? `Slow Duration: ${s.slowDuration}s` : "",
+        dmgLine,
+      ].filter(Boolean);
+      stats.innerHTML = lines.map((x) => `<div>${x}</div>`).join("");
+      expl.textContent = typeExplain[s.type] || "No description.";
+      imgBox.innerHTML = "";
+      const ph = document.createElement("div");
+      ph.style.fontSize = "40px";
+      ph.style.opacity = "0.9";
+      ph.textContent = getSkillIcon(s.short || s.name);
+      imgBox.appendChild(ph);
+      previewBtn.onclick = () => {
+        try {
+          window.__skillsRef && window.__skillsRef.previewSkill(s);
+        } catch (_) {}
+      };
+    }
+
+    SKILL_POOL.forEach((s) => {
+      const btn = document.createElement("button");
+      btn.className = "skillbook-item";
+      btn.style.display = "flex";
+      btn.style.alignItems = "center";
+      btn.style.gap = "8px";
+      const ic = document.createElement("span");
+      ic.textContent = getSkillIcon(s.short || s.name);
+      const nm = document.createElement("span");
+      nm.textContent = s.name;
+      btn.appendChild(ic);
+      btn.appendChild(nm);
+      btn.addEventListener("click", () => renderDetail(s));
+      ul.appendChild(btn);
+    });
+
+    try {
+      if (SKILL_POOL.length) renderDetail(SKILL_POOL[0]);
+    } catch (_) {}
+
+    wrap.appendChild(list);
+    wrap.appendChild(detail);
+    bookPanel.appendChild(wrap);
+  })();
+
+  // Build Maps panel content (scrollable list + set active)
+  (function buildMapsPanel() {
+    if (!mapManager) return;
+    const wrap = document.createElement("div");
+    wrap.className = "maps-panel";
+    wrap.style.display = "flex";
+    wrap.style.flexDirection = "column";
+    wrap.style.gap = "8px";
+
+    const title = document.createElement("h3");
+    title.textContent = (t && t("hero.tabs.maps")) || "Maps";
+    wrap.appendChild(title);
+
+    const list = document.createElement("div");
+    list.style.display = "flex";
+    list.style.flexDirection = "column";
+    list.style.gap = "8px";
+    list.style.maxHeight = "300px";
+    list.style.overflow = "auto";
+    wrap.appendChild(list);
+
+    function renderMaps() {
+      list.innerHTML = "";
+      try {
+        const items = mapManager.listMaps?.() || [];
+        items.forEach((m) => {
+          const row = document.createElement("div");
+          row.style.display = "grid";
+          row.style.gridTemplateColumns = "64px 1fr auto";
+          row.style.gap = "12px";
+          row.style.border = "1px solid rgba(255,255,255,0.1)";
+          row.style.borderRadius = "8px";
+          row.style.padding = "8px";
+
+          const thumb = document.createElement("div");
+          thumb.style.width = "64px";
+          thumb.style.height = "64px";
+          thumb.style.borderRadius = "6px";
+          thumb.style.background = "linear-gradient(135deg, rgba(124,196,255,0.15), rgba(255,255,255,0.06))";
+          thumb.style.border = "1px solid rgba(255,255,255,0.12)";
+          thumb.style.overflow = "hidden";
+          if (m.img) {
+            thumb.style.backgroundImage = `url(${m.img})`;
+            thumb.style.backgroundSize = "cover";
+            thumb.style.backgroundPosition = "center";
+            if (m.imgHint) thumb.title = m.imgHint;
+          } else {
+            const ph = document.createElement("div");
+            ph.style.width = "100%";
+            ph.style.height = "100%";
+            ph.style.display = "flex";
+            ph.style.alignItems = "center";
+            ph.style.justifyContent = "center";
+            ph.style.fontWeight = "700";
+            ph.style.opacity = "0.7";
+            ph.textContent = (m.name || "").slice(0, 2).toUpperCase();
+            thumb.appendChild(ph);
+          }
+
+          const info = document.createElement("div");
+          const title = document.createElement("div");
+          title.style.fontWeight = "600";
+          title.textContent = `${m.name}${m.current ? " • Current" : ""}${(!m.unlocked ? " • Locked" : "")}`;
+          const desc = document.createElement("div");
+          desc.style.fontSize = "12px";
+          desc.style.opacity = "0.85";
+          desc.textContent = m.desc || "";
+          const req = document.createElement("div");
+          req.style.fontSize = "12px";
+          req.style.opacity = "0.7";
+          req.textContent = `Requires Lv ${m.requiredLevel}`;
+          const elites = document.createElement("div");
+          elites.style.fontSize = "12px";
+          elites.style.opacity = "0.9";
+          elites.style.marginTop = "4px";
+          elites.textContent = (m.strongEnemies && m.strongEnemies.length) ? `Elites: ${m.strongEnemies.join(", ")}` : "";
+
+          info.appendChild(title);
+          info.appendChild(desc);
+          info.appendChild(req);
+          if (elites.textContent) info.appendChild(elites);
+
+          const act = document.createElement("div");
+          const btn = document.createElement("button");
+          if (m.current) {
+            btn.textContent = "Active";
+            btn.disabled = true;
+          } else if (!m.unlocked) {
+            btn.textContent = "Locked";
+            btn.disabled = true;
+          } else {
+            btn.textContent = "Set Active";
+            btn.addEventListener("click", () => {
+              try {
+                if (mapManager.setCurrent?.(m.index)) {
+                  enemies?.forEach?.((en) => applyMapModifiersToEnemy && applyMapModifiersToEnemy(en));
+                  setCenterMsg && setCenterMsg(`Switched to ${m.name}`);
+                  setTimeout(() => clearCenterMsg && clearCenterMsg(), 1100);
+                  renderMaps();
+                }
+              } catch (_) {}
+            });
+          }
+          act.appendChild(btn);
+
+          row.appendChild(thumb);
+          row.appendChild(info);
+          row.appendChild(act);
+          list.appendChild(row);
+        });
+      } catch (_) {}
+    }
+
+    renderMaps();
+    mapsPanel.appendChild(wrap);
+  })();
+
+  // Build Marks panel content (table + teleport/remove/rename + cooldown status)
+  (function buildMarksPanel() {
+    if (!portals) return;
+    const wrap = document.createElement("div");
+    wrap.className = "marks-panel";
+    wrap.style.display = "flex";
+    wrap.style.flexDirection = "column";
+    wrap.style.gap = "12px";
+
+    const head = document.createElement("div");
+    head.style.display = "flex";
+    head.style.alignItems = "center";
+    head.style.justifyContent = "space-between";
+    const titleMarks = document.createElement("h3");
+    titleMarks.textContent = (t && t("hero.tabs.marks")) || "Marks";
+    const cd = document.createElement("span");
+    cd.style.fontSize = "12px";
+    cd.style.opacity = "0.8";
+    head.appendChild(titleMarks);
+    head.appendChild(cd);
+
+    const list = document.createElement("div");
+    list.style.display = "grid";
+    list.style.gridTemplateColumns = "1fr auto auto auto";
+    list.style.rowGap = "6px";
+    list.style.columnGap = "8px";
+    list.style.alignItems = "center";
+    list.style.maxHeight = "240px";
+    list.style.overflow = "auto";
+
+    function fmtTime(ts) {
+      try {
+        const d = new Date(ts);
+        return d.toLocaleString();
+      } catch (_) {
+        return String(ts);
+      }
+    }
+    function render() {
+      list.innerHTML = "";
+      try {
+        const arr = portals.listPersistentMarks?.() || [];
+        if (!arr.length) {
+          list.innerHTML = "";
+          const empty = document.createElement("div");
+          empty.style.opacity = "0.8";
+          empty.style.fontSize = "12px";
+          empty.textContent = "No marks yet. Use the 🚩 Mark button to place a flag.";
+          list.appendChild(empty);
+        } else {
+          arr.forEach((m) => {
+            const info = document.createElement("div");
+            const nm = (m.name && String(m.name).trim()) ? m.name : `Mark ${m.index + 1}`;
+            info.textContent = `${nm} • (${Math.round(m.x)}, ${Math.round(m.z)}) • ${fmtTime(m.createdAt)}`;
+
+            const rn = document.createElement("button");
+            rn.textContent = "Rename";
+            rn.addEventListener("click", () => {
+              try {
+                const newName = prompt("Enter mark name", nm);
+                if (newName != null) {
+                  portals.renamePersistentMark?.(m.index, newName);
+                  render();
+                }
+              } catch (_) {}
+            });
+
+            const tp = document.createElement("button");
+            tp.textContent = "Teleport";
+            tp.addEventListener("click", () => {
+              try {
+                portals.teleportToMark?.(m.index, player);
+              } catch (_) {}
+            });
+
+            const rm = document.createElement("button");
+            rm.textContent = "Remove";
+            rm.addEventListener("click", () => {
+              try {
+                portals.removePersistentMark?.(m.index);
+                render();
+              } catch (_) {}
+            });
+
+            list.appendChild(info);
+            list.appendChild(rn);
+            list.appendChild(tp);
+            list.appendChild(rm);
+          });
+        }
+      } catch (_) {}
+    }
+
+    function tickCooldown() {
+      try {
+        const ms = portals.getMarkCooldownMs?.() || 0;
+        if (ms <= 0) {
+          cd.textContent = "Ready";
+        } else {
+          const s = Math.ceil(ms / 1000);
+          const m = Math.floor(s / 60);
+          const r = s % 60;
+          cd.textContent = `Cooldown: ${m > 0 ? m + "m " : ""}${r}s`;
+        }
+      } catch (_) {}
+    }
+
+    try {
+      clearInterval(window.__marksPanelTick);
+    } catch (_) {}
+    window.__marksPanelTick = setInterval(tickCooldown, 500);
+    tickCooldown();
+    render();
+
+    wrap.appendChild(head);
+    wrap.appendChild(list);
+    marksPanel.appendChild(wrap);
+  })();
+
+  // Append panels
+  layout.appendChild(infoPanel);
+  layout.appendChild(skillsPanel);
+  layout.appendChild(bookPanel);
+  layout.appendChild(mapsPanel);
+  layout.appendChild(marksPanel);
+
+  // Tab switching
+  function activate(panel) {
+    [infoBtn, skillsBtn, bookBtn, mapsBtn, marksBtn].forEach((b) => b.classList.remove("active"));
+    [infoPanel, skillsPanel, bookPanel, mapsPanel, marksPanel].forEach((p) => {
+      p.classList.remove("active");
+      p.style.display = "none";
+    });
+    if (panel === "info") {
+      infoBtn.classList.add("active");
+      infoPanel.classList.add("active");
+      infoPanel.style.display = "block";
+    } else if (panel === "book") {
+      bookBtn.classList.add("active");
+      bookPanel.classList.add("active");
+      bookPanel.style.display = "block";
+    } else if (panel === "maps") {
+      mapsBtn.classList.add("active");
+      mapsPanel.classList.add("active");
+      mapsPanel.style.display = "block";
+    } else if (panel === "marks") {
+      marksBtn.classList.add("active");
+      marksPanel.classList.add("active");
+      marksPanel.style.display = "block";
+    } else {
+      skillsBtn.classList.add("active");
+      skillsPanel.classList.add("active");
+      skillsPanel.style.display = "block";
+    }
+  }
+  infoBtn.addEventListener("click", () => activate("info"));
+  skillsBtn.addEventListener("click", () => activate("skills"));
+  bookBtn.addEventListener("click", () => activate("book"));
+  mapsBtn.addEventListener("click", () => activate("maps"));
+  marksBtn.addEventListener("click", () => activate("marks"));
+
+  try {
+    window.applyTranslations && window.applyTranslations(document.getElementById("heroScreen"));
+  } catch (_) {}
+}

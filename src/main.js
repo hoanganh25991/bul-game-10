@@ -25,6 +25,9 @@ import { audio } from "./audio.js";
 import { createVillagesSystem } from "./villages.js";
 import { createMapManager } from "./maps.js";
 import { initHeroPreview } from "./hero_preview.js";
+import { startInstructionGuide as startInstructionGuideOverlay } from "./ui/guide.js";
+import { setupSettingsScreen } from "./ui/settings/index.js";
+import { renderHeroScreen as renderHeroScreenUI } from "./ui/hero/index.js";
 
 /**
  * Minimal skill icon helper: returns a small emoji/SVG placeholder for a skill short name.
@@ -174,18 +177,68 @@ function setFirstPerson(enabled) {
   }
 }
 
- // Settings handlers
- btnSettingsScreen?.addEventListener("click", () => {
-   try {
-     ensureSettingsTabs();
-     ensureGuideButton();
-   } catch(e) {}
-   settingsPanel?.classList.toggle("hidden");
+ // Settings handlers (refactored)
+ const audioCtl = {
+   audio,
+   getMusicEnabled: () => musicEnabled,
+   setMusicEnabled: (v) => { musicEnabled = !!v; try { localStorage.setItem("audioPrefs", JSON.stringify({ music: musicEnabled, sfx: sfxEnabled })); } catch (_) {} },
+   getSfxEnabled: () => sfxEnabled,
+   setSfxEnabled: (v) => { sfxEnabled = !!v; try { localStorage.setItem("audioPrefs", JSON.stringify({ music: musicEnabled, sfx: sfxEnabled })); } catch (_) {} },
+ };
+ const environmentCtx = {
+   scene,
+   ENV_PRESETS,
+   initEnvironment,
+   updateEnvironmentFollow,
+   get player() { return player; },
+   getState: () => ({ env, envRainState, envDensityIndex, envRainLevel }),
+   setState: (st) => {
+     env = st.env ?? env;
+     envRainState = st.envRainState ?? envRainState;
+     envDensityIndex = st.envDensityIndex ?? envDensityIndex;
+     envRainLevel = st.envRainLevel ?? envRainLevel;
+   },
+ };
+ const renderCtx = {
+   renderer,
+   cameraOffset,
+   baseCameraOffset: _baseCameraOffset,
+   getQuality: () => renderQuality,
+   setQuality: (q) => { renderQuality = q; },
+   getTargetPixelRatio: () => getTargetPixelRatio(),
+ };
+ setupSettingsScreen({
+   t,
+   startInstructionGuide: () => startInstructionGuideOverlay(),
+   elements: { btnSettingsScreen, btnCloseSettings, settingsPanel },
+   environment: environmentCtx,
+   render: renderCtx,
+   audioCtl,
  });
- btnCloseSettings?.addEventListener("click", () => settingsPanel?.classList.add("hidden"));
 
  // Hero open/close
- btnHeroScreen?.addEventListener("click", () => { renderHeroScreen("skills"); heroScreen?.classList.remove("hidden"); });
+ // Thin wrapper to render hero screen using modular UI
+ function showHeroScreen(initialTab = "skills") {
+   const ctx = {
+     t,
+     player,
+     SKILL_POOL,
+     DEFAULT_LOADOUT,
+     currentLoadout,
+     setLoadoutAndSave,
+     updateSkillBarLabels,
+     mapManager,
+     portals,
+     enemies,
+     effects,
+     WORLD,
+     setCenterMsg,
+     clearCenterMsg,
+     applyMapModifiersToEnemy,
+   };
+   try { renderHeroScreenUI(initialTab, ctx); } catch (_) {}
+ }
+ btnHeroScreen?.addEventListener("click", () => { showHeroScreen("skills"); heroScreen?.classList.remove("hidden"); });
  btnCloseHero?.addEventListener("click", () => { heroScreen?.classList.add("hidden"); });
  btnCloseHeroIcon?.addEventListener("click", () => { heroScreen?.classList.add("hidden"); });
 
@@ -516,7 +569,7 @@ function ensureSettingsTabs(){
       btn.title = "Show guide";
       btn.innerHTML = "👋 Guide";
       btn.addEventListener("click", () => {
-        try { startInstructionGuide(); } catch (_) {}
+        try { startInstructionGuideOverlay(); } catch (_) {}
       });
       instrRow.appendChild(btn);
     }
@@ -547,9 +600,7 @@ function ensureGuideButton() {
     }
   } catch (_) {}
 }
-// Build once on load (in case user opens immediately)
-// Build once on load (in case user opens immediately)
-try { ensureSettingsTabs(); ensureGuideButton(); } catch(e) {}
+// Settings UI initialized via setupSettingsScreen()
 
 // Selection/aim indicators
 /* Load and apply saved loadout so runtime SKILLS.Q/W/E/R reflect player's choice */
@@ -635,7 +686,7 @@ try {
  * - click a slot to select it, then click a skill to assign; or click Assign on a skill
  */
 /* Hero Screen */
-function renderHeroScreen(initialTab = "skills") {
+function __renderHeroScreen_legacy(initialTab = "skills") {
   // Ensure tab structure on right side
   const layout = document.querySelector("#heroScreen .hero-layout");
   const listContainer = document.getElementById("heroSkillsList");
@@ -1134,7 +1185,7 @@ function startInstructionGuide() {
 }
 
 // Fallback bindings to ensure the Guide button always triggers the overlay
-try { window.startInstructionGuide = startInstructionGuide; } catch (_) {}
+try { window.startInstructionGuide = startInstructionGuideOverlay; } catch (_) {}
 document.addEventListener("click", (ev) => {
   const t = ev.target;
   if (t && t.id === "btnInstructionGuide") {
@@ -1435,7 +1486,7 @@ window.addEventListener("loadout-changed", () => {
     updateSkillBarLabels();
     // If Hero Screen is visible, refresh its contents to reflect the new assignment
     if (heroScreen && !heroScreen.classList.contains("hidden")) {
-      renderHeroScreen("skills");
+      showHeroScreen("skills");
     }
   } catch (_) {}
 });
