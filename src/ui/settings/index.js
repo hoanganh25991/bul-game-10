@@ -40,7 +40,7 @@ export function setupSettingsScreen({
   initEnvironmentControls(environment);
 
   // Render controls
-  initQualitySelect(render);
+  initQualitySelect(render, t);
   initZoomControl(render);
 }
 
@@ -287,7 +287,7 @@ function persistEnvPrefs(rain, densityIndex, rainLevel) {
 }
 
 /* ---------------- Render Controls ---------------- */
-function initQualitySelect(render) {
+function initQualitySelect(render, t) {
   if (!render) return;
   const sel = document.getElementById("qualitySelect");
   if (!sel) return;
@@ -311,28 +311,27 @@ function initQualitySelect(render) {
 
       if (nextQ === current) return;
 
-      const msg = "Changing graphics quality requires a reload. Reload now?";
-      const ok =
-        typeof window !== "undefined" && typeof window.confirm === "function" ? window.confirm(msg) : true;
-
-      if (ok) {
-        try {
-          const prev = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
-          prev.quality = nextQ;
-          localStorage.setItem("renderPrefs", JSON.stringify(prev));
-        } catch (_) {}
-        try {
-          window.location.reload();
-        } catch (_) {
+      const tt = typeof t === "function" ? t : (x) => x;
+      showReloadConfirm(tt).then((ok) => {
+        if (ok) {
           try {
-            location.reload();
+            const prev = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
+            prev.quality = nextQ;
+            localStorage.setItem("renderPrefs", JSON.stringify(prev));
+          } catch (_) {}
+          try {
+            window.location.reload();
+          } catch (_) {
+            try {
+              location.reload();
+            } catch (_) {}
+          }
+        } else {
+          try {
+            sel.value = current;
           } catch (_) {}
         }
-      } else {
-        try {
-          sel.value = current;
-        } catch (_) {}
-      }
+      });
     });
     sel.dataset.bound = "1";
   }
@@ -374,6 +373,120 @@ function initZoomControl(render) {
     sel.addEventListener("change", onChange);
     sel.dataset.bound = "1";
   }
+}
+
+/* ---------------- Confirm Modal ---------------- */
+function showReloadConfirm(t) {
+  return new Promise((resolve) => {
+    const tt = typeof t === "function" ? t : (x) => x;
+
+    const root = document.createElement("div");
+    root.id = "__qualityReloadConfirm";
+    Object.assign(root.style, {
+      position: "fixed",
+      inset: "0",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "rgba(0,0,0,0.35)",
+      zIndex: "9999",
+      backdropFilter: "blur(2px)",
+    });
+
+    const box = document.createElement("div");
+    Object.assign(box.style, {
+      minWidth: "280px",
+      maxWidth: "90vw",
+      background: "rgba(10,20,30,0.92)",
+      border: "1px solid rgba(255,255,255,0.15)",
+      borderRadius: "10px",
+      padding: "14px",
+      color: "#dfefff",
+      boxShadow: "0 6px 18px rgba(0,0,0,0.4)",
+      textAlign: "center",
+      fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif",
+    });
+
+    const title = document.createElement("div");
+    title.textContent = tt("settings.render.reloadTitle") || "Reload required";
+    Object.assign(title.style, { fontWeight: "700", marginBottom: "6px", fontSize: "16px" });
+
+    const desc = document.createElement("div");
+    desc.textContent = tt("settings.render.reloadDesc") || (tt("settings.render.reloadPrompt") || "Changing graphics quality requires a reload.");
+    Object.assign(desc.style, { fontSize: "13px", opacity: "0.85", marginBottom: "12px" });
+
+    const actions = document.createElement("div");
+    Object.assign(actions.style, { display: "flex", gap: "8px", justifyContent: "center" });
+
+    const btnCancel = document.createElement("button");
+    btnCancel.type = "button";
+    btnCancel.textContent = tt("btn.cancel") || "Cancel";
+    Object.assign(btnCancel.style, {
+      padding: "8px 12px",
+      borderRadius: "6px",
+      border: "1px solid rgba(255,255,255,0.2)",
+      background: "rgba(120,40,40,0.85)",
+      color: "#fff",
+      cursor: "pointer",
+      fontWeight: "600",
+    });
+    btnCancel.addEventListener("mouseenter", () => (btnCancel.style.background = "rgba(160,60,60,0.9)"));
+    btnCancel.addEventListener("mouseleave", () => (btnCancel.style.background = "rgba(120,40,40,0.85)"));
+    btnCancel.addEventListener("click", () => { cleanup(); resolve(false); });
+
+    const btnOk = document.createElement("button");
+    btnOk.type = "button";
+    btnOk.textContent = tt("btn.yes") || "Yes";
+    Object.assign(btnOk.style, {
+      padding: "8px 12px",
+      borderRadius: "6px",
+      border: "1px solid rgba(255,255,255,0.2)",
+      background: "rgba(40,120,60,0.85)",
+      color: "#fff",
+      cursor: "pointer",
+      fontWeight: "600",
+    });
+    btnOk.addEventListener("mouseenter", () => (btnOk.style.background = "rgba(60,160,90,0.9)"));
+    btnOk.addEventListener("mouseleave", () => (btnOk.style.background = "rgba(40,120,60,0.85)"));
+    btnOk.addEventListener("click", () => { cleanup(); resolve(true); });
+
+    actions.appendChild(btnCancel);
+    actions.appendChild(btnOk);
+
+    box.appendChild(title);
+    box.appendChild(desc);
+    box.appendChild(actions);
+    root.appendChild(box);
+
+    function onKey(ev) {
+      const k = String(ev.key || "").toUpperCase();
+      if (k === "ESCAPE") {
+        ev.preventDefault?.();
+        cleanup();
+        resolve(false);
+      } else if (k === "ENTER") {
+        ev.preventDefault?.();
+        cleanup();
+        resolve(true);
+      }
+    }
+    function onClickBackdrop(ev) {
+      if (ev.target === root) {
+        cleanup();
+        resolve(false);
+      }
+    }
+
+    document.addEventListener("keydown", onKey, true);
+    root.addEventListener("click", onClickBackdrop, true);
+    document.body.appendChild(root);
+
+    function cleanup() {
+      document.removeEventListener("keydown", onKey, true);
+      root.removeEventListener("click", onClickBackdrop, true);
+      try { root.remove(); } catch (_) { if (root && root.parentNode) root.parentNode.removeChild(root); }
+    }
+  });
 }
 
 /* ---------------- Utils ---------------- */

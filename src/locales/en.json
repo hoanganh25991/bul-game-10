@@ -18,7 +18,10 @@
       "quality": "Quality",
       "high": "High",
       "medium": "Medium",
-      "low": "Low"
+      "low": "Low",
+      "reloadPrompt": "Changing graphics quality requires a reload. Reload now?",
+      "reloadTitle": "Reload required",
+      "reloadDesc": "Changing graphics quality requires a reload."
     }
   },
   "instructions": {
@@ -65,7 +68,9 @@
   "btn": {
     "close": "Close",
     "cancel": "Cancel",
-    "start": "Start"
+    "start": "Start",
+    "yes": "Yes",
+    "no": "No"
   },
   "intro": {
     "tagline": "The thunder god awakens."

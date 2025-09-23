@@ -18,7 +18,10 @@
       "quality": "Chất lượng",
       "high": "Cao",
       "medium": "Trung bình",
-      "low": "Thấp"
+      "low": "Thấp",
+      "reloadPrompt": "Thay đổi chất lượng đồ họa cần tải lại trò chơi. Tải lại ngay?",
+      "reloadTitle": "Cần tải lại",
+      "reloadDesc": "Thay đổi chất lượng đồ họa cần tải lại."
     }
   },
   "instructions": {
@@ -65,7 +68,9 @@
   "btn": {
     "close": "Đóng",
     "cancel": "Hủy",
-    "start": "Bắt đầu"
+    "start": "Bắt đầu",
+    "yes": "Có",
+    "no": "Không"
   },
   "intro": {
     "tagline": "Thần sấm sét thức tỉnh."
