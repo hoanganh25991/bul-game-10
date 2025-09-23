@@ -26,6 +26,11 @@ export class Entity {
         const pct = Math.min(0.95, Math.max(0, this.defensePct || 0));
         dmg = Math.max(0, Math.floor(dmg * (1 - pct)));
       }
+      // Optional vulnerability amplification (e.g., Lightning Rod / Ionize)
+      if (this.vulnUntil && now() < this.vulnUntil) {
+        const mul = Math.max(1.05, Math.min(3.0, this.vulnMult || 1.25));
+        dmg = Math.max(0, Math.floor(dmg * mul));
+      }
     } catch (_) {}
 
     this.hp -= dmg;

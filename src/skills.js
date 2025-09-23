@@ -49,6 +49,7 @@ export class SkillsSystem {
     this.damageBuffMult = 1;
     // Clone-like scheduled strikes (thunder image)
     this.clones = [];
+    this.totems = [];
     this._pendingShake = 0;
   }
 
@@ -254,6 +255,7 @@ export class SkillsSystem {
       console.warn("castSkill: unknown SKILLS key", key);
       return;
     }
+    this._vfxCastFlash(SK);
 
     switch (SK.type) {
       case "chain":
@@ -282,6 +284,10 @@ export class SkillsSystem {
         return this._castClone(key);
       case "shield":
         return this._castShield(key);
+      case "totem":
+        return this._castTotem(key);
+      case "mark":
+        return this._castMark(key);
       default:
         // If skill definitions don't include a type (legacy), fall back to original key handlers
         if (key === "Q") return this.castQ_ChainLightning();
@@ -296,6 +302,7 @@ export class SkillsSystem {
     const SK = SKILLS[key];
     if (!SK) return;
     if (this.isOnCooldown(key)) return;
+    this._vfxCastFlash(SK);
 
     audio.sfx("cast_chain");
     this.effects.spawnHandFlash(this.player);
@@ -397,6 +404,17 @@ export class SkillsSystem {
           en.slowUntil = now() + (SK.slowDuration || 1.5);
           en.slowFactor = SK.slowFactor;
         }
+        if (SK.stunDuration) {
+          en.nextAttackReady = Math.max(en.nextAttackReady || 0, now() + SK.stunDuration);
+          en.slowUntil = Math.max(en.slowUntil || 0, now() + SK.stunDuration);
+          en.slowFactor = 0.0;
+        }
+        if (SK.knockback) {
+          const dir = en.pos().clone().sub(point).setY(0);
+          const len = dir.length() || 1;
+          dir.multiplyScalar((SK.knockback || 2) / len);
+          en.mesh.position.add(dir);
+        }
       }
     });
   }
@@ -425,6 +443,7 @@ export class SkillsSystem {
     const SK = SKILLS[key];
     if (!SK) return;
     if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    this._vfxCastFlash(SK);
 
     // Immediate feedback
     audio.sfx("cast_beam");
@@ -470,6 +489,7 @@ export class SkillsSystem {
     const SK = SKILLS[key];
     if (!SK) return;
     if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    this._vfxCastFlash(SK);
 
     this.player.spend(SK.mana);
     this.startCooldown(key, SK.cd); this._requestShake(this._fx(SK).shake);
@@ -498,6 +518,7 @@ export class SkillsSystem {
     const SK = SKILLS[key];
     if (!SK) return;
     if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    this._vfxCastFlash(SK);
     this.player.spend(SK.mana);
     this.startCooldown(key, SK.cd);
     this.effects.spawnHandFlash(this.player);
@@ -523,6 +544,7 @@ export class SkillsSystem {
   _castHeal(key) {
     const SK = SKILLS[key]; if (!SK) return;
     if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    this._vfxCastFlash(SK);
     this.player.spend(SK.mana);
     this.startCooldown(key, SK.cd);
     const amt = Math.max(1, SK.heal || SK.amount || 30);
@@ -534,6 +556,7 @@ export class SkillsSystem {
   _castMana(key) {
     const SK = SKILLS[key]; if (!SK) return;
     if (this.isOnCooldown(key)) return; // mana restore often no cost
+    this._vfxCastFlash(SK);
     // Spend if defined (some designs use 0)
     if (typeof SK.mana === "number" && SK.mana > 0) {
       if (!this.player.canSpend(SK.mana)) return;
@@ -549,6 +572,7 @@ export class SkillsSystem {
   _castBuff(key) {
     const SK = SKILLS[key]; if (!SK) return;
     if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    this._vfxCastFlash(SK);
     this.player.spend(SK.mana);
     this.startCooldown(key, SK.cd);
     // Damage buff (applies to basic + skills via getBasicDamage/scaleSkillDamage)
@@ -598,6 +622,41 @@ export class SkillsSystem {
     } catch (e) {}
   }
 
+  _castTotem(key) {
+    const SK = SKILLS[key]; if (!SK) return;
+    if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    this._vfxCastFlash(SK);
+    this.player.spend(SK.mana);
+    this.startCooldown(key, SK.cd);
+    const pos = this.player.pos().clone();
+    const duration = Math.max(3, SK.duration || 8);
+    const tick = Math.max(0.4, SK.tick || 0.8);
+    const radius = Math.max(6, SK.radius || 18);
+    const dmg = this.scaleSkillDamage(SK.dmg || 12);
+    this.totems.push({ pos, until: now() + duration, next: 0, tick, radius, dmg, fx: this._fx(SK) });
+    try { this.effects.spawnStrike(pos, 2.5, this._fx(SK).impact); } catch (_) {}
+  }
+
+  _castMark(key) {
+    const SK = SKILLS[key]; if (!SK) return;
+    if (this.isOnCooldown(key) || (SK.mana && !this.player.canSpend(SK.mana))) return;
+    const effRange = Math.max(40, SK.range || 40);
+    const near = this.enemies.filter(e => e.alive && distance2D(this.player.pos(), e.pos()) <= effRange);
+    if (!near.length) { try { this.effects.showNoTargetHint(this.player, effRange); } catch(_) {} return; }
+    const target = near.sort((a,b)=>distance2D(this.player.pos(),a.pos())-distance2D(this.player.pos(),b.pos()))[0];
+    if (SK.mana) this.player.spend(SK.mana);
+    this.startCooldown(key, SK.cd);
+    target.vulnMult = Math.max(1.1, SK.vulnMult || 1.35);
+    target.vulnUntil = now() + Math.max(2, SK.duration || 6);
+    try {
+      const to = target.pos().clone().add(new THREE.Vector3(0,1.2,0));
+      const from = this.player.pos().clone().add(new THREE.Vector3(0,1.6,0));
+      this.effects.spawnElectricBeamAuto(from, to, this._fx(SK).beam, 0.12);
+      this.effects.spawnStrike(target.pos(), 1.2, this._fx(SK).impact);
+      audio.sfx("cast_beam");
+    } catch (_) {}
+  }
+
   _castBlink(key, point = null) {
     const SK = SKILLS[key]; if (!SK) return;
     if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
@@ -609,12 +668,23 @@ export class SkillsSystem {
       if (!isFinite(dir.lengthSq()) || dir.lengthSq() === 0) dir.set(0,0,1).applyQuaternion(this.player.mesh.quaternion).normalize();
     }
     const to = this.player.pos().clone().add(dir.multiplyScalar(dist));
+    const fromPos = this.player.pos().clone();
     if (!this.player.canSpend(SK.mana)) return;
     this.player.spend(SK.mana);
     this.startCooldown(key, SK.cd);
     try { this.effects.spawnStrike(this.player.pos(), 3, 0x9fd8ff); audio.sfx("storm_start"); } catch (e) {}
     this.player.mesh.position.set(to.x, this.player.mesh.position.y, to.z);
     try { this.effects.spawnStrike(this.player.pos(), 3, 0x9fd8ff); } catch (e) {}
+    if (SK.explosionRadius) {
+      const r = Math.max(4, SK.explosionRadius);
+      this.effects.spawnStrike(this.player.pos(), r, this._fx(SK).ring);
+      const boomDmg = this.scaleSkillDamage(SK.explosionDmg || (SK.dmg || 12));
+      this.enemies.forEach(en => {
+        if (!en.alive) return;
+        if (distance2D(en.pos(), this.player.pos()) <= (r + 2.5)) en.takeDamage(boomDmg);
+      });
+      this._requestShake(this._fx(SK).shake || 0.3);
+    }
     this.player.moveTarget = null; this.player.target = null;
   }
 
@@ -628,6 +698,24 @@ export class SkillsSystem {
     this.startCooldown(key, SK.cd);
     try { this.effects.spawnHandLink(this.player, 0.06); audio.sfx("cast_beam"); } catch (e) {}
     this.player.mesh.position.set(to.x, this.player.mesh.position.y, to.z);
+    // Trail arcs and damage along path
+    try {
+      const steps = 6;
+      const fx = this._fx(SK);
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const p = fromPos.clone().lerp(to, t);
+        const from = p.clone().add(new THREE.Vector3(0, 0.6, 0));
+        const off = new THREE.Vector3((Math.random()-0.5)*2, 0.3 + Math.random()*0.6, (Math.random()-0.5)*2);
+        this.effects.spawnArcNoisePath(from, from.clone().add(off), fx.arc, 0.08, 2);
+        const rad = SK.trailRadius || 4;
+        const tickDmg = this.scaleSkillDamage(SK.trailDmg || 6);
+        this.enemies.forEach(en => {
+          if (!en.alive) return;
+          if (distance2D(en.pos(), p) <= rad) en.takeDamage(tickDmg);
+        });
+      }
+    } catch (_) {}
     this.player.moveTarget = null; this.player.target = null;
   }
 
@@ -760,6 +848,27 @@ export class SkillsSystem {
     }
   }
   
+  // Totems: periodic strikes around placed anchor
+  runTotems() {
+    const t = now();
+    for (let i = this.totems.length - 1; i >= 0; i--) {
+      const tot = this.totems[i];
+      if (t >= tot.until) { this.totems.splice(i, 1); continue; }
+      if (!tot.next || t >= tot.next) {
+        const ang = Math.random() * Math.PI * 2;
+        const r = Math.random() * (tot.radius || 12);
+        const pt = tot.pos.clone().add(new THREE.Vector3(Math.cos(ang) * r, 0, Math.sin(ang) * r));
+        try { this.effects.spawnStrike(pt, 2.4, (tot.fx && tot.fx.impact) || 0x9fd3ff); } catch (_) {}
+        const dmg = tot.dmg || 10;
+        this.enemies.forEach(en => {
+          if (!en.alive) return;
+          if (distance2D(en.pos(), pt) <= 4.0) en.takeDamage(dmg);
+        });
+        tot.next = t + (tot.tick || 1.0);
+      }
+    }
+  }
+
   // Preview-only visualization for a skill definition (no cost, no cooldown, no damage)
   previewSkill(def) {
     if (!def) return;
@@ -778,39 +887,44 @@ export class SkillsSystem {
       switch (def.type) {
         case "aoe": {
           const r = def.radius || 12;
-          this.effects.spawnStrike(ahead, r, 0x9fd8ff);
-          mkRing(ahead, r);
+          const fx = this._fx(def);
+          this.effects.spawnStrike(ahead, r, fx.ring);
+          mkRing(ahead, r, fx.ring);
           break;
         }
         case "nova": {
           const r = def.radius || 12;
-          this.effects.spawnStrike(this.player.pos(), r, 0x9fd8ff);
-          mkRing(this.player.pos(), r);
+          const fx = this._fx(def);
+          this.effects.spawnStrike(this.player.pos(), r, fx.ring);
+          mkRing(this.player.pos(), r, fx.ring);
           break;
         }
         case "aura": {
           const r = def.radius || 12;
-          this.effects.spawnStrike(this.player.pos(), r, 0x7fc7ff);
-          mkRing(this.player.pos(), r, 0x7fc7ff, 0.28);
+          const fx = this._fx(def);
+          this.effects.spawnStrike(this.player.pos(), r, fx.ring);
+          mkRing(this.player.pos(), r, fx.ring, 0.28);
           break;
         }
         case "storm": {
           const r = def.radius || 12;
           const n = Math.min(8, def.strikes || 6);
+          const fx = this._fx(def);
           for (let i = 0; i < n; i++) {
             const ang = Math.random() * Math.PI * 2;
             const rr = Math.random() * r;
             const pt = this.player.pos().clone().add(new THREE.Vector3(Math.cos(ang) * rr, 0, Math.sin(ang) * rr));
-            this.effects.spawnStrike(pt, 3, 0xb5e2ff);
+            this.effects.spawnStrike(pt, 3, fx.impact);
           }
-          mkRing(this.player.pos(), r, 0xb5e2ff, 0.18);
+          mkRing(this.player.pos(), r, fx.ring, 0.18);
           break;
         }
         case "chain":
         case "beam": {
+          const fx = this._fx(def);
           const to = ahead.clone().add(new THREE.Vector3(0, 1.2, 0));
-          this.effects.spawnElectricBeamAuto(from, to, 0x8fd3ff, 0.12);
-          this.effects.spawnStrike(ahead, 1.0, 0x9fd3ff);
+          this.effects.spawnElectricBeamAuto(from, to, fx.beam, 0.12);
+          this.effects.spawnStrike(ahead, 1.0, fx.impact);
           break;
         }
         default: {
@@ -836,6 +950,8 @@ export class SkillsSystem {
     this.runStorms(cameraShake);
     // Shadow clone processing
     this.runClones();
+    // Totems processing
+    this.runTotems();
     // Cooldown UI every frame
     this.updateCooldownUI();
 
