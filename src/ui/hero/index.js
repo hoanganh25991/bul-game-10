@@ -163,7 +163,6 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
   });
   actions.appendChild(resetBtn);
   rightCol.appendChild(actions);
-  try { actions.style.display = "flex"; actions.style.justifyContent = "center"; actions.style.marginTop = "8px"; } catch (_) {}
 
   // Interaction handling + improved UX for assignment
   let selectedSlotIndex = null;
@@ -343,10 +342,6 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     SKILL_POOL.forEach((s) => {
       const btn = document.createElement("div");
       btn.className = "skillbook-item";
-      btn.style.display = "flex";
-      btn.style.alignItems = "center";
-      btn.style.gap = "8px";
-      btn.style.cursor = "pointer";
       const ic = document.createElement("span");
       ic.textContent = getSkillIcon(s.short || s.name);
       const nm = document.createElement("span");
@@ -393,13 +388,7 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
             if (m.imgHint) thumb.title = m.imgHint;
           } else {
             const ph = document.createElement("div");
-            ph.style.width = "100%";
-            ph.style.height = "100%";
-            ph.style.display = "flex";
-            ph.style.alignItems = "center";
-            ph.style.justifyContent = "center";
-            ph.style.fontWeight = "700";
-            ph.style.opacity = "0.7";
+            ph.className = "maps-thumb-ph";
             ph.textContent = (m.name || "").slice(0, 2).toUpperCase();
             thumb.appendChild(ph);
           }
@@ -467,9 +456,6 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     if (!portals) return;
     const wrap = document.createElement("div");
     wrap.className = "marks-panel";
-    wrap.style.display = "flex";
-    wrap.style.flexDirection = "column";
-    wrap.style.gap = "12px";
 
     const head = document.createElement("div");
     head.className = "marks-head";
@@ -495,8 +481,7 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
         if (!arr.length) {
           list.innerHTML = "";
           const empty = document.createElement("div");
-          empty.style.opacity = "0.8";
-          empty.style.fontSize = "12px";
+          empty.className = "marks-empty";
           empty.textContent = "No marks yet. Use the 🚩 Mark button to place a flag.";
           list.appendChild(empty);
         } else {
