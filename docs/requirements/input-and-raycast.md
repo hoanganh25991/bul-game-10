@@ -25,6 +25,7 @@ Keyboard
 - R: Cast Thunderstorm (random strikes over time).
 - B: Recall—creates a return portal and freezes player until they click it to travel to the village.
 - S: Stop—clears current orders and briefly suppresses auto-acquire.
+- M: Mark — place a flag at the current location (persistent; 3 min cooldown).
 - Escape: Cancel any aim mode.
 
 Raycasting and Targeting

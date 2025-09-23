@@ -17,6 +17,7 @@ Keyboard
 - Arrow Keys: Movement input in addition to mouse/joystick (↑/↓/←/→ move).
 - B: Recall (spawn/refresh return portal; freeze until portal click).
 - S: Stop (clear orders; brief suppress auto‑acquire).
+- M: Mark — place a flag at the current location (persistent; 3 min cooldown).
 - Camera Toggle: UI button (camera icon) switches between third‑person and first‑person views.
 
 Mobile/Touch

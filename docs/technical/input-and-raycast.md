@@ -46,6 +46,7 @@ Keyboard
 - Arrow Keys: Move the player (↑/↓/←/→), in addition to mouse/joystick.
 - B: Recall (spawns/refreshes return portal; freezes player; prompt message).
 - S: Stop (clear orders; short holdUntil to suppress re-acquire).
+- M: Mark — place a flag at the current location (persistent; 3 min cooldown).
 - Esc: Cancel aim mode (hide W preview and reset cursor).
 
 Aim Previews
