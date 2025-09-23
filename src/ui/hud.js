@@ -1,4 +1,4 @@
-import { worldToMinimap, clamp01 } from "../utils.js";
+import { clamp01 } from "../utils.js";
 import { VILLAGE_POS, REST_RADIUS } from "../constants.js";
 
 export class UIManager {
@@ -34,6 +34,35 @@ export class UIManager {
     // Minimap
     this.minimap = document.getElementById("minimap");
     this.miniCtx = this.minimap?.getContext("2d");
+    // Minimap size: fixed width 208px, height follows screen aspect (h/w)
+    this._miniCssW = 208;
+    this._miniCssH = 0; // computed
+    this._miniDPR = (typeof window !== "undefined" && window.devicePixelRatio) ? window.devicePixelRatio : 1;
+    this._miniSizeDirty = true;
+    this._ensureMinimapSize = () => {
+      if (!this.minimap || !this.miniCtx) return;
+      const aspect = (typeof window !== "undefined" && window.innerWidth > 0)
+        ? (window.innerHeight / window.innerWidth)
+        : 1;
+      const cssW = this._miniCssW;
+      const cssH = Math.max(32, Math.round(cssW * aspect));
+      this._miniCssH = cssH;
+      const dpr = (typeof window !== "undefined" && window.devicePixelRatio) ? window.devicePixelRatio : 1;
+      this._miniDPR = dpr;
+      try {
+        this.minimap.style.width = cssW + "px";
+        this.minimap.style.height = cssH + "px";
+        this.minimap.width = Math.max(1, Math.round(cssW * dpr));
+        this.minimap.height = Math.max(1, Math.round(cssH * dpr));
+        // Draw using CSS pixel units
+        this.miniCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      } catch (_) {}
+      this._miniSizeDirty = false;
+    };
+    try {
+      window.addEventListener("resize", () => { this._miniSizeDirty = true; });
+      window.addEventListener("orientationchange", () => { this._miniSizeDirty = true; });
+    } catch (_) {}
 
     // Center message
     this.deathMsgEl = document.getElementById("deathMsg");
@@ -82,6 +111,13 @@ export class UIManager {
     const ctx = this.miniCtx;
     if (!ctx || !this.minimap || !player) return;
 
+    // Ensure canvas size follows screen aspect (width fixed at 208px)
+    try {
+      if (this._miniSizeDirty) this._ensureMinimapSize && this._ensureMinimapSize();
+    } catch (_) {}
+    const cssW = this._miniCssW || 208;
+    const cssH = this._miniCssH || (208 * ((typeof window !== "undefined" && window.innerWidth) ? (window.innerHeight / window.innerWidth) : 1));
+
     // Throttle minimap updates on medium/low to reduce CPU cost
     const nowT = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
     if (this._miniIntervalMs > 0) {
@@ -89,23 +125,26 @@ export class UIManager {
       this._miniLastT = nowT;
     }
 
-    ctx.clearRect(0, 0, 200, 200);
-    // background
+    // Clear and draw background/border using CSS-pixel units (ctx scaled by DPR)
+    ctx.clearRect(0, 0, cssW, cssH);
     ctx.fillStyle = "rgba(10,20,40,0.6)";
-    ctx.fillRect(0, 0, 200, 200);
+    ctx.fillRect(0, 0, cssW, cssH);
     ctx.strokeStyle = "rgba(124,196,255,0.3)";
     ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, 199, 199);
+    ctx.strokeRect(0.5, 0.5, Math.max(0, cssW - 1), Math.max(0, cssH - 1));
 
     const center = player.pos();
     const scale = 0.8;
+    const cx = cssW / 2;
+    const cy = cssH / 2;
+    const w2p = (wx, wz) => ({ x: cx + (wx - center.x) * scale, y: cy + (wz - center.z) * scale });
 
     // village area ring
     ctx.strokeStyle = "rgba(90,255,139,0.6)";
     ctx.beginPath();
     ctx.arc(
-      100 + (VILLAGE_POS.x - center.x) * scale,
-      100 + (VILLAGE_POS.z - center.z) * scale,
+      cx + (VILLAGE_POS.x - center.x) * scale,
+      cy + (VILLAGE_POS.z - center.z) * scale,
       REST_RADIUS * scale,
       0,
       Math.PI * 2
@@ -117,9 +156,9 @@ export class UIManager {
       const list = villages?.listVillages?.() || [];
       ctx.strokeStyle = "rgba(90,255,139,0.35)";
       for (const v of list) {
-        const p = worldToMinimap(v.center.x, v.center.z, center.x, center.z, scale);
+        const p = w2p(v.center.x, v.center.z);
         ctx.beginPath();
-        ctx.arc(p.x, p.y, v.radius * scale, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, (v.radius || 0) * scale, 0, Math.PI * 2);
         ctx.stroke();
       }
     } catch (_) {}
@@ -128,24 +167,14 @@ export class UIManager {
     const villagePortal = portals?.getVillagePortal?.();
     const returnPortal = portals?.getReturnPortal?.();
     if (villagePortal) {
-      const p = worldToMinimap(
-        villagePortal.group.position.x,
-        villagePortal.group.position.z,
-        center.x,
-        center.z,
-        scale
-      );
+      const pos = villagePortal.group.position;
+      const p = w2p(pos.x, pos.z);
       ctx.fillStyle = "rgba(124,77,255,0.9)";
       ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
     }
     if (returnPortal) {
-      const p = worldToMinimap(
-        returnPortal.group.position.x,
-        returnPortal.group.position.z,
-        center.x,
-        center.z,
-        scale
-      );
+      const pos = returnPortal.group.position;
+      const p = w2p(pos.x, pos.z);
       ctx.fillStyle = "rgba(180,120,255,0.9)";
       ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
     }
@@ -154,20 +183,20 @@ export class UIManager {
     if (enemies) {
       enemies.forEach((en) => {
         if (!en.alive) return;
-        const p = worldToMinimap(en.pos().x, en.pos().z, center.x, center.z, scale);
+        const ep = en.pos();
+        const p = w2p(ep.x, ep.z);
         ctx.fillStyle = "rgba(255,80,80,0.95)";
         ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
       });
     }
 
     // player
-    const pp = worldToMinimap(center.x, center.z, center.x, center.z, scale);
+    const pp = w2p(center.x, center.z);
     ctx.fillStyle = "rgba(126,204,255,1)";
     ctx.beginPath();
     ctx.arc(pp.x, pp.y, 3, 0, Math.PI * 2);
     ctx.fill();
   }
-
   /**
    * Visual feedback when player levels up.
    * - briefly pulses the level number
