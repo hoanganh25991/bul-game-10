@@ -71,67 +71,58 @@ function ensureSettingsTabs(settingsPanel, t, startInstructionGuide) {
   const content = settingsPanel.querySelector(".panel-content");
   if (!content) return;
 
-  const rows = Array.from(content.querySelectorAll(".row"));
-  const generalPanel = document.createElement("div");
-  generalPanel.className = "tab-panel active";
-  const envPanel = document.createElement("div");
-  envPanel.className = "tab-panel";
+  const tabBar = content.querySelector(".tab-bar");
+  const generalPanel = content.querySelector("#tabGeneral");
+  const envPanel = content.querySelector("#tabEnvironment");
+  const tabBtns = tabBar ? Array.from(tabBar.querySelectorAll(".tab-btn")) : [];
 
-  rows.forEach((row) => {
-    if (row.querySelector("#langVi") || row.querySelector("#settingsInstructions")) {
-      generalPanel.appendChild(row);
-    } else if (
-      row.querySelector("#envRainToggle") ||
-      row.querySelector("#envDensity") ||
-      row.querySelector("#rainDensity") ||
-      row.querySelector("#zoomSlider") ||
-      row.querySelector("#qualitySelect")
-    ) {
-      envPanel.appendChild(row);
-    } else {
-      generalPanel.appendChild(row);
-    }
+  // Localize tab labels using t() if available
+  tabBtns.forEach((btn) => {
+    const key = btn.getAttribute("data-i18n");
+    try { if (key && typeof t === "function") btn.textContent = t(key); } catch (_) {}
   });
 
-  generalPanel.style.display = "block";
-  envPanel.style.display = "none";
-
-  /* Fullscreen toggle row is now defined statically in index.html */
-
-  const tabBar = document.createElement("div");
-  tabBar.className = "tab-bar";
-  const tabs = [
-    { key: "general", labelKey: "settings.tabs.general", panel: generalPanel },
-    { key: "environment", labelKey: "settings.tabs.environment", panel: envPanel },
-  ];
-  tabs.forEach((tabDef, idx) => {
-    const btn = document.createElement("button");
-    btn.className = "tab-btn" + (idx === 0 ? " active" : "");
-    btn.setAttribute("data-i18n", tabDef.labelKey);
-    try {
-      btn.textContent = (t || ((x) => x))(tabDef.labelKey);
-    } catch (_) {
-      btn.textContent = tabDef.labelKey;
-    }
+  // Bind tab switching
+  tabBtns.forEach((btn) => {
+    if (btn.dataset.bound === "1") return;
     btn.addEventListener("click", () => {
-      tabBar.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      tabBtns.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       [generalPanel, envPanel].forEach((p) => {
+        if (!p) return;
         p.classList.remove("active");
         p.style.display = "none";
       });
-      tabDef.panel.classList.add("active");
-      tabDef.panel.style.display = "block";
+      const targetId = btn.getAttribute("aria-controls");
+      const target = targetId ? content.querySelector(`#${targetId}`) : null;
+      if (target) {
+        target.classList.add("active");
+        target.style.display = "block";
+      }
     });
-    tabBar.appendChild(btn);
+    btn.dataset.bound = "1";
   });
 
-  content.innerHTML = "";
-  content.appendChild(tabBar);
-  content.appendChild(generalPanel);
-  content.appendChild(envPanel);
-  settingsPanel.dataset.tabsReady = "1";
+  // Ensure initial active state
+  const activeBtn = tabBtns.find((b) => b.classList.contains("active")) || tabBtns[0];
+  if (activeBtn) {
+    // Activate without double-adding listeners
+    const targetId = activeBtn.getAttribute("aria-controls");
+    const target = targetId ? content.querySelector(`#${targetId}`) : null;
+    tabBtns.forEach((b) => b.classList.remove("active"));
+    activeBtn.classList.add("active");
+    [generalPanel, envPanel].forEach((p) => {
+      if (!p) return;
+      p.classList.remove("active");
+      p.style.display = "none";
+    });
+    if (target) {
+      target.classList.add("active");
+      target.style.display = "block";
+    }
+  }
 
+  settingsPanel.dataset.tabsReady = "1";
   try {
     window.applyTranslations && window.applyTranslations(settingsPanel);
   } catch (_) {}
@@ -398,112 +389,52 @@ function initZoomControl(render) {
 function showReloadConfirm(t) {
   return new Promise((resolve) => {
     const tt = typeof t === "function" ? t : (x) => x;
+    const modal = document.getElementById("qualityReloadConfirm");
 
-    const root = document.createElement("div");
-    root.id = "__qualityReloadConfirm";
-    Object.assign(root.style, {
-      position: "fixed",
-      inset: "0",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "rgba(0,0,0,0.35)",
-      zIndex: "9999",
-      backdropFilter: "blur(2px)",
-    });
+    if (modal) {
+      const titleEl = modal.querySelector("#qualityReloadTitle");
+      const descEl = modal.querySelector(".modal-desc");
+      const btnCancel = document.getElementById("qualityReloadCancel") || modal.querySelector(".secondary");
+      const btnOk = document.getElementById("qualityReloadOk") || modal.querySelector(".primary");
 
-    const box = document.createElement("div");
-    Object.assign(box.style, {
-      minWidth: "280px",
-      maxWidth: "90vw",
-      background: "rgba(10,20,30,0.92)",
-      border: "1px solid rgba(255,255,255,0.15)",
-      borderRadius: "10px",
-      padding: "14px",
-      color: "#dfefff",
-      boxShadow: "0 6px 18px rgba(0,0,0,0.4)",
-      textAlign: "center",
-      fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif",
-    });
+      // Localize
+      try {
+        if (titleEl) titleEl.textContent = tt("settings.render.reloadTitle") || "Reload required";
+        if (descEl) descEl.textContent =
+          tt("settings.render.reloadDesc") || (tt("settings.render.reloadPrompt") || "Changing graphics quality requires a reload.");
+        if (btnCancel) btnCancel.textContent = tt("btn.cancel") || "Cancel";
+        if (btnOk) btnOk.textContent = tt("btn.yes") || "Yes";
+      } catch (_) {}
 
-    const title = document.createElement("div");
-    title.textContent = tt("settings.render.reloadTitle") || "Reload required";
-    Object.assign(title.style, { fontWeight: "700", marginBottom: "6px", fontSize: "16px" });
-
-    const desc = document.createElement("div");
-    desc.textContent = tt("settings.render.reloadDesc") || (tt("settings.render.reloadPrompt") || "Changing graphics quality requires a reload.");
-    Object.assign(desc.style, { fontSize: "13px", opacity: "0.85", marginBottom: "12px" });
-
-    const actions = document.createElement("div");
-    Object.assign(actions.style, { display: "flex", gap: "8px", justifyContent: "center" });
-
-    const btnCancel = document.createElement("button");
-    btnCancel.type = "button";
-    btnCancel.textContent = tt("btn.cancel") || "Cancel";
-    Object.assign(btnCancel.style, {
-      padding: "8px 12px",
-      borderRadius: "6px",
-      border: "1px solid rgba(255,255,255,0.2)",
-      background: "rgba(120,40,40,0.85)",
-      color: "#fff",
-      cursor: "pointer",
-      fontWeight: "600",
-    });
-    btnCancel.addEventListener("mouseenter", () => (btnCancel.style.background = "rgba(160,60,60,0.9)"));
-    btnCancel.addEventListener("mouseleave", () => (btnCancel.style.background = "rgba(120,40,40,0.85)"));
-    btnCancel.addEventListener("click", () => { cleanup(); resolve(false); });
-
-    const btnOk = document.createElement("button");
-    btnOk.type = "button";
-    btnOk.textContent = tt("btn.yes") || "Yes";
-    Object.assign(btnOk.style, {
-      padding: "8px 12px",
-      borderRadius: "6px",
-      border: "1px solid rgba(255,255,255,0.2)",
-      background: "rgba(40,120,60,0.85)",
-      color: "#fff",
-      cursor: "pointer",
-      fontWeight: "600",
-    });
-    btnOk.addEventListener("mouseenter", () => (btnOk.style.background = "rgba(60,160,90,0.9)"));
-    btnOk.addEventListener("mouseleave", () => (btnOk.style.background = "rgba(40,120,60,0.85)"));
-    btnOk.addEventListener("click", () => { cleanup(); resolve(true); });
-
-    actions.appendChild(btnCancel);
-    actions.appendChild(btnOk);
-
-    box.appendChild(title);
-    box.appendChild(desc);
-    box.appendChild(actions);
-    root.appendChild(box);
-
-    function onKey(ev) {
-      const k = String(ev.key || "").toUpperCase();
-      if (k === "ESCAPE") {
-        ev.preventDefault?.();
-        cleanup();
-        resolve(false);
-      } else if (k === "ENTER") {
-        ev.preventDefault?.();
-        cleanup();
-        resolve(true);
+      function cleanup() {
+        document.removeEventListener("keydown", onKey, true);
+        modal.removeEventListener("click", onClickBackdrop, true);
+        try { modal.classList.add("hidden"); } catch (_) {}
       }
-    }
-    function onClickBackdrop(ev) {
-      if (ev.target === root) {
-        cleanup();
-        resolve(false);
+      function onKey(ev) {
+        const k = String(ev.key || "").toUpperCase();
+        if (k === "ESCAPE") { ev.preventDefault?.(); cleanup(); resolve(false); }
+        else if (k === "ENTER") { ev.preventDefault?.(); cleanup(); resolve(true); }
       }
+      function onClickBackdrop(ev) {
+        if (ev.target === modal) { cleanup(); resolve(false); }
+      }
+
+      document.addEventListener("keydown", onKey, true);
+      modal.addEventListener("click", onClickBackdrop, true);
+      try { modal.classList.remove("hidden"); } catch (_) {}
+
+      btnCancel?.addEventListener("click", function onC() { cleanup(); resolve(false); }, { once: true });
+      btnOk?.addEventListener("click", function onO() { cleanup(); resolve(true); }, { once: true });
+      return;
     }
 
-    document.addEventListener("keydown", onKey, true);
-    root.addEventListener("click", onClickBackdrop, true);
-    document.body.appendChild(root);
-
-    function cleanup() {
-      document.removeEventListener("keydown", onKey, true);
-      root.removeEventListener("click", onClickBackdrop, true);
-      try { root.remove(); } catch (_) { if (root && root.parentNode) root.parentNode.removeChild(root); }
+    // Fallback: native confirm if static modal not present
+    try {
+      const ok = window.confirm(tt("settings.render.reloadPrompt") || "Changing graphics quality requires a reload. Proceed?");
+      resolve(!!ok);
+    } catch (_) {
+      resolve(false);
     }
   });
 }
@@ -513,18 +444,22 @@ function attachSliderValueDisplay(inputEl, format) {
   if (!inputEl || inputEl.dataset.valueBadgeBound === "1") return;
   const fmt = typeof format === "function" ? format : (v) => String(v);
 
-  // Create a small value bubble right after the input
-  const badge = document.createElement("span");
-  badge.className = "slider-value";
-  Object.assign(badge.style, {
-    marginLeft: "6px",
-    fontSize: "12px",
-    color: "#bfe5ff",
-    opacity: "0.9",
-    minWidth: "36px",
-    textAlign: "right",
-    userSelect: "none"
-  });
+  // Reuse existing badge if present in DOM to avoid creating elements
+  let badge = null;
+  try {
+    const sib = inputEl.nextElementSibling;
+    if (sib && sib.classList && sib.classList.contains("slider-value")) {
+      badge = sib;
+    } else if (inputEl.parentNode) {
+      const q = inputEl.parentNode.querySelector(".slider-value");
+      if (q) badge = q;
+    }
+  } catch (_) {}
+
+  if (!badge) {
+    badge = document.createElement("span");
+    badge.className = "slider-value";
+  }
 
   function update() {
     try {
@@ -534,10 +469,12 @@ function attachSliderValueDisplay(inputEl, format) {
     }
   }
 
-  try {
-    inputEl.insertAdjacentElement("afterend", badge);
-  } catch (_) {
-    if (inputEl.parentNode) inputEl.parentNode.appendChild(badge);
+  if (!badge.isConnected) {
+    try {
+      inputEl.insertAdjacentElement("afterend", badge);
+    } catch (_) {
+      if (inputEl.parentNode) inputEl.parentNode.appendChild(badge);
+    }
   }
   update();
 

@@ -669,6 +669,52 @@
   filter: brightness(0.98);
 }
 
+/* Modal overlay (Quality reload, generic) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  place-items: center;
+  background: rgba(0,0,0,0.35);
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+.modal-overlay:not(.hidden) {
+  display: grid;
+}
+.modal-box {
+  min-width: 280px;
+  max-width: 90vw;
+  background: var(--system-bg);
+  border: 1px solid var(--system-border);
+  border-radius: 10px;
+  padding: 14px;
+  color: var(--system-text);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.3);
+}
+.modal-desc {
+  font-size: 13px;
+  opacity: 0.85;
+  margin-top: 6px;
+}
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+/* Slider inline value badge (used next to range inputs) */
+.slider-value {
+  margin-left: 6px;
+  font-size: 12px;
+  color: #bfe5ff;
+  opacity: 0.9;
+  min-width: 36px;
+  text-align: right;
+  user-select: none;
+}
+
 /* Segmented control (theme-matched) */
 .system-screen .segmented {
   display: inline-flex;

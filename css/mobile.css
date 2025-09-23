@@ -76,36 +76,16 @@
   cursor: pointer;
 }
 
-/* Medium screens: slightly scale down UI for performance without affecting small-screen rules */
-@media (min-height: 501px) and (max-height: 800px), (min-width: 721px) and (max-width: 1280px) {
-  #hud {
-    transform: scale(0.9);
-    transform-origin: top left;
-  }
-
-  #topRightGroup {
-    transform: scale(0.9);
-    transform-origin: top right;
-  }
-
-  #bottomLeftGroup {
-    transform: scale(0.9);
-    transform-origin: bottom left;
-  }
-
-  #bottomRightGroup {
-    transform: scale(0.9);
-    transform-origin: bottom right;
-  }
-}
-
-/* Small screens: stronger scale down for tight viewports */
 @media (max-height: 500px) {
   #hud {
     transform: scale(0.7);
     transform-origin: top left;
   }
 
+  #minimap {
+    height: 160px;
+  }
+
   #topRightGroup {
     transform: scale(0.7);
     transform-origin: top right;
@@ -119,5 +99,11 @@
   #bottomRightGroup {
     transform: scale(0.7);
     transform-origin: bottom right;
+  }
+}
+
+@media (max-height: 430px) {
+  #minimap {
+    height: 160px;
   }
 }

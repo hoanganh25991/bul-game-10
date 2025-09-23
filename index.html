@@ -77,65 +77,76 @@
         <button id="btnCloseSettings" class="icon-btn small screen-close" aria-label="Close">✕</button>
       </div>
       <div class="panel-content">
-        <div class="row">
-          <span class="row-label" data-i18n="settings.language">Ngôn ngữ</span>
-          <div class="lang-switch">
-            <button class="flag" id="langVi" title="Tiếng Việt" aria-label="Tiếng Việt">🇻🇳</button>
-            <button class="flag" id="langEn" title="English" aria-label="English">🇺🇸</button>
-          </div>
-        </div>
-        <div class="row">
-          <span class="row-label" data-i18n="settings.instructions">Hướng dẫn</span>
-          <div class="instructions" id="settingsInstructions"></div>
+        <div class="tab-bar">
+          <button class="tab-btn active" data-i18n="settings.tabs.general" aria-controls="tabGeneral">General</button>
+          <button class="tab-btn" data-i18n="settings.tabs.environment" aria-controls="tabEnvironment">Environment</button>
         </div>
 
-        <div class="row">
-          <span class="row-label">Môi trường</span>
-          <div class="env-controls" style="display:flex;flex-direction:column;gap:8px;">
-            <label style="display:flex;align-items:center;gap:8px;">
-              <input type="checkbox" id="envRainToggle" /> <span data-i18n="settings.env.rain">Rain</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.env.density">Density</span>
-              <input type="range" id="envDensity" min="1" max="10" step="1" value="5" />
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.env.rainDensity">Rain Density</span>
-              <input type="range" id="rainDensity" min="1" max="10" step="1" value="5" />
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.render.zoom">Zoom</span>
-              <input type="range" id="zoomSlider" min="1" max="10" step="1" value="5" />
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.render.quality">Quality</span>
-              <select id="qualitySelect" aria-label="Quality">
-                <option value="low" data-i18n="settings.render.low">Low</option>
-                <option value="medium" data-i18n="settings.render.medium">Medium</option>
-                <option value="high" data-i18n="settings.render.high">High</option>
-              </select>
-            </label>
+        <div id="tabGeneral" class="tab-panel active">
+          <div class="row">
+            <span class="row-label" data-i18n="settings.language">Ngôn ngữ</span>
+            <div class="lang-switch">
+              <button class="flag" id="langVi" title="Tiếng Việt" aria-label="Tiếng Việt">🇻🇳</button>
+              <button class="flag" id="langEn" title="English" aria-label="English">🇺🇸</button>
+            </div>
+          </div>
+          <div class="row">
+            <span class="row-label" data-i18n="settings.instructions">Hướng dẫn</span>
+            <div class="instructions" id="settingsInstructions"></div>
+          </div>
+          <div class="row">
+            <span class="row-label" data-i18n="settings.general.fullscreen">Fullscreen</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <label style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" id="fullscreenToggle" />
+                <span data-i18n="settings.general.fullscreenShort">On</span>
+              </label>
+            </div>
+          </div>
+          <div class="row">
+            <span class="row-label">Âm thanh / Sound</span>
+            <div class="sound-controls" style="display:flex;flex-direction:column;gap:8px;">
+              <label style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" id="musicToggle" /> <span>Music</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" id="sfxToggle" /> <span>SFX</span>
+              </label>
+            </div>
           </div>
         </div>
 
-        <div class="row">
-          <span class="row-label">Âm thanh / Sound</span>
-          <div class="sound-controls" style="display:flex;flex-direction:column;gap:8px;">
-            <label style="display:flex;align-items:center;gap:8px;">
-              <input type="checkbox" id="musicToggle" /> <span>Music</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;">
-              <input type="checkbox" id="sfxToggle" /> <span>SFX</span>
-            </label>
-          </div>
-        </div>
-        <div class="row">
-          <span class="row-label" data-i18n="settings.general.fullscreen">Fullscreen</span>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <label style="display:flex;align-items:center;gap:8px;">
-              <input type="checkbox" id="fullscreenToggle" />
-              <span data-i18n="settings.general.fullscreenShort">On</span>
-            </label>
+        <div id="tabEnvironment" class="tab-panel">
+          <div class="row">
+            <span class="row-label">Môi trường</span>
+            <div class="env-controls" style="display:flex;flex-direction:column;gap:8px;">
+              <label style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" id="envRainToggle" /> <span data-i18n="settings.env.rain">Rain</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.env.density">Density</span>
+                <input type="range" id="envDensity" min="1" max="10" step="1" value="5" />
+                <span class="slider-value" aria-hidden="true"></span>
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.env.rainDensity">Rain Density</span>
+                <input type="range" id="rainDensity" min="1" max="10" step="1" value="5" />
+                <span class="slider-value" aria-hidden="true"></span>
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.render.zoom">Zoom</span>
+                <input type="range" id="zoomSlider" min="1" max="10" step="1" value="5" />
+                <span class="slider-value" aria-hidden="true"></span>
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.render.quality">Quality</span>
+                <select id="qualitySelect" aria-label="Quality">
+                  <option value="low" data-i18n="settings.render.low">Low</option>
+                  <option value="medium" data-i18n="settings.render.medium">Medium</option>
+                  <option value="high" data-i18n="settings.render.high">High</option>
+                </select>
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -150,7 +161,28 @@
         <h2 id="heroTitle" data-i18n="hero.title">Thần Sấm</h2>
         <button class="icon-btn small screen-close" aria-label="Close">✕</button>
       </div>
-      <div class="panel-content"></div>
+      <div class="panel-content">
+        <div class="tab-bar">
+          <button class="tab-btn active" data-i18n="hero.tabs.skills" aria-controls="heroTabSkills">Skills</button>
+          <button class="tab-btn" data-i18n="hero.tabs.info" aria-controls="heroTabInfo">Info</button>
+          <button class="tab-btn" data-i18n="hero.tabs.skillbook" aria-controls="heroTabBook">Skillbook</button>
+          <button class="tab-btn" data-i18n="hero.tabs.maps" aria-controls="heroTabMaps">Maps</button>
+          <button class="tab-btn" data-i18n="hero.tabs.marks" aria-controls="heroTabMarks">Marks</button>
+        </div>
+
+        <div id="heroTabSkills" class="tab-panel active">
+          <div id="heroSkillsList">
+            <div class="hero-skills-grid">
+              <div id="heroSkillsLeft"></div>
+              <div id="heroSkillsRight"></div>
+            </div>
+          </div>
+        </div>
+        <div id="heroTabInfo" class="tab-panel"></div>
+        <div id="heroTabBook" class="tab-panel"></div>
+        <div id="heroTabMaps" class="tab-panel"></div>
+        <div id="heroTabMarks" class="tab-panel"></div>
+      </div>
       <div class="panel-footer"></div>
     </div>
   </div>
@@ -236,6 +268,36 @@
         <span class="name"></span>
         <div class="cooldown" id="cdR"></div>
       </button>
+    </div>
+  </div>
+
+  <!-- Guide overlay (static, JS-managed) -->
+  <div id="guideOverlayRoot" class="guide-overlay hidden" role="dialog" aria-modal="true">
+    <div class="guide-blocker"></div>
+    <div class="guide-focus"></div>
+    <div class="guide-hand">👉</div>
+    <div class="guide-tooltip">
+      <div class="guide-tooltip-header">
+        <div class="guide-tooltip-title"></div>
+        <button class="guide-close" aria-label="Close guide">✕</button>
+      </div>
+      <div class="guide-tooltip-body"></div>
+      <div class="guide-nav">
+        <button class="secondary" id="guidePrev">Previous</button>
+        <button class="primary" id="guideNext">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quality reload confirm modal (static, JS-managed) -->
+  <div id="qualityReloadConfirm" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="qualityReloadTitle">
+    <div class="modal-box">
+      <h3 id="qualityReloadTitle" data-i18n="settings.render.reloadTitle">Reload required</h3>
+      <div class="modal-desc" data-i18n="settings.render.reloadDesc">Changing graphics quality requires a reload.</div>
+      <div class="modal-actions">
+        <button id="qualityReloadCancel" class="secondary" data-i18n="btn.cancel">Cancel</button>
+        <button id="qualityReloadOk" class="primary" data-i18n="btn.yes">Yes</button>
+      </div>
     </div>
   </div>
 

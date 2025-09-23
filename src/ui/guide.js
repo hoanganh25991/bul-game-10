@@ -76,64 +76,26 @@ export function startInstructionGuide() {
 
   if (!steps.length) return;
 
-  const overlay = document.createElement("div");
-  overlay.className = "guide-overlay";
-  overlay.setAttribute("role", "dialog");
-  overlay.setAttribute("aria-modal", "true");
+  const overlay = document.getElementById("guideOverlayRoot");
+  if (!overlay) return;
+  try { overlay.classList.remove("hidden"); } catch (_) {}
+
+  const blocker = overlay.querySelector(".guide-blocker");
+  const focus = overlay.querySelector(".guide-focus");
+  const hand = overlay.querySelector(".guide-hand");
+  const tip = overlay.querySelector(".guide-tooltip");
+  const tipTitle = overlay.querySelector(".guide-tooltip-title");
+  const tipBody = overlay.querySelector(".guide-tooltip-body");
+  const tipClose = overlay.querySelector(".guide-close");
+  const btnPrev = document.getElementById("guidePrev") || overlay.querySelector(".guide-nav .secondary");
+  const btnNext = document.getElementById("guideNext") || overlay.querySelector(".guide-nav .primary");
+
+  // Localize controls if possible
   try {
-    overlay.id = "guideOverlayRoot";
-    overlay.style.position = "fixed";
-    overlay.style.left = "0";
-    overlay.style.top = "0";
-    overlay.style.right = "0";
-    overlay.style.bottom = "0";
-    overlay.style.zIndex = "2147483647";
-    overlay.style.pointerEvents = "none";
+    tipClose?.setAttribute("aria-label", t("guide.nav.close") || "Close guide");
+    if (btnPrev) btnPrev.textContent = t("guide.nav.previous") || "Previous";
+    if (btnNext) btnNext.textContent = t("guide.nav.next") || "Next";
   } catch (_) {}
-
-  const blocker = document.createElement("div");
-  blocker.className = "guide-blocker";
-  overlay.appendChild(blocker);
-
-  const focus = document.createElement("div");
-  focus.className = "guide-focus";
-  overlay.appendChild(focus);
-
-  const hand = document.createElement("div");
-  hand.className = "guide-hand";
-  hand.textContent = "👉";
-  overlay.appendChild(hand);
-
-  const tip = document.createElement("div");
-  tip.className = "guide-tooltip";
-  const tipHeader = document.createElement("div");
-  tipHeader.className = "guide-tooltip-header";
-  const tipTitle = document.createElement("div");
-  tipTitle.className = "guide-tooltip-title";
-  const tipClose = document.createElement("button");
-  tipClose.className = "guide-close";
-  tipClose.setAttribute("aria-label", t("guide.nav.close") || "Close guide");
-  tipClose.textContent = "✕";
-  tipHeader.appendChild(tipTitle);
-  tipHeader.appendChild(tipClose);
-  const tipBody = document.createElement("div");
-  tipBody.className = "guide-tooltip-body";
-  const tipNav = document.createElement("div");
-  tipNav.className = "guide-nav";
-  const btnPrev = document.createElement("button");
-  btnPrev.className = "secondary";
-  btnPrev.textContent = t("guide.nav.previous") || "Previous";
-  const btnNext = document.createElement("button");
-  btnNext.className = "primary";
-  btnNext.textContent = t("guide.nav.next") || "Next";
-  tipNav.appendChild(btnPrev);
-  tipNav.appendChild(btnNext);
-  tip.appendChild(tipHeader);
-  tip.appendChild(tipBody);
-  tip.appendChild(tipNav);
-  overlay.appendChild(tip);
-
-  document.body.appendChild(overlay);
 
   function clamp(v, min, max) {
     return Math.max(min, Math.min(max, v));
@@ -251,7 +213,7 @@ export function startInstructionGuide() {
     window.removeEventListener("resize", onResize);
     window.removeEventListener("orientationchange", onResize);
     try {
-      overlay.remove();
+      overlay.classList.add("hidden");
     } catch (_) {}
     window.__guideState = null;
     // If we started from Settings, restore it

@@ -45,62 +45,55 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
   // Ensure tab structure with unified screen layout (header/content/footer)
   const content = document.querySelector("#heroScreen .panel-content");
   if (!content) return;
-  content.innerHTML = "";
   try { content.style.display = "flex"; content.style.flexDirection = "column"; } catch (_) {}
 
-  // Tab bar (Skills / Info / Skillbook / Maps / Marks)
-  const tabBar = document.createElement("div");
-  tabBar.className = "tab-bar";
+  // Bind to static tab bar and panels defined in index.html
+  const tabBar = content.querySelector(".tab-bar");
+  const tabBtns = tabBar ? Array.from(tabBar.querySelectorAll(".tab-btn")) : [];
 
-  const infoBtn = document.createElement("button");
-  infoBtn.className = "tab-btn" + (initialTab === "info" ? " active" : "");
-  infoBtn.setAttribute("data-i18n", "hero.tabs.info");
-  infoBtn.textContent = (t && t("hero.tabs.info")) || "Info";
+  const skillsPanel = document.getElementById("heroTabSkills");
+  const infoPanel = document.getElementById("heroTabInfo");
+  const bookPanel = document.getElementById("heroTabBook");
+  const mapsPanel = document.getElementById("heroTabMaps");
+  const marksPanel = document.getElementById("heroTabMarks");
 
-  const skillsBtn = document.createElement("button");
-  skillsBtn.className = "tab-btn" + ((initialTab !== "info" && initialTab !== "book" && initialTab !== "maps" && initialTab !== "marks") ? " active" : "");
-  skillsBtn.setAttribute("data-i18n", "hero.tabs.skills");
-  skillsBtn.textContent = (t && t("hero.tabs.skills")) || "Skills";
+  const panels = {
+    heroTabSkills: skillsPanel,
+    heroTabInfo: infoPanel,
+    heroTabBook: bookPanel,
+    heroTabMaps: mapsPanel,
+    heroTabMarks: marksPanel,
+  };
 
-  const bookBtn = document.createElement("button");
-  bookBtn.className = "tab-btn" + (initialTab === "book" ? " active" : "");
-  bookBtn.setAttribute("data-i18n", "hero.tabs.skillbook");
-  bookBtn.textContent = (t && t("hero.tabs.skillbook")) || "Skillbook";
+  function showPanelById(id) {
+    Object.values(panels).forEach((p) => {
+      if (!p) return;
+      p.classList.remove("active");
+      p.style.display = "none";
+    });
+    const target = panels[id];
+    if (target) {
+      target.classList.add("active");
+      target.style.display = "block";
+    }
+    tabBtns.forEach((b) => b.classList.remove("active"));
+    const activeBtn = tabBtns.find((b) => b.getAttribute("aria-controls") === id);
+    if (activeBtn) activeBtn.classList.add("active");
+  }
 
-  const mapsBtn = document.createElement("button");
-  mapsBtn.className = "tab-btn" + (initialTab === "maps" ? " active" : "");
-  mapsBtn.setAttribute("data-i18n", "hero.tabs.maps");
-  mapsBtn.textContent = (t && t("hero.tabs.maps")) || "Maps";
+  // Initial activation based on initialTab
+  const tabMap = { skills: "heroTabSkills", info: "heroTabInfo", book: "heroTabBook", maps: "heroTabMaps", marks: "heroTabMarks" };
+  showPanelById(tabMap[initialTab] || "heroTabSkills");
 
-  const marksBtn = document.createElement("button");
-  marksBtn.className = "tab-btn" + (initialTab === "marks" ? " active" : "");
-  marksBtn.setAttribute("data-i18n", "hero.tabs.marks");
-  marksBtn.textContent = (t && t("hero.tabs.marks")) || "Marks";
-
-  tabBar.appendChild(infoBtn);
-  tabBar.appendChild(skillsBtn);
-  tabBar.appendChild(bookBtn);
-  tabBar.appendChild(mapsBtn);
-  tabBar.appendChild(marksBtn);
-  content.appendChild(tabBar);
-
-  // Panels
-  const infoPanel = document.createElement("div");
-  infoPanel.className = "tab-panel" + (initialTab === "info" ? " active" : "");
-  const skillsPanel = document.createElement("div");
-  skillsPanel.className = "tab-panel" + ((initialTab !== "info" && initialTab !== "book" && initialTab !== "maps" && initialTab !== "marks") ? " active" : "");
-  const bookPanel = document.createElement("div");
-  bookPanel.className = "tab-panel" + (initialTab === "book" ? " active" : "");
-  const mapsPanel = document.createElement("div");
-  mapsPanel.className = "tab-panel" + (initialTab === "maps" ? " active" : "");
-  const marksPanel = document.createElement("div");
-  marksPanel.className = "tab-panel" + (initialTab === "marks" ? " active" : "");
-  // Initialize visibility based on initialTab
-  infoPanel.style.display = (initialTab === "info") ? "block" : "none";
-  skillsPanel.style.display = ((initialTab !== "info" && initialTab !== "book" && initialTab !== "maps" && initialTab !== "marks") ? "block" : "none");
-  bookPanel.style.display = (initialTab === "book") ? "block" : "none";
-  mapsPanel.style.display = (initialTab === "maps") ? "block" : "none";
-  marksPanel.style.display = (initialTab === "marks") ? "block" : "none";
+  // Bind tab buttons
+  tabBtns.forEach((btn) => {
+    if (btn.dataset.bound === "1") return;
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("aria-controls");
+      if (id) showPanelById(id);
+    });
+    btn.dataset.bound = "1";
+  });
 
   // Info content
   const info = document.createElement("div");
@@ -112,24 +105,12 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
   }
   infoPanel.appendChild(info);
 
-  // Skills content
-  const container = document.createElement("div");
-  container.id = "heroSkillsList";
-  skillsPanel.appendChild(container);
-  // Two-column layout wrapper
-  const twoCol = document.createElement("div");
-  twoCol.className = "hero-skills-grid";
-  try {
-    twoCol.style.display = "grid";
-    twoCol.style.gridTemplateColumns = "1fr 1fr";
-    twoCol.style.gap = "12px";
-    twoCol.style.alignItems = "start";
-  } catch (_) {}
-  const leftCol = document.createElement("div");
-  const rightCol = document.createElement("div");
-  container.appendChild(twoCol);
-  twoCol.appendChild(leftCol);
-  twoCol.appendChild(rightCol);
+  // Skills content (bind to static container/columns)
+  const container = document.getElementById("heroSkillsList");
+  const leftCol = document.getElementById("heroSkillsLeft");
+  const rightCol = document.getElementById("heroSkillsRight");
+  if (!container || !leftCol || !rightCol) return;
+  try { leftCol.innerHTML = ""; rightCol.innerHTML = ""; } catch (_) {}
 
   // Loadout slots (Q W E R)
   const keys = ["Q", "W", "E", "R"];
@@ -710,47 +691,9 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     marksPanel.appendChild(wrap);
   })();
 
-  // Append panels
-  content.appendChild(infoPanel);
-  content.appendChild(skillsPanel);
-  content.appendChild(bookPanel);
-  content.appendChild(mapsPanel);
-  content.appendChild(marksPanel);
+  // Panels are static in index.html
 
-  // Tab switching
-  function activate(panel) {
-    [infoBtn, skillsBtn, bookBtn, mapsBtn, marksBtn].forEach((b) => b.classList.remove("active"));
-    [infoPanel, skillsPanel, bookPanel, mapsPanel, marksPanel].forEach((p) => {
-      p.classList.remove("active");
-      p.style.display = "none";
-    });
-    if (panel === "info") {
-      infoBtn.classList.add("active");
-      infoPanel.classList.add("active");
-      infoPanel.style.display = "block";
-    } else if (panel === "book") {
-      bookBtn.classList.add("active");
-      bookPanel.classList.add("active");
-      bookPanel.style.display = "block";
-    } else if (panel === "maps") {
-      mapsBtn.classList.add("active");
-      mapsPanel.classList.add("active");
-      mapsPanel.style.display = "block";
-    } else if (panel === "marks") {
-      marksBtn.classList.add("active");
-      marksPanel.classList.add("active");
-      marksPanel.style.display = "block";
-    } else {
-      skillsBtn.classList.add("active");
-      skillsPanel.classList.add("active");
-      skillsPanel.style.display = "block";
-    }
-  }
-  infoBtn.addEventListener("click", () => activate("info"));
-  skillsBtn.addEventListener("click", () => activate("skills"));
-  bookBtn.addEventListener("click", () => activate("book"));
-  mapsBtn.addEventListener("click", () => activate("maps"));
-  marksBtn.addEventListener("click", () => activate("marks"));
+  // Tabs are bound via static markup .tab-bar in index.html
 
   try {
     window.applyTranslations && window.applyTranslations(document.getElementById("heroScreen"));
