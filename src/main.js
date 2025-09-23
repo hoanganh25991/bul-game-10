@@ -945,8 +945,20 @@ window.addEventListener("keydown", (e) => {
     if (k === "ArrowLeft") keyMove.left = true;
     if (k === "ArrowRight") keyMove.right = true;
 
-    // Arrow movement pings handled continuously in animate(); reset timer to fire immediately
-    try { __arrowContPingT = 0; } catch (_) {}
+    // Immediate ping on arrow press (match right-click), and start cadence
+    try {
+      const dir = getKeyMoveDir ? getKeyMoveDir() : { active: false };
+      if (dir && dir.active && effects && effects.spawnMovePing) {
+        const base = player.pos();
+        const speed = 10;
+        const px = base.x + dir.x * speed;
+        const pz = base.z + dir.y * speed;
+        effects.spawnMovePing(new THREE.Vector3(px, 0, pz));
+        __arrowContPingT = now() + __MOVE_PING_INTERVAL;
+      } else {
+        __arrowContPingT = 0;
+      }
+    } catch (_) {}
   }
 });
 window.addEventListener("keyup", (e) => {
@@ -970,6 +982,7 @@ let __aiOffset = 0;
 const __MOVE_PING_INTERVAL = 0.3; // seconds between continuous move pings (joystick/arrow). Match right-click cadence.
 let __joyContPingT = 0;
 let __arrowContPingT = 0;
+let __arrowWasActive = false;
 
 function animate() {
   requestAnimationFrame(animate);
@@ -1009,17 +1022,37 @@ function animate() {
 
   // Continuous move pings for arrow-key movement; match right-click indicator exactly
   try {
-    const dir = getKeyMoveDir ? getKeyMoveDir() : { active: false };
-    if (dir && dir.active && !player.frozen && !player.aimMode) {
+    // Prefer the canonical movement state from inputService (capture-phase listeners)
+    const ks = inputService && inputService._state ? inputService._state.moveKeys : null;
+    let active = false, dx = 0, dy = 0;
+    if (ks) {
+      dx = (ks.right ? 1 : 0) + (ks.left ? -1 : 0);
+      dy = (ks.down ? 1 : 0) + (ks.up ? -1 : 0);
+      const len = Math.hypot(dx, dy);
+      if (len > 0) { dx /= len; dy /= len; active = true; }
+    } else {
+      // Fallback to legacy local state if service not present
+      const dir = getKeyMoveDir ? getKeyMoveDir() : { active: false };
+      if (dir && dir.active) { dx = dir.x; dy = dir.y; active = true; }
+    }
+
+    if (active && !player.frozen && !player.aimMode) {
       const speed = 10;
       const base = player.pos();
-      const px = base.x + dir.x * speed;
-      const pz = base.z + dir.y * speed;
-      if (!__arrowContPingT || t >= __arrowContPingT) {
+      const px = base.x + dx * speed;
+      const pz = base.z + dy * speed;
+
+      // Fire immediately on initial press, then cadence
+      if (!__arrowWasActive) {
+        effects.spawnMovePing(new THREE.Vector3(px, 0, pz));
+        __arrowContPingT = t + __MOVE_PING_INTERVAL;
+      } else if (!__arrowContPingT || t >= __arrowContPingT) {
         effects.spawnMovePing(new THREE.Vector3(px, 0, pz));
         __arrowContPingT = t + __MOVE_PING_INTERVAL;
       }
+      __arrowWasActive = true;
     } else {
+      __arrowWasActive = false;
       __arrowContPingT = 0;
     }
   } catch (_) {}
