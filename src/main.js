@@ -385,41 +385,15 @@ function initQualitySelect() {
       const v = String(sel.value || "high").toLowerCase();
       const valid = v === "low" || v === "medium" || v === "high";
       const nextQ = valid ? v : "high";
-      // persist (preserve other fields like zoom)
+      // Persist preference before full reload
       try {
         const prev = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
         prev.quality = nextQ;
         localStorage.setItem("renderPrefs", JSON.stringify(prev));
       } catch (_) {}
-      // keep local variable consistent
-      renderQuality = nextQ;
-      // Apply immediately
-      try {
-        renderer.setPixelRatio(getTargetPixelRatio());
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      } catch (_) {}
-      // Update live quality knobs without reload:
-      try { effects.quality = renderQuality; } catch (_) {}
-      try {
-        ui._quality = renderQuality;
-        ui._miniIntervalMs = renderQuality === "low" ? 150 : (renderQuality === "medium" ? 90 : 0);
-        ui._miniLastT = 0;
-      } catch (_) {}
-      // Re-init environment with new quality (preserve density/rain)
-      try { if (env && env.root && env.root.parent) env.root.parent.remove(env.root); } catch (_) {}
-      try {
-        const preset = ENV_PRESETS[Math.min(Math.max(0, envDensityIndex), ENV_PRESETS.length - 1)];
-        env = initEnvironment(scene, Object.assign({}, preset, { enableRain: envRainState, quality: renderQuality }));
-        if (envRainState && env && typeof env.setRainLevel === "function") {
-          env.setRainLevel(Math.min(Math.max(0, envRainLevel), 2));
-        }
-        updateEnvironmentFollow(env, player);
-      } catch (_) {}
-      // Adjust AI stride according to quality
-      try {
-        __aiStride = renderQuality === "low" ? 3 : (renderQuality === "medium" ? 2 : 1);
-        __aiOffset = 0;
-      } catch (_) {}
+      try { localStorage.setItem("pendingReloadReason", "quality-change"); } catch (_) {}
+      // Reload to apply enemy density and fully reinitialize subsystems for the new quality
+      window.location.reload();
     });
     sel.dataset.bound = "1";
   }
