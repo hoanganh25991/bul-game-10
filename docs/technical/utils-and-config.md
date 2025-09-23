@@ -34,6 +34,9 @@ Persistence (localStorage)
   - player.xp: number — current XP toward next level.
   - maps.unlocked: JSON array of unlocked map IDs (e.g., ["MAP1","MAP2"]).
   - marks: JSON array of user-placed flags/teleport markers.
+  - envPrefs: JSON { rain: boolean, density: number (ENV_PRESETS index), rainLevel: 0|1|2 } — environment options.
+  - renderPrefs: JSON { zoom: number (0.6..1.6), quality: "low" | "medium" | "high" } — rendering options; quality applied on reload.
+  - audioPrefs: JSON { music: boolean, sfx: boolean } — audio enablement flags.
 - Behavior:
   - Level/XP are saved on change and restored on boot if present.
   - Unlocked maps and marks are restored to preserve world continuity.
@@ -43,7 +46,8 @@ Usage Notes
 - Utilities are pure and side-effect free; safe for unit tests.
 - DEBUG flag is respected by input handling to enable dev-only interactions.
 - i18n.js lazily loads language packs and persists the selection (localStorage "lang"); default language is Vietnamese ("vi") if none is stored.
-- Core progression (player.level/xp), unlocked maps, and user marks are persisted in localStorage to maintain long-term play across sessions.
+- Core progression (player.level/xp), unlocked maps, user marks, environment preferences (envPrefs), rendering preferences (renderPrefs: zoom, quality), and audio preferences (audioPrefs) persist in localStorage to maintain long-term play across sessions.
+- Quality preference changes are applied on page reload and are gated by an in-game confirmation overlay from the Settings screen.
 
 Extensibility
 - Add new tuning under WORLD and reference them in consumers; avoid per-file magic numbers.

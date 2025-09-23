@@ -13,6 +13,10 @@ Highlights (synced from todo.md)
 - Audio: procedural SFX and ambient music via WebAudio (no external assets).
 - Leveling & Persistence: level/XP persist; unlocked maps and user “marks/flags” persist; language selection persists.
 - i18n & Theme: dynamic vi/en locale loading (default vi); theme uses dark blue, blue, white, yellow.
+- Controls: add M to place a flag (persistent; 3 min cooldown).
+- Settings: sliders show numeric badges (1..10) for Zoom, Environment Density, Rain Density; quality changes require in-game confirm and page reload.
+- Guide: non-blocking overlay highlights elements; closes Settings while active and reopens on exit; localized titles/navigation via i18n.
+- Hero Skills Preview: in-game key selection overlay (Q/W/E/R) replaces native prompt for key assign.
 
 Modules:
 - World & Rendering: ./world.md
@@ -22,6 +26,8 @@ Modules:
 - AI (Aggro, Wander, Attack): ./ai.md
 - VFX & Indicators: ./vfx-and-indicators.md
 - HUD & Minimap: ./ui-and-minimap.md
+- Settings: ./settings.md
+- Guide: ./guide.md
 - Portals, Recall, Village, Respawn: ./portals-and-respawn.md
 - Camera & Movement: ./camera-and-movement.md
 - Update Loop Orchestration: ./update-loop.md

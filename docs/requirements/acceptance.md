@@ -29,3 +29,17 @@ Portals, Recall, Respawn
 
 Stability
 - No runtime errors in the browser console during normal play.
+
+Controls & Marks
+- Pressing M places a flag at the current location.
+- Mark placement observes a 3 minute cooldown and persists across sessions.
+- Marks are visible in Hero > Marks.
+
+Settings
+- Zoom, Environment Density, and Rain Density sliders display a numeric value next to each slider and apply changes on commit (change event), not during drag.
+- Changing Quality prompts with an in-game confirmation dialog; on Yes the preference is saved and the page reloads; on Cancel the selection reverts and no change is saved.
+
+Guide
+- Starting the Guide while Settings is open temporarily closes Settings; after exiting the Guide, Settings reopens automatically.
+- The overlay highlights the target element without hiding the underlying UI.
+- Navigation shows Previous/Next/Done and Close; step titles/descriptions and navigation labels resolve via i18n (guide.* and guide.nav.*), falling back to defaults if a bundle is not yet loaded.

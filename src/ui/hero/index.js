@@ -134,7 +134,7 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
                       <div class="skill-icon">${getSkillIcon(skillDef ? skillDef.short : null)}</div>
                       <div class="slot-short">${skillDef ? skillDef.short : "—"}</div>
                       <div class="slot-name">${skillDef ? skillDef.name : (t ? t("hero.slot.empty") : "Empty")}</div>
-                      <button class="slot-clear">${(t && t("hero.slot.clear")) || "Clear"}</button>`;
+                      <button class="pill-btn slot-clear" title="Clear">🧹</button>`;
     slotsWrap.appendChild(slot);
   }
   container.appendChild(slotsWrap);
@@ -150,7 +150,7 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     const el = document.createElement("div");
     el.className = "skill-pool-item";
     el.dataset.skillId = s.id;
-    el.innerHTML = `<div class="skill-icon">${getSkillIcon(s.short)}</div><div class="skill-name">${s.name}</div><button class="assign">${(t && t("hero.assign")) || "Assign"}</button>`;
+    el.innerHTML = `<div class="skill-icon">${getSkillIcon(s.short)}</div><div class="skill-name">${s.name}</div>`;
     poolWrap.appendChild(el);
   });
   container.appendChild(poolWrap);
@@ -158,7 +158,8 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
   const actions = document.createElement("div");
   actions.className = "hero-actions";
   const resetBtn = document.createElement("button");
-  resetBtn.textContent = (t && t("hero.slot.reset")) || "Reset";
+  resetBtn.className = "pill-btn pill-btn--yellow";
+  resetBtn.textContent = "🔄";
   resetBtn.addEventListener("click", () => {
     const next = DEFAULT_LOADOUT.slice();
     try {
@@ -194,18 +195,6 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
   poolWrap.querySelectorAll(".skill-pool-item").forEach((itemEl) => {
     const skillId = itemEl.dataset.skillId;
     itemEl.addEventListener("click", () => {
-      const slotToAssign = selectedSlotIndex !== null ? selectedSlotIndex : 0;
-      const next = currentLoadout.slice();
-      next[slotToAssign] = skillId;
-      try {
-        setLoadoutAndSave(next);
-        renderHeroScreen("skills", ctx);
-        updateSkillBarLabels && updateSkillBarLabels();
-      } catch (_) {}
-    });
-    const btn = itemEl.querySelector(".assign");
-    btn.addEventListener("click", (ev) => {
-      ev.stopPropagation();
       const slotToAssign = selectedSlotIndex !== null ? selectedSlotIndex : 0;
       const next = currentLoadout.slice();
       next[slotToAssign] = skillId;
@@ -253,8 +242,10 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     const imgBox = document.createElement("div");
     imgBox.style.marginTop = "8px";
     const previewBtn = document.createElement("button");
-    previewBtn.textContent = "Preview";
-    previewBtn.style.marginTop = "10px";
+    previewBtn.className = "pill-btn pill-btn--yellow";
+    previewBtn.textContent = "▶️";
+    detail.style.position = "relative";
+    Object.assign(previewBtn.style, { position: "absolute", top: "8px", right: "8px", marginTop: "0" });
 
     detail.appendChild(title);
     detail.appendChild(icon);
@@ -319,11 +310,12 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     }
 
     SKILL_POOL.forEach((s) => {
-      const btn = document.createElement("button");
+      const btn = document.createElement("div");
       btn.className = "skillbook-item";
       btn.style.display = "flex";
       btn.style.alignItems = "center";
       btn.style.gap = "8px";
+      btn.style.cursor = "pointer";
       const ic = document.createElement("span");
       ic.textContent = getSkillIcon(s.short || s.name);
       const nm = document.createElement("span");
@@ -428,13 +420,16 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
           const act = document.createElement("div");
           const btn = document.createElement("button");
           if (m.current) {
-            btn.textContent = "Active";
+            btn.className = "pill-btn pill-btn--yellow";
+            btn.textContent = "✅";
             btn.disabled = true;
           } else if (!m.unlocked) {
-            btn.textContent = "Locked";
+            btn.className = "pill-btn";
+            btn.textContent = "🔒";
             btn.disabled = true;
           } else {
-            btn.textContent = "Set Active";
+            btn.className = "pill-btn pill-btn--yellow";
+            btn.textContent = "📍";
             btn.addEventListener("click", () => {
               try {
                 if (mapManager.setCurrent?.(m.index)) {
@@ -516,7 +511,8 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
             info.textContent = `${nm} • (${Math.round(m.x)}, ${Math.round(m.z)}) • ${fmtTime(m.createdAt)}`;
 
             const rn = document.createElement("button");
-            rn.textContent = "Rename";
+            rn.className = "pill-btn";
+            rn.textContent = "✏️";
             rn.addEventListener("click", () => {
               try {
                 const newName = prompt("Enter mark name", nm);
@@ -528,7 +524,8 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
             });
 
             const tp = document.createElement("button");
-            tp.textContent = "Teleport";
+            tp.className = "pill-btn pill-btn--yellow";
+            tp.textContent = "🌀";
             tp.addEventListener("click", () => {
               try {
                 portals.teleportToMark?.(m.index, player);
@@ -536,7 +533,8 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
             });
 
             const rm = document.createElement("button");
-            rm.textContent = "Remove";
+            rm.className = "pill-btn";
+            rm.textContent = "🗑️";
             rm.addEventListener("click", () => {
               try {
                 portals.removePersistentMark?.(m.index);

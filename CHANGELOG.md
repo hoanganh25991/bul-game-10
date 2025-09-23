@@ -14,6 +14,9 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 - Enemy scaling and respawn: enemies scale HP/damage per hero level and respawn after WORLD.enemyRespawnDelay to maintain density. Spawns respect village boundary.
 - HUD level-up feedback and dynamic XP/Level display (already present); dispatches player-levelup event for animations.
 - Documentation: docs/technical/leveling.md
+- Settings screen: sliders display numeric badges for Zoom/Environment Density/Rain Density; quality changes gated by in-game confirm and full reload (renderPrefs.quality).
+- Guide overlay: non-blocking, auto-closes Settings while active, reopens on exit; localized via i18n; persists language.
+- Hero Skills Preview overlay: in-game key selection (Q/W/E/R) replaces native prompt for assignment; countdown+cast flow with persistence.
 
 ### Changed
 - Mobile UI scale for small screens (≤ 932px):
@@ -23,6 +26,10 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 - Basic attack now scales with hero level via Player.baseDamage; Q (Chain) and Beam skills scale with level; AOE/Nova/Aura/Storm remain fixed for pacing.
 - Introduced SCALING knobs in src/constants.js (hero/enemy growth, xp growth, skill scaling toggle) and WORLD.enemyRespawnDelay.
+- Controls: added M to place a flag (persistent; 3 min cooldown); updated Controls and Input docs.
+- Settings: quality change now prompts with native in-game confirm and reloads on confirm; no dynamic switching.
+- Non-Functional: defined quality tiers (High/Medium/Low) with device target (Xiaomi Redmi Pad 6 30+ FPS); switching requires reload.
+- Technical Docs: added docs/technical/ui-screens.md; updated utils-and-config with envPrefs/renderPrefs/audioPrefs.
 
 ### Removed
 - Removed 3D hero preview from Hero Screen: eliminated heroPreviewCanvas and related preview code in src/main.js.

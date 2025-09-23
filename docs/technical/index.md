@@ -12,6 +12,7 @@ Overview
 - AI (Aggro, Wander, Attack): ./ai.md
 - VFX & Indicators (Transient Effects): ./vfx-and-indicators.md
 - HUD & Minimap: ./ui-and-minimap.md
+- UI Screens & Overlays: ./ui-screens.md
 - Portals, Recall, Respawn: ./portals-and-respawn.md
 - Camera & Movement: ./camera-and-movement.md
 - Update Loop: ./update-loop.md
@@ -26,7 +27,7 @@ Key Mapping (src -> docs)
 - src/skills.js -> ./combat-and-skills.md
 - src/meshes.js, src/effects.js -> ./vfx-and-indicators.md
 - src/ui/hud.js -> ./ui-and-minimap.md
-- src/ui/guide.js, src/ui/settings/index.js, src/ui/hero/index.js -> UI screens under src/ui/*
+- src/ui/guide.js, src/ui/settings/index.js, src/ui/hero/index.js, src/ui/hero/preview.js -> ./ui-screens.md
 - src/portals.js -> ./portals-and-respawn.md
 - src/world.js (camera), src/main.js (movement) -> ./camera-and-movement.md
 - src/main.js (sequence) -> ./update-loop.md

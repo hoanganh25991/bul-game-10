@@ -207,7 +207,7 @@
 }
 
 /* Default themed button baseline inside screens for unclassed buttons */
-.screen .screen-content button:not(.icon-btn):not(.skill-btn):not(.flag):not(.tab-btn){
+.screen .screen-content button:not(.icon-btn):not(.skill-btn):not(.flag):not(.tab-btn):not(.pill-btn){
   cursor: pointer;
   padding: 10px 14px;
   border-radius: 10px;
@@ -590,6 +590,60 @@
 .system-screen select:focus-visible{
   outline: 2px solid rgba(255,217,74,0.8);
   outline-offset: 2px;
+}
+
+/* Compact pill-style buttons for in-screen controls (Settings/Hero) */
+.pill-btn{
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  min-height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(124,196,255,0.35);
+  background: linear-gradient(180deg, rgba(22,44,78,0.9), rgba(10,25,48,0.85));
+  color: #e6f4ff;
+  font-weight: 800;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(124,196,255,0.12);
+  transition: transform 80ms ease, filter 120ms ease, box-shadow 120ms ease;
+}
+.pill-btn:hover{
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(0,0,0,0.35);
+}
+.pill-btn:active{
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+.pill-btn:disabled{
+  opacity: 0.6;
+  cursor: default;
+  filter: grayscale(0.2);
+  box-shadow: none;
+}
+
+/* Yellow accent variant for primary/affirmative actions */
+.pill-btn--yellow{
+  background: linear-gradient(180deg, #ffe98a, #ffd94a);
+  color: var(--theme-dark-blue);
+  border-color: rgba(255,217,74,0.6);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+  box-shadow: 0 8px 24px rgba(255,217,74,0.28), 0 0 12px rgba(255,217,74,0.2);
+}
+.pill-btn--yellow:hover{
+  filter: brightness(1.02);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(255,217,74,0.35);
+}
+.pill-btn--yellow:active{
+  transform: translateY(0);
 }
 
 /* Mobile-first compact tweaks */
