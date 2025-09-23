@@ -292,29 +292,47 @@ function initQualitySelect(render) {
   const sel = document.getElementById("qualitySelect");
   if (!sel) return;
 
+  let current = "high";
   try {
     const q = render.getQuality?.() || "high";
-    sel.value = q === "low" || q === "medium" || q === "high" ? q : "high";
-  } catch (_) {}
+    current = q === "low" || q === "medium" || q === "high" ? q : "high";
+    sel.value = current;
+  } catch (_) {
+    try {
+      sel.value = current;
+    } catch (_) {}
+  }
 
   if (!sel.dataset.bound) {
     sel.addEventListener("change", () => {
-      const v = String(sel.value || "high").toLowerCase();
+      const v = String(sel.value || current).toLowerCase();
       const valid = v === "low" || v === "medium" || v === "high";
-      const nextQ = valid ? v : "high";
-      try {
-        // persist
-        const prev = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
-        prev.quality = nextQ;
-        localStorage.setItem("renderPrefs", JSON.stringify(prev));
-      } catch (_) {}
-      try {
-        render.setQuality?.(nextQ);
-      } catch (_) {}
-      try {
-        render.renderer?.setPixelRatio?.(render.getTargetPixelRatio?.());
-        render.renderer?.setSize?.(window.innerWidth, window.innerHeight);
-      } catch (_) {}
+      const nextQ = valid ? v : current;
+
+      if (nextQ === current) return;
+
+      const msg = "Changing graphics quality requires a reload. Reload now?";
+      const ok =
+        typeof window !== "undefined" && typeof window.confirm === "function" ? window.confirm(msg) : true;
+
+      if (ok) {
+        try {
+          const prev = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
+          prev.quality = nextQ;
+          localStorage.setItem("renderPrefs", JSON.stringify(prev));
+        } catch (_) {}
+        try {
+          window.location.reload();
+        } catch (_) {
+          try {
+            location.reload();
+          } catch (_) {}
+        }
+      } else {
+        try {
+          sel.value = current;
+        } catch (_) {}
+      }
     });
     sel.dataset.bound = "1";
   }
