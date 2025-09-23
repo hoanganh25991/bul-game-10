@@ -23,7 +23,6 @@ export function setupSettingsScreen({
   btnSettingsScreen?.addEventListener("click", () => {
     try {
       ensureSettingsTabs(settingsPanel, t, startInstructionGuide);
-      ensureGuideButton(settingsPanel, startInstructionGuide);
     } catch (_) {}
     settingsPanel?.classList.toggle("hidden");
   });
@@ -32,7 +31,6 @@ export function setupSettingsScreen({
   // Initialize controls once on boot (in case user opens immediately)
   try {
     ensureSettingsTabs(settingsPanel, t, startInstructionGuide);
-    ensureGuideButton(settingsPanel, startInstructionGuide);
   } catch (_) {}
 
   // Audio toggles
@@ -135,34 +133,8 @@ function ensureSettingsTabs(settingsPanel, t, startInstructionGuide) {
   try {
     window.applyTranslations && window.applyTranslations(settingsPanel);
   } catch (_) {}
-
-  // Ensure guide button
-  try {
-    ensureGuideButton(settingsPanel, startInstructionGuide);
-  } catch (_) {}
 }
 
-function ensureGuideButton(settingsPanel, startInstructionGuide) {
-  try {
-    const root = settingsPanel || document.getElementById("settingsPanel");
-    if (!root) return;
-    const instrRow = root.querySelector("#settingsInstructions");
-    if (!instrRow) return;
-    if (!instrRow.querySelector("#btnInstructionGuide")) {
-      const btn = document.createElement("button");
-      btn.id = "btnInstructionGuide";
-      btn.className = "primary";
-      btn.title = "Show guide";
-      btn.innerHTML = "👋 Guide";
-      btn.addEventListener("click", () => {
-        try {
-          startInstructionGuide && startInstructionGuide();
-        } catch (_) {}
-      });
-      instrRow.appendChild(btn);
-    }
-  } catch (_) {}
-}
 
 /* ---------------- Audio ---------------- */
 function initAudioControls(audioCtl) {
