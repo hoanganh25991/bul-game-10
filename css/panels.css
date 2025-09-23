@@ -327,7 +327,14 @@
   line-height: 1;
   cursor: pointer;
   color: var(--system-text);
-  min-width: 84px;
+  /* Equal width per row */
+  flex: 1 1 0;
+  min-width: 0;
+  /* Truncate long titles */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  height: 36px;
   outline: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: background 120ms ease, transform 80ms ease, box-shadow 120ms ease;
@@ -348,8 +355,15 @@
   min-height: 0;
 }
 
-.tab-panel.active {
+.system-screen .tab-panel.active {
   display: block;
+  /* Consume remaining height and scroll body, not header/tabs */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 /* System screens: ensure content fits mobile viewports */
@@ -369,18 +383,11 @@
 .system-screen .panel-content {
   flex: 1;
   min-height: 0;
-  /* Create column layout: sticky tab bar above, panel body below */
+  /* Column layout: header (outside), then tab bar, then body */
   display: flex;
   flex-direction: column;
-  /* Enable vertical scrolling for the content area */
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  /* smooth momentum scrolling on iOS */
-  overscroll-behavior: contain;
-  /* prevent scroll chaining to body */
-  touch-action: pan-y;
-  /* improve touch scroll responsiveness */
+  /* Let only the active tab panel scroll */
+  overflow: hidden;
 }
 
 /* Tab hover/focus polish */
@@ -827,9 +834,11 @@
 
   .tab-btn {
     padding: 6px 8px;
-    min-width: 72px;
     font-size: 12px;
     border-radius: 8px;
+    height: 32px;
+    /* keep equal width + ellipsis on mobile too */
+    min-width: 0;
   }
 
   /* Smaller headings */

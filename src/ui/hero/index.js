@@ -175,7 +175,15 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
       const ic = slot.querySelector(".skill-icon");
       if (ic) ic.style.fontSize = "22px";
       const sh = slot.querySelector(".slot-short");
-      if (sh) sh.style.display = "none";
+      if (sh) {
+        sh.style.display = "block";
+        sh.style.position = "absolute";
+        sh.style.bottom = "4px";
+        sh.style.left = "50%";
+        sh.style.transform = "translateX(-50%)";
+        sh.style.fontSize = "10px";
+        sh.style.opacity = "0.9";
+      }
       const ky = slot.querySelector(".slot-key");
       if (ky) {
         ky.style.position = "absolute";
@@ -202,7 +210,7 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     el.dataset.skillId = s.id;
     // More informative list item: icon, name, short
     el.style.display = "grid";
-    el.style.gridTemplateColumns = "28px 1fr auto";
+    el.style.gridTemplateColumns = "28px 1fr";
     el.style.alignItems = "center";
     el.style.gap = "8px";
     el.style.padding = "6px 8px";
@@ -213,8 +221,7 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
                     <div class="skill-text">
                       <div class="skill-name" style="font-weight:600;">${s.name}</div>
                       <div class="skill-short" style="opacity:0.8;font-size:12px;">${s.short || ""}</div>
-                    </div>
-                    <button class="assign pill-btn pill-btn--yellow" title="Assign">Assign</button>`;
+                    </div>`;
     poolWrap.appendChild(el);
   });
   leftCol.appendChild(poolWrap);
@@ -341,19 +348,6 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
       showAssignBar(skillId);
     });
 
-    // Assign button:
-    const btn = itemEl.querySelector(".assign");
-    if (btn) {
-      btn.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        if (selectedSlotIndex !== null) {
-          assignSkillTo(selectedSlotIndex, skillId);
-        } else {
-          // no slot selected -> prompt with assign bar
-          showAssignBar(skillId);
-        }
-      });
-    }
   });
 
   // Build Skillbook panel content (list + details + preview)
