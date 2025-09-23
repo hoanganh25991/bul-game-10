@@ -28,26 +28,8 @@ import { initHeroPreview } from "./ui/hero/preview.js";
 import { startInstructionGuide as startInstructionGuideOverlay } from "./ui/guide.js";
 import { setupSettingsScreen } from "./ui/settings/index.js";
 import { renderHeroScreen as renderHeroScreenUI } from "./ui/hero/index.js";
+import { updateSkillBarLabels } from "./ui/skillbar.js";
 
-/**
- * Minimal skill icon helper: returns a small emoji/SVG placeholder for a skill short name.
- * Keeps UI lightweight and avoids new asset dependencies.
- */
-function getSkillIcon(short) {
-  if (!short) return "—";
-  const k = String(short).slice(0, 3).toLowerCase();
-  const map = {
-    chn: "⚡", // chain
-    bol: "⚡", // bolt/chain-ish
-    stc: "🔌", // static
-    str: "⛈️", // storm
-    bam: "🔋",
-    nov: "✴️",
-    aoe: "💥",
-    "n/a": "⚡"
-  };
-  return map[k] || "⚡";
-}
 
 // ------------------------------------------------------------
 // Bootstrapping world, UI, effects
@@ -86,10 +68,10 @@ try {
 
 /* Initialize splash first (shows full-screen loader), then i18n */
 initSplash();
- // Initialize i18n (default Vietnamese)
+// Initialize i18n (default Vietnamese)
 initI18n();
 
- /* Audio: preferences + initialize on first user gesture. Do not auto-start music if disabled. */
+/* Audio: preferences + initialize on first user gesture. Do not auto-start music if disabled. */
 const _audioPrefs = JSON.parse(localStorage.getItem("audioPrefs") || "{}");
 let musicEnabled = _audioPrefs.music !== false; // default true
 let sfxEnabled = _audioPrefs.sfx !== false;     // default true
@@ -176,79 +158,79 @@ function setFirstPerson(enabled) {
   }
 }
 
- // Settings handlers (refactored)
- const audioCtl = {
-   audio,
-   getMusicEnabled: () => musicEnabled,
-   setMusicEnabled: (v) => { musicEnabled = !!v; try { localStorage.setItem("audioPrefs", JSON.stringify({ music: musicEnabled, sfx: sfxEnabled })); } catch (_) {} },
-   getSfxEnabled: () => sfxEnabled,
-   setSfxEnabled: (v) => { sfxEnabled = !!v; try { localStorage.setItem("audioPrefs", JSON.stringify({ music: musicEnabled, sfx: sfxEnabled })); } catch (_) {} },
- };
- const environmentCtx = {
-   scene,
-   ENV_PRESETS,
-   initEnvironment,
-   updateEnvironmentFollow,
-   get player() { return player; },
-   getState: () => ({ env, envRainState, envDensityIndex, envRainLevel }),
-   setState: (st) => {
-     env = st.env ?? env;
-     envRainState = st.envRainState ?? envRainState;
-     envDensityIndex = st.envDensityIndex ?? envDensityIndex;
-     envRainLevel = st.envRainLevel ?? envRainLevel;
-   },
- };
- const renderCtx = {
-   renderer,
-   cameraOffset,
-   baseCameraOffset: _baseCameraOffset,
-   getQuality: () => renderQuality,
-   setQuality: (q) => { renderQuality = q; },
-   getTargetPixelRatio: () => getTargetPixelRatio(),
- };
- setupSettingsScreen({
-   t,
-   startInstructionGuide: () => startInstructionGuideOverlay(),
-   elements: { btnSettingsScreen, btnCloseSettings, settingsPanel },
-   environment: environmentCtx,
-   render: renderCtx,
-   audioCtl,
- });
+// Settings handlers (refactored)
+const audioCtl = {
+  audio,
+  getMusicEnabled: () => musicEnabled,
+  setMusicEnabled: (v) => { musicEnabled = !!v; try { localStorage.setItem("audioPrefs", JSON.stringify({ music: musicEnabled, sfx: sfxEnabled })); } catch (_) {} },
+  getSfxEnabled: () => sfxEnabled,
+  setSfxEnabled: (v) => { sfxEnabled = !!v; try { localStorage.setItem("audioPrefs", JSON.stringify({ music: musicEnabled, sfx: sfxEnabled })); } catch (_) {} },
+};
+const environmentCtx = {
+  scene,
+  ENV_PRESETS,
+  initEnvironment,
+  updateEnvironmentFollow,
+  get player() { return player; },
+  getState: () => ({ env, envRainState, envDensityIndex, envRainLevel }),
+  setState: (st) => {
+    env = st.env ?? env;
+    envRainState = st.envRainState ?? envRainState;
+    envDensityIndex = st.envDensityIndex ?? envDensityIndex;
+    envRainLevel = st.envRainLevel ?? envRainLevel;
+  },
+};
+const renderCtx = {
+  renderer,
+  cameraOffset,
+  baseCameraOffset: _baseCameraOffset,
+  getQuality: () => renderQuality,
+  setQuality: (q) => { renderQuality = q; },
+  getTargetPixelRatio: () => getTargetPixelRatio(),
+};
+setupSettingsScreen({
+  t,
+  startInstructionGuide: () => startInstructionGuideOverlay(),
+  elements: { btnSettingsScreen, btnCloseSettings, settingsPanel },
+  environment: environmentCtx,
+  render: renderCtx,
+  audioCtl,
+});
 
- // Hero open/close
- // Thin wrapper to render hero screen using modular UI
- function showHeroScreen(initialTab = "skills") {
-   const ctx = {
-     t,
-     player,
-     SKILL_POOL,
-     DEFAULT_LOADOUT,
-     currentLoadout,
-     setLoadoutAndSave,
-     updateSkillBarLabels,
-     mapManager,
-     portals,
-     enemies,
-     effects,
-     WORLD,
-     setCenterMsg,
-     clearCenterMsg,
-     applyMapModifiersToEnemy,
-   };
-   try { renderHeroScreenUI(initialTab, ctx); } catch (_) {}
- }
- btnHeroScreen?.addEventListener("click", () => { showHeroScreen("skills"); heroScreen?.classList.remove("hidden"); });
-  
- // Generic top-right screen-close icons (ensure any element with .screen-close closes its parent .screen)
- document.querySelectorAll(".screen-close").forEach((b) => {
-   b.addEventListener("click", (e) => {
-     const sc = e.currentTarget.closest(".screen");
-     if (sc) sc.classList.add("hidden");
-   });
- });
+// Hero open/close
+// Thin wrapper to render hero screen using modular UI
+function showHeroScreen(initialTab = "skills") {
+  const ctx = {
+    t,
+    player,
+    SKILL_POOL,
+    DEFAULT_LOADOUT,
+    currentLoadout,
+    setLoadoutAndSave,
+    updateSkillBarLabels,
+    mapManager,
+    portals,
+    enemies,
+    effects,
+    WORLD,
+    setCenterMsg,
+    clearCenterMsg,
+    applyMapModifiersToEnemy,
+  };
+  try { renderHeroScreenUI(initialTab, ctx); } catch (_) {}
+}
+btnHeroScreen?.addEventListener("click", () => { showHeroScreen("skills"); heroScreen?.classList.remove("hidden"); });
 
- // intro may be absent (we removed it), keep safe guard
- btnStart?.addEventListener("click", () => { introScreen?.classList.add("hidden"); });
+// Generic top-right screen-close icons (ensure any element with .screen-close closes its parent .screen)
+document.querySelectorAll(".screen-close").forEach((b) => {
+  b.addEventListener("click", (e) => {
+    const sc = e.currentTarget.closest(".screen");
+    if (sc) sc.classList.add("hidden");
+  });
+});
+
+// intro may be absent (we removed it), keep safe guard
+btnStart?.addEventListener("click", () => { introScreen?.classList.add("hidden"); });
 // use the setter so projection updates correctly
 btnCamera?.addEventListener("click", () => { setFirstPerson(!firstPerson); });
 // Portal button: recall to nearest portal (same as pressing 'B')
@@ -479,7 +461,7 @@ if (sfxToggle) {
   });
 }
 
- // Settings UI initialized via setupSettingsScreen()
+// Settings UI initialized via setupSettingsScreen()
 
 // Selection/aim indicators
 /* Load and apply saved loadout so runtime SKILLS.Q/W/E/R reflect player's choice */
@@ -502,45 +484,6 @@ function applyLoadoutToSKILLS(loadoutIds) {
 }
 
 /**
- * Update the skillbar labels to reflect the active SKILLS mapping.
- */
-function updateSkillBarLabels() {
-    try {
-    const map = { Q: "#btnSkillQ", W: "#btnSkillW", E: "#btnSkillE", R: "#btnSkillR" };
-    for (const k of Object.keys(map)) {
-      const el = document.querySelector(map[k]);
-      if (!el) continue;
-      const def = SKILLS[k] || {};
-      // icon (emoji/SVG placeholder)
-      const iconEl = el.querySelector(".icon");
-      if (iconEl) iconEl.textContent = getSkillIcon(def.short || def.name);
-      // name / short label
-      const nameEl = el.querySelector(".name");
-      if (nameEl) nameEl.textContent = def.short || def.name || nameEl.textContent;
-      const keyEl = el.querySelector(".key");
-      if (keyEl) keyEl.textContent = k;
-      // accessibility: set button title to skill name if available
-      if (def.name) el.title = def.name;
-    }
-
-    // Update central basic button icon (larger visual)
-    try {
-      const basicBtn = document.getElementById("btnBasic");
-      if (basicBtn) {
-        const icon = basicBtn.querySelector(".icon");
-        if (icon) icon.textContent = getSkillIcon("atk");
-        basicBtn.title = basicBtn.title || "Basic Attack";
-      }
-    } catch (e) {
-      // ignore
-    }
-
-  } catch (err) {
-    console.warn("updateSkillBarLabels error", err);
-  }
-}
-
-/**
  * Persist and apply a new loadout.
  */
 function setLoadoutAndSave(ids) {
@@ -549,802 +492,14 @@ function setLoadoutAndSave(ids) {
   applyLoadoutToSKILLS(currentLoadout);
   saveLoadout(currentLoadout);
   updateSkillBarLabels();
-try {
-  console.info("[WORLD]", {
-    attackRange: WORLD.attackRange,
-    attackRangeMult: WORLD.attackRangeMult,
-    basicAttackCooldown: WORLD.basicAttackCooldown,
-    basicAttackDamage: WORLD.basicAttackDamage
-  });
-} catch (e) {}
-}
-
-/**
- * Render the hero screen skill picker UI into #heroSkillsList
- * - shows hero info, current 4-slot loadout, and the full skill pool
- * - click a slot to select it, then click a skill to assign; or click Assign on a skill
- */
-/* Hero Screen */
-function __renderHeroScreen_legacy(initialTab = "skills") {
-  // Ensure tab structure on right side
-  const layout = document.querySelector("#heroScreen .hero-layout");
-  const listContainer = document.getElementById("heroSkillsList");
-  if (!layout || !listContainer) return;
-  layout.innerHTML = "";
-
-  const title = document.createElement("h2");
-  title.setAttribute("data-i18n", "hero.title");
-  title.textContent = t("hero.title");
-  layout.appendChild(title);
-
-  // Tab bar (Skills / Info / Skillbook / Maps / Marks)
-  const tabBar = document.createElement("div");
-  tabBar.className = "tab-bar";
-  const skillsBtn = document.createElement("button");
-  skillsBtn.className = "tab-btn" + ((initialTab !== "info" && initialTab !== "book" && initialTab !== "maps" && initialTab !== "marks") ? " active" : "");
-  skillsBtn.setAttribute("data-i18n", "hero.tabs.skills");
-  skillsBtn.textContent = t("hero.tabs.skills") || "Skills";
-  const infoBtn = document.createElement("button");
-  infoBtn.className = "tab-btn" + (initialTab === "info" ? " active" : "");
-  infoBtn.setAttribute("data-i18n", "hero.tabs.info");
-  infoBtn.textContent = t("hero.tabs.info") || "Info";
-  const bookBtn = document.createElement("button");
-  bookBtn.className = "tab-btn" + (initialTab === "book" ? " active" : "");
-  bookBtn.setAttribute("data-i18n", "hero.tabs.skillbook");
-  bookBtn.textContent = t("hero.tabs.skillbook") || "Skillbook";
-  const mapsBtn = document.createElement("button");
-  mapsBtn.className = "tab-btn" + (initialTab === "maps" ? " active" : "");
-  mapsBtn.setAttribute("data-i18n", "hero.tabs.maps");
-  mapsBtn.textContent = t("hero.tabs.maps") || "Maps";
-  const marksBtn = document.createElement("button");
-  marksBtn.className = "tab-btn" + (initialTab === "marks" ? " active" : "");
-  marksBtn.setAttribute("data-i18n", "hero.tabs.marks");
-  marksBtn.textContent = t("hero.tabs.marks") || "Marks";
-  tabBar.appendChild(skillsBtn);
-  tabBar.appendChild(infoBtn);
-  tabBar.appendChild(bookBtn);
-  tabBar.appendChild(mapsBtn);
-  tabBar.appendChild(marksBtn);
-  layout.appendChild(tabBar);
-
-  // Panels
-  const infoPanel = document.createElement("div");
-  infoPanel.className = "tab-panel" + (initialTab === "info" ? " active" : "");
-  const skillsPanel = document.createElement("div");
-  skillsPanel.className = "tab-panel" + ((initialTab !== "info" && initialTab !== "book" && initialTab !== "maps" && initialTab !== "marks") ? " active" : "");
-  const bookPanel = document.createElement("div");
-  bookPanel.className = "tab-panel" + (initialTab === "book" ? " active" : "");
-  const mapsPanel = document.createElement("div");
-  mapsPanel.className = "tab-panel" + (initialTab === "maps" ? " active" : "");
-  const marksPanel = document.createElement("div");
-  marksPanel.className = "tab-panel" + (initialTab === "marks" ? " active" : "");
-  // Initialize visibility based on initialTab
-  infoPanel.style.display = (initialTab === "info") ? "block" : "none";
-  skillsPanel.style.display = ((initialTab !== "info" && initialTab !== "book" && initialTab !== "maps" && initialTab !== "marks") ? "block" : "none");
-  bookPanel.style.display = (initialTab === "book") ? "block" : "none";
-  mapsPanel.style.display = (initialTab === "maps") ? "block" : "none";
-  marksPanel.style.display = (initialTab === "marks") ? "block" : "none";
-
-  // Info content
-  const info = document.createElement("div");
-  info.className = "hero-info";
-  info.innerHTML = `<div>${t("hero.info.level")}: ${player.level || 1}</div><div>${t("hero.info.hp")}: ${Math.floor(player.hp)}/${player.maxHP}</div><div>${t("hero.info.mp")}: ${Math.floor(player.mp)}/${player.maxMP}</div>`;
-  infoPanel.appendChild(info);
-
-  // Skills content (reuse existing builder inside a wrapper)
-  const container = document.createElement("div");
-  container.id = "heroSkillsList";
-  skillsPanel.appendChild(container);
-
-  // Loadout slots (Q W E R)
-  const keys = ["Q", "W", "E", "R"];
-  const slotsWrap = document.createElement("div");
-  slotsWrap.className = "loadout-slots";
-  for (let i = 0; i < 4; i++) {
-    const slot = document.createElement("div");
-    slot.className = "loadout-slot";
-    slot.dataset.slotIndex = String(i);
-    const skillId = currentLoadout[i];
-    const skillDef = SKILL_POOL.find((s) => s.id === skillId);
-    slot.innerHTML = `<div class="slot-key">${keys[i]}</div>
-                      <div class="skill-icon">${getSkillIcon(skillDef ? skillDef.short : null)}</div>
-                      <div class="slot-short">${skillDef ? skillDef.short : "—"}</div>
-                      <div class="slot-name">${skillDef ? skillDef.name : t("hero.slot.empty")}</div>
-                      <button class="slot-clear">${t("hero.slot.clear")}</button>`;
-    slotsWrap.appendChild(slot);
-  }
-  container.appendChild(slotsWrap);
-
-  const poolHeader = document.createElement("div");
-  poolHeader.className = "skill-pool-header";
-  poolHeader.textContent = t("hero.pool");
-  container.appendChild(poolHeader);
-
-  const poolWrap = document.createElement("div");
-  poolWrap.className = "skill-pool";
-  SKILL_POOL.forEach((s) => {
-    const el = document.createElement("div");
-    el.className = "skill-pool-item";
-    el.dataset.skillId = s.id;
-    el.innerHTML = `<div class="skill-icon">${getSkillIcon(s.short)}</div><div class="skill-name">${s.name}</div><button class="assign">${t("hero.assign")}</button>`;
-    poolWrap.appendChild(el);
-  });
-  container.appendChild(poolWrap);
-
-  const actions = document.createElement("div");
-  actions.className = "hero-actions";
-  const resetBtn = document.createElement("button");
-  resetBtn.textContent = t("hero.slot.reset");
-  resetBtn.addEventListener("click", () => {
-    currentLoadout = DEFAULT_LOADOUT.slice();
-    setLoadoutAndSave(currentLoadout);
-    renderHeroScreen("skills");
-  });
-  actions.appendChild(resetBtn);
-  container.appendChild(actions);
-
-  // Interaction handling
-  let selectedSlotIndex = null;
-  slotsWrap.querySelectorAll(".loadout-slot").forEach((slotEl) => {
-    slotEl.addEventListener("click", () => {
-      slotsWrap.querySelectorAll(".loadout-slot").forEach((s) => s.classList.remove("selected"));
-      slotEl.classList.add("selected");
-      selectedSlotIndex = parseInt(slotEl.dataset.slotIndex, 10);
-    });
-    const clearBtn = slotEl.querySelector(".slot-clear");
-    clearBtn.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      currentLoadout[parseInt(slotEl.dataset.slotIndex, 10)] = null;
-      setLoadoutAndSave(currentLoadout);
-      renderHeroScreen("skills");
-    });
-  });
-  poolWrap.querySelectorAll(".skill-pool-item").forEach((itemEl) => {
-    const skillId = itemEl.dataset.skillId;
-    itemEl.addEventListener("click", () => {
-      const slotToAssign = selectedSlotIndex !== null ? selectedSlotIndex : 0;
-      currentLoadout[slotToAssign] = skillId;
-      setLoadoutAndSave(currentLoadout);
-      renderHeroScreen("skills");
-    });
-    const btn = itemEl.querySelector(".assign");
-    btn.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      const slotToAssign = selectedSlotIndex !== null ? selectedSlotIndex : 0;
-      currentLoadout[slotToAssign] = skillId;
-      setLoadoutAndSave(currentLoadout);
-      renderHeroScreen("skills");
-    });
-  });
-
-  // Build Skillbook panel content (list + details + preview)
-  (function buildSkillbookPanel() {
-    const wrap = document.createElement("div");
-    wrap.className = "skillbook";
-    wrap.style.display = "grid";
-    wrap.style.gridTemplateColumns = "1fr 2fr";
-    wrap.style.gap = "12px";
-
-    const list = document.createElement("div");
-    list.className = "skillbook-list";
-    list.style.maxHeight = "340px";
-    list.style.overflow = "auto";
-    const ul = document.createElement("div");
-    ul.style.display = "flex";
-    ul.style.flexDirection = "column";
-    ul.style.gap = "6px";
-    list.appendChild(ul);
-
-    const detail = document.createElement("div");
-    detail.className = "skillbook-detail";
-    detail.style.minHeight = "240px";
-    detail.style.padding = "8px";
-    detail.style.border = "1px solid rgba(255,255,255,0.1)";
-    detail.style.borderRadius = "6px";
-    const title = document.createElement("h3");
-    const icon = document.createElement("div");
-    icon.style.fontSize = "28px";
-    const stats = document.createElement("div");
-    stats.style.fontSize = "12px";
-    stats.style.opacity = "0.9";
-    stats.style.lineHeight = "1.6";
-    const expl = document.createElement("div");
-    expl.style.marginTop = "6px";
-    const imgBox = document.createElement("div");
-    imgBox.style.marginTop = "8px";
-    const previewBtn = document.createElement("button");
-    previewBtn.textContent = "Preview";
-    previewBtn.style.marginTop = "10px";
-
-    detail.appendChild(title);
-    detail.appendChild(icon);
-    detail.appendChild(stats);
-    detail.appendChild(expl);
-    detail.appendChild(imgBox);
-    detail.appendChild(previewBtn);
-
-    const typeExplain = {
-      chain: "Chains between nearby enemies, hitting multiple targets.",
-      aoe: "Ground-targeted area. Damages enemies within its radius.",
-      aura: "Toggle aura around hero. Ticks damage periodically while draining mana.",
-      storm: "Multiple random strikes in a radius over time.",
-      beam: "Instant zap to nearest enemy in range.",
-      nova: "Radial burst around hero.",
-      heal: "Restores hero HP instantly.",
-      mana: "Restores hero MP instantly.",
-      buff: "Temporarily increases damage and speed.",
-      dash: "Quickly dash forward.",
-      blink: "Teleport toward direction/point.",
-      clone: "Summons a lightning image that periodically zaps nearby foes."
-    };
-
-    function getSkillIcon(short) {
-      if (!short) return "⚡";
-      const k = String(short).slice(0, 3).toLowerCase();
-      const map = { chn: "⚡", bol: "⚡", stc: "🔌", str: "⛈️", bam: "🔋", nov: "✴️", aoe: "💥" };
-      return map[k] || "⚡";
-    }
-
-    function computeDamage(s) {
-      const base = s.dmg || 0;
-      const lvl = Math.max(1, (player && player.level) || 1);
-      const mult = Math.pow(SCALING.hero.skillDamageGrowth, Math.max(0, lvl - 1));
-      return Math.floor(base * mult);
-    }
-
-    function renderDetail(s) {
-      title.textContent = `${s.name} (${s.short || ""})`;
-      icon.textContent = getSkillIcon(s.short || s.name);
-      const dmgLine = (typeof s.dmg === "number") ? `Damage: ${computeDamage(s)} (base ${s.dmg})` : "";
-      const lines = [
-        `Type: ${s.type}`,
-        s.cd != null ? `Cooldown: ${s.cd}s` : "",
-        s.mana != null ? `Mana: ${s.mana}` : "",
-        s.radius != null ? `Radius: ${s.radius}` : "",
-        s.range != null ? `Range: ${s.range}` : "",
-        s.jumps != null ? `Jumps: ${s.jumps}` : "",
-        s.jumpRange != null ? `Jump Range: ${s.jumpRange}` : "",
-        s.tick != null ? `Tick: ${s.tick}s` : "",
-        s.duration != null ? `Duration: ${s.duration}s` : "",
-        s.slowFactor != null ? `Slow: ${Math.round(s.slowFactor * 100)}%` : "",
-        s.slowDuration != null ? `Slow Duration: ${s.slowDuration}s` : "",
-        dmgLine
-      ].filter(Boolean);
-      stats.innerHTML = lines.map((x) => `<div>${x}</div>`).join("");
-      expl.textContent = typeExplain[s.type] || "No description.";
-      previewBtn.onclick = () => {
-        try { window.__skillsRef && window.__skillsRef.previewSkill(s); } catch (_) {}
-      };
-    }
-
-    // Populate list
-    SKILL_POOL.forEach((s) => {
-      const btn = document.createElement("button");
-      btn.className = "skillbook-item";
-      btn.style.display = "flex";
-      btn.style.alignItems = "center";
-      btn.style.gap = "8px";
-      const ic = document.createElement("span");
-      ic.textContent = getSkillIcon(s.short || s.name);
-      const nm = document.createElement("span");
-      nm.textContent = s.name;
-      btn.appendChild(ic);
-      btn.appendChild(nm);
-      btn.addEventListener("click", () => renderDetail(s));
-      ul.appendChild(btn);
-    });
-
-    // Default select first
-    try { if (SKILL_POOL.length) renderDetail(SKILL_POOL[0]); } catch (_) {}
-
-    wrap.appendChild(list);
-    wrap.appendChild(detail);
-    bookPanel.appendChild(wrap);
-  })();
-
-/* ------------------------------------------------------------
-   Guided Instruction Overlay (focus ring + hand + tooltip)
------------------------------------------------------------- */
-let __guideState = null;
-
-function startInstructionGuide() {
-  if (__guideState && __guideState.active) return;
-
-  const steps = [
-    {
-      key: "camera",
-      get el() { return document.getElementById("btnCamera"); },
-      title: "Camera Toggle",
-      desc: "Tap to toggle first-person camera."
-    },
-    {
-      key: "settings",
-      get el() { return document.getElementById("btnSettingsScreen"); },
-      title: "Settings",
-      desc: "Open and adjust game options, environment, and audio."
-    },
-    {
-      key: "hero",
-      get el() { return document.getElementById("btnHeroScreen"); },
-      title: "Hero Screen",
-      desc: "View hero info and configure skills and loadout."
-    },
-    {
-      key: "skills",
-      get el() { return document.getElementById("skillWheel") || document.getElementById("btnBasic"); },
-      title: "Skills",
-      desc: "Tap Basic or Q/W/E/R to use skills. Cooldown shows in the ring."
-    },
-  ].filter(s => !!s.el);
-
-  if (!steps.length) return;
-
-  const overlay = document.createElement("div");
-  overlay.className = "guide-overlay";
-  overlay.setAttribute("role", "dialog");
-  overlay.setAttribute("aria-modal", "true");
-  // Force overlay to top-most layer above WebGL canvas on all platforms
   try {
-    overlay.id = "guideOverlayRoot";
-    overlay.style.position = "fixed";
-    overlay.style.left = "0";
-    overlay.style.top = "0";
-    overlay.style.right = "0";
-    overlay.style.bottom = "0";
-    overlay.style.zIndex = "2147483647"; // higher than any in-app UI
-    overlay.style.pointerEvents = "none"; // children manage interaction
-  } catch (_) {}
-
-  const blocker = document.createElement("div");
-  blocker.className = "guide-blocker";
-  overlay.appendChild(blocker);
-
-  const focus = document.createElement("div");
-  focus.className = "guide-focus";
-  overlay.appendChild(focus);
-
-  const hand = document.createElement("div");
-  hand.className = "guide-hand";
-  hand.textContent = "👉";
-  overlay.appendChild(hand);
-
-  const tip = document.createElement("div");
-  tip.className = "guide-tooltip";
-  const tipHeader = document.createElement("div");
-  tipHeader.className = "guide-tooltip-header";
-  const tipTitle = document.createElement("div");
-  tipTitle.className = "guide-tooltip-title";
-  const tipClose = document.createElement("button");
-  tipClose.className = "guide-close";
-  tipClose.setAttribute("aria-label", "Close guide");
-  tipClose.textContent = "✕";
-  tipHeader.appendChild(tipTitle);
-  tipHeader.appendChild(tipClose);
-  const tipBody = document.createElement("div");
-  tipBody.className = "guide-tooltip-body";
-  const tipNav = document.createElement("div");
-  tipNav.className = "guide-nav";
-  const btnPrev = document.createElement("button");
-  btnPrev.className = "secondary";
-  btnPrev.textContent = "Previous";
-  const btnNext = document.createElement("button");
-  btnNext.className = "primary";
-  btnNext.textContent = "Next";
-  tipNav.appendChild(btnPrev);
-  tipNav.appendChild(btnNext);
-  tip.appendChild(tipHeader);
-  tip.appendChild(tipBody);
-  tip.appendChild(tipNav);
-  overlay.appendChild(tip);
-
-  document.body.appendChild(overlay);
-
-  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
-
-  function positionFor(el, pad = 10) {
-    const r = el.getBoundingClientRect();
-    const rect = {
-      left: r.left - pad,
-      top: r.top - pad,
-      width: r.width + pad * 2,
-      height: r.height + pad * 2
-    };
-    rect.right = rect.left + rect.width;
-    rect.bottom = rect.top + rect.height;
-    return rect;
-  }
-
-  function placeFocus(rect) {
-    focus.style.left = rect.left + "px";
-    focus.style.top = rect.top + "px";
-    focus.style.width = rect.width + "px";
-    focus.style.height = rect.height + "px";
-  }
-
-  function placeHand(rect) {
-    const hx = rect.right - 8;
-    const hy = rect.bottom + 6;
-    hand.style.left = hx + "px";
-    hand.style.top = hy + "px";
-  }
-
-  function placeTip(rect) {
-    const margin = 8;
-    let tx = rect.left;
-    let ty = rect.bottom + margin;
-    const vw = window.innerWidth, vh = window.innerHeight;
-    tip.style.maxWidth = "320px";
-    tip.style.visibility = "hidden";
-    tip.style.left = "0px"; tip.style.top = "-9999px";
-    tip.style.display = "block";
-    const tb = tip.getBoundingClientRect();
-    let tw = tb.width || 280;
-    let th = tb.height || 120;
-
-    // Prefer below; if not, try above.
-    if (ty + th > vh - 12) {
-      ty = rect.top - th - margin;
-    }
-    // Clamp horizontally
-    tx = clamp(tx, 12, vw - tw - 12);
-    // If still off-screen vertically, clamp
-    ty = clamp(ty, 12, vh - th - 12);
-
-    tip.style.left = tx + "px";
-    tip.style.top = ty + "px";
-    tip.style.visibility = "visible";
-  }
-
-  function setStep(idx) {
-    __guideState.index = idx;
-    const s = steps[idx];
-    if (!s || !s.el) return;
-    // Scroll into view if needed (for safety on small screens)
-    try { s.el.scrollIntoView?.({ block: "nearest", inline: "nearest" }); } catch (_) {}
-    const rect = positionFor(s.el, 10);
-    placeFocus(rect);
-    placeHand(rect);
-    tipTitle.textContent = s.title || "";
-    tipBody.textContent = s.desc || "";
-    placeTip(rect);
-
-    btnPrev.disabled = idx === 0;
-    btnNext.textContent = (idx === steps.length - 1) ? "Done" : "Next";
-  }
-
-  function onNext() {
-    if (__guideState.index >= steps.length - 1) {
-      close();
-      return;
-    }
-    setStep(__guideState.index + 1);
-  }
-  function onPrev() {
-    if (__guideState.index <= 0) return;
-    setStep(__guideState.index - 1);
-  }
-  function onResize() {
-    const s = steps[__guideState.index];
-    if (!s || !s.el) return;
-    const rect = positionFor(s.el, 10);
-    placeFocus(rect);
-    placeHand(rect);
-    placeTip(rect);
-  }
-
-  function close() {
-    if (!__guideState || !__guideState.active) return;
-    __guideState.active = false;
-    btnPrev.removeEventListener("click", onPrev);
-    btnNext.removeEventListener("click", onNext);
-    tipClose.removeEventListener("click", close);
-    window.removeEventListener("resize", onResize);
-    window.removeEventListener("orientationchange", onResize);
-    try { overlay.remove(); } catch (_) {}
-    __guideState = null;
-  }
-
-  btnPrev.addEventListener("click", onPrev);
-  btnNext.addEventListener("click", onNext);
-  tipClose.addEventListener("click", close);
-  blocker.addEventListener("click", () => {}); // absorb clicks
-  window.addEventListener("resize", onResize);
-  window.addEventListener("orientationchange", onResize);
-
-  __guideState = { active: true, index: 0, steps, overlay, focus, hand, tip };
-  setStep(0);
-  try { window.__guideClose = close; } catch (_) {}
-}
-
-// Fallback bindings to ensure the Guide button always triggers the overlay
-try { window.startInstructionGuide = startInstructionGuideOverlay; } catch (_) {}
-document.addEventListener("click", (ev) => {
-  const t = ev.target;
-  if (t && t.id === "btnInstructionGuide") {
-    try { startInstructionGuide(); } catch (_) {}
-  }
-});
-
-  // Build Maps panel content (scrollable list + set active)
-  (function buildMapsPanel() {
-    const wrap = document.createElement("div");
-    wrap.className = "maps-panel";
-    wrap.style.display = "flex";
-    wrap.style.flexDirection = "column";
-    wrap.style.gap = "8px";
-
-    const title = document.createElement("h3");
-    title.textContent = t("hero.tabs.maps") || "Maps";
-    wrap.appendChild(title);
-
-    const list = document.createElement("div");
-    list.style.display = "flex";
-    list.style.flexDirection = "column";
-    list.style.gap = "8px";
-    list.style.maxHeight = "300px";
-    list.style.overflow = "auto";
-    wrap.appendChild(list);
-
-    function renderMaps() {
-      list.innerHTML = "";
-      try {
-        const items = mapManager.listMaps?.() || [];
-        items.forEach((m) => {
-          const row = document.createElement("div");
-          row.style.display = "grid";
-          row.style.gridTemplateColumns = "64px 1fr auto";
-          row.style.gap = "12px";
-          row.style.border = "1px solid rgba(255,255,255,0.1)";
-          row.style.borderRadius = "8px";
-          row.style.padding = "8px";
-
-          // Square image (left)
-          const thumb = document.createElement("div");
-          thumb.style.width = "64px";
-          thumb.style.height = "64px";
-          thumb.style.borderRadius = "6px";
-          thumb.style.background = "linear-gradient(135deg, rgba(124,196,255,0.15), rgba(255,255,255,0.06))";
-          thumb.style.border = "1px solid rgba(255,255,255,0.12)";
-          thumb.style.overflow = "hidden";
-          if (m.img) {
-            thumb.style.backgroundImage = `url(${m.img})`;
-            thumb.style.backgroundSize = "cover";
-            thumb.style.backgroundPosition = "center";
-            if (m.imgHint) thumb.title = m.imgHint;
-          } else {
-            const ph = document.createElement("div");
-            ph.style.width = "100%";
-            ph.style.height = "100%";
-            ph.style.display = "flex";
-            ph.style.alignItems = "center";
-            ph.style.justifyContent = "center";
-            ph.style.fontWeight = "700";
-            ph.style.opacity = "0.7";
-            ph.textContent = (m.name || "").slice(0, 2).toUpperCase();
-            thumb.appendChild(ph);
-          }
-
-          // Info (name + desc + req + elites)
-          const info = document.createElement("div");
-          const title = document.createElement("div");
-          title.style.fontWeight = "600";
-          title.textContent = `${m.name}${m.current ? " • Current" : ""}${(!m.unlocked ? " • Locked" : "")}`;
-          const desc = document.createElement("div");
-          desc.style.fontSize = "12px";
-          desc.style.opacity = "0.85";
-          desc.textContent = m.desc || "";
-          const req = document.createElement("div");
-          req.style.fontSize = "12px";
-          req.style.opacity = "0.7";
-          req.textContent = `Requires Lv ${m.requiredLevel}`;
-          const elites = document.createElement("div");
-          elites.style.fontSize = "12px";
-          elites.style.opacity = "0.9";
-          elites.style.marginTop = "4px";
-          elites.textContent = (m.strongEnemies && m.strongEnemies.length) ? `Elites: ${m.strongEnemies.join(", ")}` : "";
-
-          info.appendChild(title);
-          info.appendChild(desc);
-          info.appendChild(req);
-          if (elites.textContent) info.appendChild(elites);
-
-          // Action (right)
-          const act = document.createElement("div");
-          const btn = document.createElement("button");
-          if (m.current) {
-            btn.textContent = "Active";
-            btn.disabled = true;
-          } else if (!m.unlocked) {
-            btn.textContent = "Locked";
-            btn.disabled = true;
-          } else {
-            btn.textContent = "Set Active";
-            btn.addEventListener("click", () => {
-              try {
-                if (mapManager.setCurrent?.(m.index)) {
-                  enemies.forEach((en) => applyMapModifiersToEnemy(en));
-                  setCenterMsg && setCenterMsg(`Switched to ${m.name}`);
-                  setTimeout(() => clearCenterMsg(), 1100);
-                  renderMaps();
-                }
-              } catch (_) {}
-            });
-          }
-          act.appendChild(btn);
-
-          row.appendChild(thumb);
-          row.appendChild(info);
-          row.appendChild(act);
-          list.appendChild(row);
-        });
-      } catch (_) {}
-    }
-
-    renderMaps();
-    mapsPanel.appendChild(wrap);
-  })();
-
-  // Build Marks panel content (table + teleport/remove/rename + cooldown status)
-  (function buildMarksPanel() {
-    const wrap = document.createElement("div");
-    wrap.className = "marks-panel";
-    wrap.style.display = "flex";
-    wrap.style.flexDirection = "column";
-    wrap.style.gap = "12px";
-
-    const head = document.createElement("div");
-    head.style.display = "flex";
-    head.style.alignItems = "center";
-    head.style.justifyContent = "space-between";
-    const titleMarks = document.createElement("h3");
-    titleMarks.textContent = t("hero.tabs.marks") || "Marks";
-    const cd = document.createElement("span");
-    cd.style.fontSize = "12px";
-    cd.style.opacity = "0.8";
-    head.appendChild(titleMarks);
-    head.appendChild(cd);
-
-    /* Marks list (separate table) */
-
-    const list = document.createElement("div");
-    list.style.display = "grid";
-    list.style.gridTemplateColumns = "1fr auto auto auto";
-    list.style.rowGap = "6px";
-    list.style.columnGap = "8px";
-    list.style.alignItems = "center";
-    list.style.maxHeight = "240px";
-    list.style.overflow = "auto";
-
-    // Header
-    const hName = document.createElement("div"); hName.style.fontWeight = "600"; hName.textContent = "Name / Position / Created";
-    const hRN = document.createElement("div"); hRN.style.fontWeight = "600"; hRN.textContent = "✏️";
-    const hTP = document.createElement("div"); hTP.style.fontWeight = "600"; hTP.textContent = "🌀";
-    const hRM = document.createElement("div"); hRM.style.fontWeight = "600"; hRM.textContent = "❌";
-    list.appendChild(hName); list.appendChild(hRN); list.appendChild(hTP); list.appendChild(hRM);
-
-    function fmtTime(ts) {
-      try {
-        const d = new Date(ts);
-        return d.toLocaleString();
-      } catch (_) { return String(ts); }
-    }
-    function render() {
-      list.innerHTML = "";
-      try {
-        const arr = portals.listPersistentMarks?.() || [];
-        if (!arr.length) {
-          // remove header if empty
-          list.innerHTML = "";
-          const empty = document.createElement("div");
-          empty.style.opacity = "0.8";
-          empty.style.fontSize = "12px";
-          empty.textContent = "No marks yet. Use the 🚩 Mark button to place a flag.";
-          list.appendChild(empty);
-        } else {
-          // keep header, append rows
-          arr.forEach((m) => {
-            const info = document.createElement("div");
-            const nm = (m.name && String(m.name).trim()) ? m.name : `Mark ${m.index + 1}`;
-            info.textContent = `${nm} • (${Math.round(m.x)}, ${Math.round(m.z)}) • ${fmtTime(m.createdAt)}`;
-
-            const rn = document.createElement("button");
-            rn.textContent = "Rename";
-            rn.addEventListener("click", () => {
-              try {
-                const newName = prompt("Enter mark name", nm);
-                if (newName != null) {
-                  portals.renamePersistentMark?.(m.index, newName);
-                  render();
-                }
-              } catch (_) {}
-            });
-
-            const tp = document.createElement("button");
-            tp.textContent = "Teleport";
-            tp.addEventListener("click", () => {
-              try { portals.teleportToMark?.(m.index, player); } catch (_) {}
-            });
-
-            const rm = document.createElement("button");
-            rm.textContent = "Remove";
-            rm.addEventListener("click", () => {
-              try { portals.removePersistentMark?.(m.index); render(); } catch (_) {}
-            });
-
-            list.appendChild(info);
-            list.appendChild(rn);
-            list.appendChild(tp);
-            list.appendChild(rm);
-          });
-        }
-      } catch (e) {}
-    }
-
-    function tickCooldown() {
-      try {
-        const ms = portals.getMarkCooldownMs?.() || 0;
-        if (ms <= 0) {
-          cd.textContent = "Ready";
-        } else {
-          const s = Math.ceil(ms / 1000);
-          const m = Math.floor(s / 60);
-          const r = s % 60;
-          cd.textContent = `Cooldown: ${m > 0 ? m + "m " : ""}${r}s`;
-        }
-      } catch (_) {}
-    }
-
-    try { clearInterval(window.__marksPanelTick); } catch (_) {}
-    window.__marksPanelTick = setInterval(tickCooldown, 500);
-    tickCooldown();
-    render();
-
-    wrap.appendChild(head);
-    wrap.appendChild(list);
-    marksPanel.appendChild(wrap);
-  })();
-
-  // Append panels
-  layout.appendChild(infoPanel);
-  layout.appendChild(skillsPanel);
-  layout.appendChild(bookPanel);
-  layout.appendChild(mapsPanel);
-  layout.appendChild(marksPanel);
-
-  // Tab switching
-  function activate(panel) {
-    [infoBtn, skillsBtn, bookBtn, mapsBtn, marksBtn].forEach((b) => b.classList.remove("active"));
-    [infoPanel, skillsPanel, bookPanel, mapsPanel, marksPanel].forEach((p) => { p.classList.remove("active"); p.style.display = "none"; });
-    if (panel === "info") {
-      infoBtn.classList.add("active");
-      infoPanel.classList.add("active");
-      infoPanel.style.display = "block";
-    } else if (panel === "book") {
-      bookBtn.classList.add("active");
-      bookPanel.classList.add("active");
-      bookPanel.style.display = "block";
-    } else if (panel === "maps") {
-      mapsBtn.classList.add("active");
-      mapsPanel.classList.add("active");
-      mapsPanel.style.display = "block";
-    } else if (panel === "marks") {
-      marksBtn.classList.add("active");
-      marksPanel.classList.add("active");
-      marksPanel.style.display = "block";
-    } else {
-      skillsBtn.classList.add("active");
-      skillsPanel.classList.add("active");
-      skillsPanel.style.display = "block";
-    }
-  }
-  infoBtn.addEventListener("click", () => activate("info"));
-  skillsBtn.addEventListener("click", () => activate("skills"));
-  bookBtn.addEventListener("click", () => activate("book"));
-  mapsBtn.addEventListener("click", () => activate("maps"));
-  marksBtn.addEventListener("click", () => activate("marks"));
-
-
-  try { window.applyTranslations && window.applyTranslations(document.getElementById("heroScreen")); } catch(e) {}
+    console.info("[WORLD]", {
+      attackRange: WORLD.attackRange,
+      attackRangeMult: WORLD.attackRangeMult,
+      basicAttackCooldown: WORLD.basicAttackCooldown,
+      basicAttackDamage: WORLD.basicAttackDamage
+    });
+  } catch (e) {}
 }
 
 // Apply initial loadout so SKILLS are correct for subsequent UI/effects
@@ -1815,8 +970,6 @@ function animate() {
   const dt = Math.min(0.05, t - lastT);
   lastT = t;
 
-  
-
   // Unified input (Hexagonal service): movement, holds, skills
   inputService.update(t, dt);
 
@@ -1862,31 +1015,31 @@ function animate() {
 
     // FP hand VFX and gestures (two hands, thunder-in-hand, move/attack animations)
     try {
-      const ud = player.mesh.userData || {};
+      const ud2 = player.mesh.userData || {};
       const speed = lastMoveDir.length();
       const tnow = now();
 
       // Movement/idle crackle scheduling around hands
-      if (!ud.nextCrackleT || tnow >= ud.nextCrackleT) {
+      if (!ud2.nextCrackleT || tnow >= ud2.nextCrackleT) {
         const strength = 0.6 + speed * 2.0;
         effects.spawnHandCrackle(player, false, strength);
         effects.spawnHandCrackle(player, true, strength * 0.8);
-        ud.nextCrackleT = tnow + (speed > 0.1 ? 0.18 + Math.random() * 0.2 : 0.55 + Math.random() * 0.35);
+        ud2.nextCrackleT = tnow + (speed > 0.1 ? 0.18 + Math.random() * 0.2 : 0.55 + Math.random() * 0.35);
       }
 
       // Boost orb/light intensity based on movement and a small flicker
       const flick = Math.sin(tnow * 10) * 0.2;
-      if (ud.thunderOrb && ud.thunderOrb.material) {
-        ud.thunderOrb.material.emissiveIntensity = 2.1 + speed * 0.6 + flick;
+      if (ud2.thunderOrb && ud2.thunderOrb.material) {
+        ud2.thunderOrb.material.emissiveIntensity = 2.1 + speed * 0.6 + flick;
       }
-      if (ud.leftThunderOrb && ud.leftThunderOrb.material) {
-        ud.leftThunderOrb.material.emissiveIntensity = 1.9 + speed * 0.5 + flick * 0.8;
+      if (ud2.leftThunderOrb && ud2.leftThunderOrb.material) {
+        ud2.leftThunderOrb.material.emissiveIntensity = 1.9 + speed * 0.5 + flick * 0.8;
       }
-      if (ud.handLight) ud.handLight.intensity = 1.2 + speed * 0.8;
-      if (ud.leftHandLight) ud.leftHandLight.intensity = 1.0 + speed * 0.7;
+      if (ud2.handLight) ud2.handLight.intensity = 1.2 + speed * 0.8;
+      if (ud2.leftHandLight) ud2.leftHandLight.intensity = 1.0 + speed * 0.7;
 
       // Randomized gesture wobble while moving or idle, plus brace lift when attacking
-      const rArm = ud.rightArm, lArm = ud.leftArm;
+      const rArm = ud2.rightArm, lArm = ud2.leftArm;
       if (rArm && lArm) {
         const moveAmp = 0.12 * Math.min(1, speed * 3);
         const idleAmp = 0.06;
@@ -1903,10 +1056,10 @@ function animate() {
         lArm.rotation.y = -0.02 + Math.cos(phase * 0.5) * amp * 0.5 + (Math.random() - 0.5) * 0.01;
 
         // Occasional quick gesture twitch
-        if (!ud.nextGestureT || tnow >= ud.nextGestureT) {
+        if (!ud2.nextGestureT || tnow >= ud2.nextGestureT) {
           rArm.rotation.z += (Math.random() - 0.5) * 0.08;
           lArm.rotation.z += (Math.random() - 0.5) * 0.08;
-          ud.nextGestureT = tnow + 0.35 + Math.random() * 0.5;
+          ud2.nextGestureT = tnow + 0.35 + Math.random() * 0.5;
         }
       }
     } catch (e) {}
@@ -1968,7 +1121,7 @@ function animate() {
 }
 animate();
 
- // ------------------------------------------------------------
+// ------------------------------------------------------------
 // Helpers and per-system updates
 // ------------------------------------------------------------
 
@@ -2278,7 +1431,7 @@ function updateEnemies(dt) {
       try { audio.sfx("enemy_die"); } catch (e) {}
       en._xpGranted = true;
       player.gainXP(en.xpOnDeath);
-      // schedule respawn to maintain density
+      // schedule respawn to maintain enemy density
       en._respawnAt = now() + (WORLD.enemyRespawnDelay || 8);
     }
     // Handle respawn to maintain enemy density; scale stats with current hero level
@@ -2333,7 +1486,6 @@ function updateIndicators(dt) {
   }
 }
 
-
 function updateDeathRespawn() {
   const t = now();
   if (!player.alive && player.deadUntil && t >= player.deadUntil) {
@@ -2363,3 +1515,14 @@ addResizeHandler(renderer, camera);
   const yaw = Math.atan2(v.x, v.z);
   player.mesh.quaternion.setFromEuler(new THREE.Euler(0, yaw, 0));
 })();
+
+// ------------------------------------------------------------
+// Guide overlay wiring (modular version)
+// ------------------------------------------------------------
+try { window.startInstructionGuide = startInstructionGuideOverlay; } catch (_) {}
+document.addEventListener("click", (ev) => {
+  const tEl = ev.target;
+  if (tEl && tEl.id === "btnInstructionGuide") {
+    try { startInstructionGuideOverlay(); } catch (_) {}
+  }
+});
