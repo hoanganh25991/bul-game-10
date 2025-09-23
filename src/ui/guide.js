@@ -55,6 +55,22 @@ export function startInstructionGuide() {
       title: "Skills",
       desc: "Tap Basic or Q/W/E/R to use skills. Cooldown shows in the ring.",
     },
+    {
+      key: "hud",
+      get el() {
+        return document.getElementById("stats") || document.getElementById("hud");
+      },
+      title: "HUD",
+      desc: "HP/MP/XP bars show your status. Level is at the right.",
+    },
+    {
+      key: "joystick",
+      get el() {
+        return document.getElementById("joystick") || document.getElementById("joyKnob");
+      },
+      title: "Joystick",
+      desc: "Drag to move your hero. On desktop, right-click to move.",
+    },
   ].filter((s) => !!s.el);
 
   if (!steps.length) return;
