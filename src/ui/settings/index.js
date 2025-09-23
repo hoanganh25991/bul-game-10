@@ -361,7 +361,9 @@ function initZoomControl(render) {
   const sel = document.getElementById("zoomSlider");
   if (!sel) return;
 
-  let z = 1;
+  // Default to UI value 2 when no saved preference:
+  // ui=2 => zoom = 0.6 + ((2 - 1) / 9) * 1.0 = ~0.7111
+  let z = 0.6 + (1 / 9) * 1.0;
   try {
     const prefs = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
     if (typeof prefs.zoom === "number") z = prefs.zoom;

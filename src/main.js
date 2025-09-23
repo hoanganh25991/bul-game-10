@@ -391,15 +391,15 @@ function initZoomControl() {
   const sel = document.getElementById("zoomSlider");
   if (!sel) return;
 
-  // Initialize from persisted prefs or default 1.0
-  let z = 1;
+  // Initialize from persisted prefs or UI default 2 (≈0.711)
+  let z = 0.6 + (1 / 9) * 1.0;
   try {
     const prefs = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
     if (typeof prefs.zoom === "number") z = prefs.zoom;
   } catch (_) {}
 
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  z = clamp(Number.isFinite(parseFloat(z)) ? parseFloat(z) : 1, 0.6, 1.6);
+  z = clamp(Number.isFinite(parseFloat(z)) ? parseFloat(z) : (0.6 + (1 / 9) * 1.0), 0.6, 1.6);
 
   try {
     const uiVal = 1 + Math.round(((z - 0.6) / 1.0) * 9);
