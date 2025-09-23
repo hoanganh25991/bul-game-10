@@ -161,7 +161,8 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     const next = DEFAULT_LOADOUT.slice();
     try {
       setLoadoutAndSave(next);
-      renderHeroScreen("skills", ctx);
+      try { window.dispatchEvent(new Event("loadout-changed")); } catch (_) {}
+      renderHeroScreen("skills", Object.assign({}, ctx, { currentLoadout: next }));
       updateSkillBarLabels && updateSkillBarLabels();
     } catch (_) {}
   });
@@ -184,7 +185,8 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
       next[idx] = null;
       try {
         setLoadoutAndSave(next);
-        renderHeroScreen("skills", ctx);
+        try { window.dispatchEvent(new Event("loadout-changed")); } catch (_) {}
+        renderHeroScreen("skills", Object.assign({}, ctx, { currentLoadout: next }));
         updateSkillBarLabels && updateSkillBarLabels();
       } catch (_) {}
     });
@@ -198,7 +200,8 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
       next[slotToAssign] = skillId;
       try {
         setLoadoutAndSave(next);
-        renderHeroScreen("skills", ctx);
+        try { window.dispatchEvent(new Event("loadout-changed")); } catch (_) {}
+        renderHeroScreen("skills", Object.assign({}, ctx, { currentLoadout: next }));
         updateSkillBarLabels && updateSkillBarLabels();
       } catch (_) {}
     };
@@ -243,12 +246,12 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     const title = document.createElement("h3");
     const icon = document.createElement("div");
     icon.style.fontSize = "28px";
+    const expl = document.createElement("div");
+    expl.style.marginTop = "6px";
     const stats = document.createElement("div");
     stats.style.fontSize = "12px";
     stats.style.opacity = "0.9";
     stats.style.lineHeight = "1.6";
-    const expl = document.createElement("div");
-    expl.style.marginTop = "6px";
     const imgBox = document.createElement("div");
     imgBox.style.marginTop = "8px";
     const previewBtn = document.createElement("button");
@@ -258,9 +261,9 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     Object.assign(previewBtn.style, { position: "absolute", top: "8px", right: "8px", marginTop: "0" });
 
     detail.appendChild(title);
+    detail.appendChild(expl);
     detail.appendChild(icon);
     detail.appendChild(stats);
-    detail.appendChild(expl);
     detail.appendChild(imgBox);
     detail.appendChild(previewBtn);
 
@@ -306,12 +309,6 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
       ].filter(Boolean);
       stats.innerHTML = lines.map((x) => `<div>${x}</div>`).join("");
       expl.textContent = typeExplain[s.type] || "No description.";
-      imgBox.innerHTML = "";
-      const ph = document.createElement("div");
-      ph.style.fontSize = "40px";
-      ph.style.opacity = "0.9";
-      ph.textContent = getSkillIcon(s.short || s.name);
-      imgBox.appendChild(ph);
       previewBtn.onclick = () => {
         try {
           window.__skillsRef && window.__skillsRef.previewSkill(s);

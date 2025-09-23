@@ -812,13 +812,6 @@ function __renderHeroScreen_legacy(initialTab = "skills") {
       ].filter(Boolean);
       stats.innerHTML = lines.map((x) => `<div>${x}</div>`).join("");
       expl.textContent = typeExplain[s.type] || "No description.";
-      // Optional image placeholder
-      imgBox.innerHTML = "";
-      const ph = document.createElement("div");
-      ph.style.fontSize = "40px";
-      ph.style.opacity = "0.9";
-      ph.textContent = getSkillIcon(s.short || s.name);
-      imgBox.appendChild(ph);
       previewBtn.onclick = () => {
         try { window.__skillsRef && window.__skillsRef.previewSkill(s); } catch (_) {}
       };
