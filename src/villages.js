@@ -39,13 +39,14 @@ export function initVillages(scene, portals, opts = {}) {
       localStorage.setItem(STORAGE_VILLAGES, JSON.stringify(arr));
     } catch (_) {}
   }
+
   function saveRoadsToStorage() {
     try {
       const arr = Array.from(builtRoadKeys.values());
       localStorage.setItem(STORAGE_ROADS, JSON.stringify(arr));
     } catch (_) {}
   }
-  // Load saved villages/roads (if any)
+
   (function loadFromStorage() {
     try {
       const vraw = localStorage.getItem(STORAGE_VILLAGES);
@@ -81,8 +82,6 @@ export function initVillages(scene, portals, opts = {}) {
     } catch (_) {}
   })();
 
-  // ------------- helpers
-
   function getVillageCenterByKey(key) {
     if (!key) return null;
     if (key === "origin") return VILLAGE_POS.clone();
@@ -90,7 +89,6 @@ export function initVillages(scene, portals, opts = {}) {
     return v ? v.center.clone() : null;
   }
 
-  // Curved road helper — flat ribbon along a Catmull–Rom spline
   function createCurvedRoad(points, width = 7, segments = 200, color = 0x2b2420) {
     const curve = new THREE.CatmullRomCurve3(points, false, "catmullrom", 0.5);
     const pos = new Float32Array((segments + 1) * 2 * 3);
@@ -283,8 +281,8 @@ export function initVillages(scene, portals, opts = {}) {
       Math.abs(center.x) > Math.abs(center.z)
         ? (center.x >= 0 ? "East" : "West")
         : (center.z >= 0 ? "South" : "North");
-    const km = Math.round(distanceFromOrigin / 1000);
-    const label = createTextSprite(`${quadrant} Gate — ${km}k`);
+    const km = Math.round(distanceFromOrigin / VILLAGE_SPACING);
+    const label = createTextSprite(`${quadrant} Gate — ${km}km`);
     label.position.set(gatePos.x, 3.6, gatePos.z + 0.01);
     villageGroup.add(label);
 
