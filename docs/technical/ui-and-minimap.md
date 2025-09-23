@@ -1,4 +1,4 @@
-# HUD & Minimap (ui.js)
+# HUD & Minimap (ui/hud.js)
 
 Responsibilities
 - Bind and update 2D HUD elements (HP/MP/XP bars and texts, Level).
@@ -15,7 +15,7 @@ UIManager
     - Cooldowns: #cdQ, #cdW, #cdE, #cdR
     - Minimap: #minimap (2D canvas)
     - Center message: #deathMsg (used for death/recall messages)
-- getCooldownElements(): { Q, W, E, R }
+- getCooldownElements(): { Q, W, E, R, Basic }
   - Returned object is passed to SkillsSystem so it can render cooldown wedges and countdowns.
 - setCenterMsg(text: string)
   - Shows center overlay text for the player (e.g., death/recall).
@@ -39,7 +39,7 @@ UIManager
     - portals.getReturnPortal()
 
 Integration
-- UIManager is created once in main.js.
+- UIManager (src/ui/hud.js) is created once in main.js. UI screens live under src/ui/* (guide, settings, hero).
 - SkillsSystem is constructed with UIManager.getCooldownElements() to render cooldowns each frame.
 - updateHUD and updateMinimap are called from the main loop every frame after the world state updates.
 - Center messages are triggered by gameplay events:

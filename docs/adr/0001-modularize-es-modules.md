@@ -29,7 +29,8 @@ Code modules (src/):
 - skills.js — SkillsSystem (cooldowns, basic attack, Q/W/E/R)
 - raycast.js — createRaycast helpers (ground/enemy/player)
 - portals.js — initPortals (recall flow, portal spin, teleport)
-- ui.js — UIManager (HUD, cooldown overlays, minimap, center messages)
+- ui/hud.js — UIManager (HUD, cooldown overlays, minimap, center messages)
+- ui/guide.js, ui/settings/index.js, ui/hero/index.js — Modular UI screens (guide, settings, hero)
 - world.js — initWorld, updateCamera, updateGridFollow, addResizeHandler
 - main.js — orchestration, input wiring, per-frame update order
 

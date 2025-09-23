@@ -17,7 +17,7 @@ This document explains the hero leveling system, experience (XP) flow, stat scal
   - `src/entities.js` (Player.gainXP, Enemy scaling and respawn helper)
   - `src/main.js` (enemy spawn, death → XP grant, respawn schedule)
   - `src/skills.js` (basic attack and some skills damage coupling to hero level)
-  - `src/ui.js` (HUD bars, level indicator, level-up feedback)
+  - `src/ui/hud.js` (HUD bars, level indicator, level-up feedback)
 - Tuning knobs:
   - `src/constants.js` (`STATS_BASE`, `WORLD`, `SCALING`)
 
@@ -85,7 +85,7 @@ Defined in `src/constants.js`:
 
 ## UI/UX
 
-- HUD already displays Level, HP/MP, and XP progress (`src/ui.js`).
+- HUD already displays Level, HP/MP, and XP progress (`src/ui/hud.js`).
 - On level up, HUD animates and skills briefly glow for feedback.
 
 ## Extending

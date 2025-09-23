@@ -31,8 +31,10 @@ Source Modules (src/)
   - createRaycast(): shared Raycaster with helpers for ground, player/enemy selection, and enemy resolution.
 - portals.js
   - initPortals(scene): manages fixed village portal, return portal spawning/linking, frozen click handling, and ring spin update.
-- ui.js
+- ui/hud.js
   - UIManager: binds HUD elements, cooldown overlay elements, minimap rendering, and center message helpers.
+- ui/guide.js, ui/settings/index.js, ui/hero/index.js
+  - Modular UI screens/controllers (guide overlay, settings screen, hero screen).
 - touch.js
   - Virtual joystick and mobile gestures: movement on bottom-left, skill radial interactions on bottom-right (center basic attack, Q/W/E/R around).
   - Hold-to-cast handling and AOE placement via mini-joystick drag on skill buttons.
@@ -58,7 +60,8 @@ Data Flow & Ownership
   - Portals system stores references to village/return portals; exposes recall/handleFrozenPortalClick/update and nearest-portal queries.
   - Maps/Villages manage unlock thresholds, village registry, and road/fence meshes.
   - Touch input translates joystick/skill radial gestures into the same orders used by keyboard/mouse.
-- UIManager reads player/enemies/portals to render HUD/minimap/center messages; retains DOM references; coordinates full-screen panels (Splash/Settings/Hero).
+- UIManager (src/ui/hud.js) reads player/enemies/portals to render HUD/minimap/center messages; retains DOM references.
+- Full-screen panels (Guide/Settings/Hero) are implemented as separate modules under src/ui/*.
 
 Update Sequencing
 - Player update -> Enemies update -> Camera/world -> HUD -> Skills -> Minimap -> Effects/Indicators -> Portals -> Village regen -> Death/respawn -> Render.

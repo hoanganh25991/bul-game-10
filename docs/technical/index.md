@@ -25,7 +25,8 @@ Key Mapping (src -> docs)
 - src/raycast.js, input in src/main.js -> ./input-and-raycast.md
 - src/skills.js -> ./combat-and-skills.md
 - src/meshes.js, src/effects.js -> ./vfx-and-indicators.md
-- src/ui.js -> ./ui-and-minimap.md
+- src/ui/hud.js -> ./ui-and-minimap.md
+- src/ui/guide.js, src/ui/settings/index.js, src/ui/hero/index.js -> UI screens under src/ui/*
 - src/portals.js -> ./portals-and-respawn.md
 - src/world.js (camera), src/main.js (movement) -> ./camera-and-movement.md
 - src/main.js (sequence) -> ./update-loop.md
@@ -35,7 +36,7 @@ Key Mapping (src -> docs)
 Extensibility
 - Add skills by extending src/skills.js and SKILLS config; prefer reusing VFX helpers.
 - Add enemy types by extending Entity/Enemy and wiring userData for raycast resolution.
-- UI additions should hook into UIManager and update per frame where needed.
+- UI additions should hook into UIManager (src/ui/hud.js) and update per frame where needed. Modular UI screens live under src/ui/* (guide, settings, hero).
 
 Behavior Preservation
 - All refactors preserve game behavior and tuning values from the original single module.
