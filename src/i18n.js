@@ -116,17 +116,17 @@ export function renderInstructions(container) {
   const title = document.createElement("div");
   title.className = "instr-title";
   title.textContent = t("instructions.title");
-  const ul = document.createElement("ul");
+  const ul = document.createElement("div");
   const items = t("instructions.items");
   if (Array.isArray(items)) {
     items.forEach((line) => {
-      const li = document.createElement("li");
+      const li = document.createElement("div");
       li.textContent = line;
       ul.appendChild(li);
     });
   } else {
     // Render a single item containing the returned value (likely the key) so UI isn't empty.
-    const li = document.createElement("li");
+    const li = document.createElement("div");
     li.textContent = items;
     ul.appendChild(li);
   }

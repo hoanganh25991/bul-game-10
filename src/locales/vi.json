@@ -24,13 +24,19 @@
   "instructions": {
     "title": "Hướng dẫn",
     "items": [
-      "Nhấp trái: tấn công cơ bản vào kẻ địch; nhấp đất thì không làm gì",
-      "Nhấp phải: di chuyển / chọn kẻ địch",
-      "A: giữ để tự động tấn công cơ bản kẻ địch gần nhất",
-      "W: AOE",
-      "Q/E/R: kỹ năng",
-      "S: Dừng (hủy lệnh)",
-      "B: Về làng (mở cổng hồi)"
+      "Chuột+Bàn phím",
+      "- Nhấp phải: di chuyển",
+      "- Nhấp trái: tấn công kẻ địch",
+      "- A: giữ để tự động tấn công cơ bản kẻ địch gần nhất",
+      "- Q/W/E/R: kỹ năng",
+      "- S: huỷ lệnh",
+      "- B: dịch chuyển",
+      "- M: cắm cờ",
+      "",
+      "Touch",
+      "- Joystick: di chuyển",
+      "- Nút kĩ năng: tấn công",
+      "- Nút hỗ trợ: dịch chuyển, cắm cờ"
     ]
   },
   "hero": {

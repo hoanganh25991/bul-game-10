@@ -24,13 +24,19 @@
   "instructions": {
     "title": "Instructions",
     "items": [
-      "Left Click: basic attack enemy; clicking ground does nothing",
-      "Right Click: move / select enemy",
-      "A: hold to auto basic attack nearest enemy",
-      "W: AOE",
-      "Q/E/R: skills",
-      "S: Stop (cancel orders)",
-      "B: Recall to village (opens portal back)"
+      "Mouse + Keyboard",
+      "- Right-click: move",
+      "- Left-click: attack enemies",
+      "- A: hold to automatically basic-attack the nearest enemy",
+      "- Q/W/E/R: abilities",
+      "- S: cancel command",
+      "- B: teleport",
+      "- M: place flag",
+      "",
+      "Touch",
+      "- Joystick: move",
+      "- Skill button: attack",
+      "- Utility button: teleport, place flag"
     ]
   },
   "hero": {
