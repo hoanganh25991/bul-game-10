@@ -217,6 +217,7 @@ function showHeroScreen(initialTab = "skills") {
     setCenterMsg,
     clearCenterMsg,
     applyMapModifiersToEnemy,
+    adjustEnemyCountForMap: adjustEnemyCountForCurrentMap,
   };
   try { audio.ensureBackgroundMusic("audio/Ice and Snow.mp3", { volume: 0.35, loop: true }); } catch (_) {}
   try { renderHeroScreenUI(initialTab, ctx); } catch (_) {}
@@ -557,8 +558,9 @@ try {
         const maxIdx = mapManager.getUnlockedMax?.() || prevIdx;
         if (maxIdx > prevIdx) {
           if (mapManager.setCurrent?.(maxIdx)) {
-            // Reapply modifiers to existing enemies on map switch
+            // Reapply modifiers to existing enemies on map switch and adjust density
             enemies.forEach((en) => applyMapModifiersToEnemy(en));
+            try { adjustEnemyCountForCurrentMap(); } catch (_) {}
             setCenterMsg && setCenterMsg(`Unlocked and switched to MAP ${maxIdx}`);
             setTimeout(() => clearCenterMsg(), 1400);
           }
@@ -629,6 +631,33 @@ for (let i = 0; i < enemyCountTarget; i++) {
   scene.add(e.mesh);
   enemies.push(e);
 }
+
+// Dynamically adjust enemy count to match current map modifiers and render quality
+function adjustEnemyCountForCurrentMap() {
+  try {
+    const mods = mapManager.getModifiers?.() || {};
+    const baseTarget = ENEMY_COUNT_BY_QUALITY[renderQuality] || WORLD.enemyCount;
+    const desired = Math.max(1, Math.floor(baseTarget * (mods.enemyCountMul || 1)));
+    if (enemies.length < desired) {
+      const toAdd = desired - enemies.length;
+      for (let i = 0; i < toAdd; i++) {
+        const pos = randomEnemySpawnPos();
+        const e = new Enemy(pos, player.level);
+        applyMapModifiersToEnemy(e);
+        e.mesh.userData.enemyRef = e;
+        scene.add(e.mesh);
+        enemies.push(e);
+      }
+    } else if (enemies.length > desired) {
+      const toRemove = enemies.length - desired;
+      for (let i = 0; i < toRemove; i++) {
+        const e = enemies.pop();
+        try { scene.remove(e.mesh); } catch (_) {}
+      }
+    }
+  } catch (_) {}
+}
+try { window.adjustEnemyCountForMap = adjustEnemyCountForCurrentMap; } catch (_) {}
 
 let selectedUnit = player;
 

@@ -77,6 +77,8 @@ export function renderMapsTab(panelEl, ctx = {}) {
             try {
               if (mapManager.setCurrent?.(m.index)) {
                 enemies?.forEach?.((en) => applyMapModifiersToEnemy && applyMapModifiersToEnemy(en));
+                // Adjust enemy density to match current map modifiers
+                try { ctx.adjustEnemyCountForMap && ctx.adjustEnemyCountForMap(); } catch (_) {}
                 setCenterMsg && setCenterMsg(`Switched to ${m.name}`);
                 setTimeout(() => clearCenterMsg && clearCenterMsg(), 1100);
                 renderMaps();
