@@ -29,6 +29,7 @@ import { startInstructionGuide as startInstructionGuideOverlay } from "./ui/guid
 import { setupSettingsScreen } from "./ui/settings/index.js";
 import { renderHeroScreen as renderHeroScreenUI } from "./ui/hero/index.js";
 import { updateSkillBarLabels } from "./ui/skillbar.js";
+import { promptBasicUpliftIfNeeded } from "./uplift.js";
 
 
 // ------------------------------------------------------------
@@ -566,6 +567,8 @@ try {
     } catch (_) {}
   });
 } catch (_) {}
+try { promptBasicUpliftIfNeeded(player); } catch (_) {}
+try { window.addEventListener("player-levelup", () => { try { promptBasicUpliftIfNeeded(player); } catch (_) {} }); } catch (_) {}
 
 // Hero overhead HP/MP bars
 const heroBars = createHeroOverheadBars();
@@ -589,6 +592,7 @@ function applyMapModifiersToEnemy(en) {
     en.maxHP = Math.max(1, Math.floor(en.maxHP * (mods.enemyHpMul || 1)));
     en.hp = Math.max(1, Math.min(en.maxHP, en.hp));
     en.attackDamage = Math.max(1, Math.floor(en.attackDamage * (mods.enemyDmgMul || 1)));
+    en.speed = Math.max(0.1, en.speed * (mods.enemySpeedMul || 1));
     if (mods.enemyTint) {
       en.beamColor = mods.enemyTint;
       try {
@@ -608,7 +612,8 @@ const ENEMY_COUNT_BY_QUALITY = {
   medium: Math.max(30, Math.floor(WORLD.enemyCount * 0.4)),
   low: Math.max(20, Math.floor(WORLD.enemyCount * 0.25)),
 };
-const enemyCountTarget = ENEMY_COUNT_BY_QUALITY[renderQuality] || WORLD.enemyCount;
+const __mods = mapManager.getModifiers?.() || {};
+const enemyCountTarget = Math.max(1, Math.floor((ENEMY_COUNT_BY_QUALITY[renderQuality] || WORLD.enemyCount) * (__mods.enemyCountMul || 1)));
 const enemies = [];
 for (let i = 0; i < enemyCountTarget; i++) {
   const angle = Math.random() * Math.PI * 2;

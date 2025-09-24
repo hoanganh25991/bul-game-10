@@ -70,6 +70,9 @@ export const SCALING = {
     // Damage scaling
     baseDamageGrowth: 1.12,   // basic attack
     skillDamageGrowth: 1.10,  // skills
+    // Movement and attack speed growth (small, per level)
+    moveSpeedGrowth: 1.01,    // +1% movement speed per level
+    atkSpeedGrowth: 1.01      // +1% permanent attack speed per level (reduces basic CD)
   },
   enemy: {
     // Per-hero-level growth factors for enemies

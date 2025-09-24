@@ -4,6 +4,7 @@ import { distance2D, now } from "./utils.js";
 import { handWorldPos } from "./entities.js";
 import { createGroundRing } from "./effects.js";
 import { audio } from "./audio.js";
+import { getBasicUplift } from "./uplift.js";
 
 /**
  * SkillsSystem centralizes cooldowns, basic attack, Q/W/E/R skills,
@@ -207,8 +208,10 @@ export class SkillsSystem {
     const dist = distance2D(attacker.pos(), target.pos());
     if (dist > WORLD.attackRange * (WORLD.attackRangeMult || 1)) return false;
 
-    const activeMul = (attacker.atkSpeedUntil && now() < attacker.atkSpeedUntil) ? (attacker.atkSpeedMul || 1) : 1;
-    const basicCd = WORLD.basicAttackCooldown / Math.max(0.5, activeMul);
+    const buffMul = (attacker.atkSpeedUntil && now() < attacker.atkSpeedUntil) ? (attacker.atkSpeedMul || 1) : 1;
+    const permaMul = attacker.atkSpeedPerma || 1;
+    const effMul = Math.max(0.5, buffMul * permaMul);
+    const basicCd = WORLD.basicAttackCooldown / effMul;
     attacker.nextBasicReady = time + basicCd;
     if (attacker === this.player) {
       // Mirror basic attack cooldown into UI like other skills
@@ -235,10 +238,43 @@ export class SkillsSystem {
       this.effects.spawnHandCrackle(this.player, true, 1.2);
     } catch (e) {}
     if (attacker === this.player) this.player.braceUntil = now() + 0.18;
-    const dmg = this.getBasicDamage(attacker);
+    const baseDmg = this.getBasicDamage(attacker);
+    const up = getBasicUplift ? getBasicUplift() : { aoeRadius: 0, chainJumps: 0, dmgMul: 1 };
+    const dmg = Math.max(1, Math.floor(baseDmg * (up.dmgMul || 1)));
     target.takeDamage(dmg);
-    // show floating damage number on the target
     try { this.effects.spawnDamagePopup(target.pos(), dmg, 0xffe0e0); } catch (e) {}
+
+    // Uplift: AOE explosion around the hit target
+    try {
+      if (up.aoeRadius && up.aoeRadius > 0) {
+        this.effects.spawnStrike(target.pos(), up.aoeRadius, 0xffee88);
+        const r = up.aoeRadius + 2.5;
+        this.enemies.forEach((en) => {
+          if (!en.alive || en === target) return;
+          if (distance2D(en.pos(), target.pos()) <= r) en.takeDamage(Math.max(1, Math.floor(dmg * 0.8)));
+        });
+      }
+    } catch (_) {}
+
+    // Uplift: Chain to nearby enemies
+    try {
+      let jumps = Math.max(0, up.chainJumps || 0);
+      let current = target;
+      const hitSet = new Set([current]);
+      while (jumps-- > 0) {
+        const candidates = this.enemies
+          .filter(e => e.alive && !hitSet.has(e) && distance2D(current.pos(), e.pos()) <= 22)
+          .sort((a,b) => distance2D(current.pos(), a.pos()) - distance2D(current.pos(), b.pos()));
+        const nxt = candidates[0];
+        if (!nxt) break;
+        hitSet.add(nxt);
+        const from = current.pos().clone().add(new THREE.Vector3(0,1.2,0));
+        const to = nxt.pos().clone().add(new THREE.Vector3(0,1.2,0));
+        try { this.effects.spawnElectricBeamAuto(from, to, 0xffee88, 0.08); } catch(_) {}
+        nxt.takeDamage(Math.max(1, Math.floor(dmg * 0.85)));
+        current = nxt;
+      }
+    } catch (_) {}
     return true;
   }
 

@@ -61,6 +61,7 @@ export class Player extends Entity {
 
     this.moveTarget = null;
     this.speed = WORLD.playerSpeed;
+    this.baseSpeed = WORLD.playerSpeed;
     this.turnSpeed = WORLD.playerTurnSpeed;
     this.target = null; // enemy to attack
     this.nextBasicReady = 0;
@@ -82,6 +83,7 @@ export class Player extends Entity {
     this.speedBoostMul = 1;
     this.speedBoostUntil = 0;
     this.atkSpeedMul = 1;
+    this.atkSpeedPerma = 1;
     this.atkSpeedUntil = 0;
     this.defensePct = 0;
     this.defenseUntil = 0;
@@ -111,6 +113,8 @@ export class Player extends Entity {
     this.hpRegen = STATS_BASE.hpRegen;
     this.mpRegen = STATS_BASE.mpRegen;
     this.baseDamage = WORLD.basicAttackDamage;
+    this.speed = WORLD.playerSpeed;
+    this.atkSpeedPerma = 1;
   }
 
   // Deterministically set level and recompute stats from base using SCALING
@@ -129,6 +133,9 @@ export class Player extends Entity {
       this.level = lvl;
       this.hp = this.maxHP;
       this.mp = this.maxMP;
+      // Apply level-based permanent movement and attack speed growth
+      this.speed = WORLD.playerSpeed * Math.pow(SCALING.hero.moveSpeedGrowth, lvl - 1);
+      this.atkSpeedPerma = Math.pow(SCALING.hero.atkSpeedGrowth, lvl - 1);
     }
     this.saveLevelToStorage();
   }
@@ -161,6 +168,9 @@ export class Player extends Entity {
       this.mpRegen *= SCALING.hero.mpRegenGrowth;
       this.baseDamage = Math.floor(this.baseDamage * SCALING.hero.baseDamageGrowth);
       this.xpToLevel = Math.floor(this.xpToLevel * SCALING.xpGrowth);
+      // Increment permanent movement and attack speed multipliers
+      this.speed *= SCALING.hero.moveSpeedGrowth;
+      this.atkSpeedPerma *= SCALING.hero.atkSpeedGrowth;
     }
 
     // Persist level if changed

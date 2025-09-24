@@ -8,6 +8,14 @@ export function createMapManager() {
   const LS_CUR = "mapCurrentIndex";
   const LS_MAX = "mapUnlockedMax";
 
+  // Endless tuning beyond the defined Acts
+  const ENDLESS = {
+    hpGrowthPerDepth: 1.18,
+    dmgGrowthPerDepth: 1.16,
+    speedGrowthPerDepth: 1.03,
+    countGrowthPerDepth: 1.04,
+  };
+
   // Definitions: tune per-map enemy tint and multipliers
   const maps = [
     {
@@ -72,9 +80,15 @@ export function createMapManager() {
     },
   ];
 
+  // Allow endless indices (no upper clamp)
   function clampIndex(i) {
-    const idx = Math.max(1, Math.min(maps.length, Math.floor(i || 1)));
+    const idx = Math.max(1, Math.floor(i || 1));
     return idx;
+  }
+
+  function depthForIndex(i) {
+    const idx = clampIndex(i);
+    return idx > maps.length ? (idx - maps.length) : 0;
   }
 
   function loadInt(key, def = 1) {
@@ -112,15 +126,42 @@ export function createMapManager() {
   }
 
   function getCurrent() {
-    return maps.find((m) => m.index === currentIndex) || maps[0];
+    const cur = maps.find((m) => m.index === currentIndex);
+    if (cur) return cur;
+    // Synthesize an endless map descriptor
+    const depth = depthForIndex(currentIndex);
+    const base = maps[maps.length - 1];
+    return {
+      index: currentIndex,
+      name: `Endless +${depth}`,
+      requiredLevel: base.requiredLevel + depth * 5,
+      enemyTint: base.enemyTint,
+      enemyHpMul: base.enemyHpMul,
+      enemyDmgMul: base.enemyDmgMul,
+      desc: `Endless Depth ${depth}. Enemies grow stronger with each depth.`,
+      strongEnemies: base.strongEnemies,
+      img: base.img,
+      imgHint: base.imgHint,
+      _endlessDepth: depth,
+    };
   }
 
   function getModifiers() {
-    const m = getCurrent();
+    const cur = getCurrent();
+    const depth = cur._endlessDepth ? cur._endlessDepth : 0;
+    const pow = (v, p) => Math.pow(v, Math.max(0, p));
+    const enemyHpMul = (cur.enemyHpMul || 1) * pow(ENDLESS.hpGrowthPerDepth, depth);
+    const enemyDmgMul = (cur.enemyDmgMul || 1) * pow(ENDLESS.dmgGrowthPerDepth, depth);
+    const enemySpeedMul = pow(ENDLESS.speedGrowthPerDepth, depth);
+    const enemyCountMul = pow(ENDLESS.countGrowthPerDepth, depth);
     return {
-      enemyTint: m.enemyTint,
-      enemyHpMul: m.enemyHpMul,
-      enemyDmgMul: m.enemyDmgMul,
+      enemyTint: cur.enemyTint,
+      enemyHpMul,
+      enemyDmgMul,
+      enemySpeedMul,
+      enemyCountMul,
+      depth,
+      name: cur.name,
     };
   }
 
@@ -138,16 +179,21 @@ export function createMapManager() {
   }
 
   function unlockByLevel(heroLevel) {
+    // Unlock all defined maps whose requiredLevel is met
     let maxIdx = unlockedMax;
     for (const m of maps) {
       if (heroLevel >= m.requiredLevel) {
         maxIdx = Math.max(maxIdx, m.index);
       }
     }
+    // Additionally unlock endless depths gradually (every 5 hero levels adds +1 depth)
+    const extraDepth = Math.max(0, Math.floor((heroLevel - (maps[maps.length - 1]?.requiredLevel || 1)) / 5));
+    const endlessMaxIndex = maps.length + extraDepth;
+    maxIdx = Math.max(maxIdx, endlessMaxIndex);
+
     if (maxIdx !== unlockedMax) {
       unlockedMax = maxIdx;
       saveInt(LS_MAX, unlockedMax);
-      // if current > unlocked, clamp back (shouldn't happen in normal flow)
       if (currentIndex > unlockedMax) {
         currentIndex = unlockedMax;
         saveInt(LS_CUR, currentIndex);
