@@ -170,8 +170,8 @@ export class EffectsManager {
   }
 
   // ----- Impact helpers -----
-  spawnHitDecal(center) {
-    const ring = createGroundRing(0.2, 0.55, 0xbfe9ff, 0.5);
+  spawnHitDecal(center, color = 0xbfe9ff) {
+    const ring = createGroundRing(0.2, 0.55, color, 0.5);
     ring.position.set(center.x, 0.02, center.z);
     this.indicators.add(ring);
     this.queue.push({ obj: ring, until: now() + 0.22, fade: true, mat: ring.material, scaleRate: 1.3 });

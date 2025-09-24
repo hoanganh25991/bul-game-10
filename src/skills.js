@@ -367,18 +367,20 @@ export class SkillsSystem {
     )[0];
     let lastPoint = handWorldPos(this.player);
     let jumps = (SK.jumps || 0) + 1;
+    let first = true;
     while (current && jumps-- > 0) {
       const hitPoint = current.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
     this.effects.spawnElectricBeamAuto(lastPoint, hitPoint, this._fx(SK).beam, 0.12);
     this.effects.spawnArcNoisePath(lastPoint, hitPoint, this._fx(SK).arc, 0.08);
+    if (first) { this._requestShake(this._fx(SK).shake || 0); first = false; }
     const dmgHit = this.scaleSkillDamage(SK.dmg || 0);
     current.takeDamage(dmgHit);
     if (SK.slowFactor) { current.slowUntil = now() + (SK.slowDuration || 1.2); current.slowFactor = SK.slowFactor; }
     audio.sfx("chain_hit");
     // popup for chain hit
-    try { this.effects.spawnDamagePopup(current.pos(), dmgHit, 0xbfe9ff); } catch (e) {}
+    try { this.effects.spawnDamagePopup(current.pos(), dmgHit, this._fx(SK).impact); } catch (e) {}
     this.effects.spawnStrike(current.pos(), 1.2, this._fx(SK).impact);
-    this.effects.spawnHitDecal(current.pos());
+    this.effects.spawnHitDecal(current.pos(), this._fx(SK).impact);
       lastPoint = hitPoint;
       candidates = this.enemies.filter(
         (e) =>
@@ -435,7 +437,11 @@ export class SkillsSystem {
       if (distance2D(en.pos(), point) <= (SK.radius + 2.5)) {
         const dmg = this.scaleSkillDamage(SK.dmg || 0);
         en.takeDamage(dmg);
-        try { this.effects.spawnDamagePopup(en.pos(), dmg, 0x9fd3ff); } catch (e) {}
+        try { this.effects.spawnDamagePopup(en.pos(), dmg, this._fx(SK).impact); } catch (e) {}
+        try {
+          this.effects.spawnStrike(en.pos(), 1.0, this._fx(SK).impact);
+          this.effects.spawnHitDecal(en.pos(), this._fx(SK).impact);
+        } catch (_) {}
         if (SK.slowFactor) {
           en.slowUntil = now() + (SK.slowDuration || 1.5);
           en.slowFactor = SK.slowFactor;
@@ -517,8 +523,9 @@ export class SkillsSystem {
     audio.sfx("beam");
     const dmg = this.scaleSkillDamage(SK.dmg || 0);
     target.takeDamage(dmg);
-    try { this.effects.spawnDamagePopup(target.pos(), dmg, 0x9fd3ff); } catch(e) {}
-    this.effects.spawnStrike(target.pos(), 1.0, 0x9fd3ff);
+    try { this.effects.spawnDamagePopup(target.pos(), dmg, this._fx(SK).impact); } catch(e) {}
+    this.effects.spawnStrike(target.pos(), 1.0, this._fx(SK).impact);
+    try { this.effects.spawnHitDecal(target.pos(), this._fx(SK).impact); } catch(e) {}
   }
 
   _castNova(key) {
@@ -545,7 +552,11 @@ export class SkillsSystem {
       if (en.alive && distance2D(en.pos(), this.player.pos()) <= (SK.radius + 2.5)) {
         const dmg = this.scaleSkillDamage(SK.dmg || 0);
         en.takeDamage(dmg);
-        try { this.effects.spawnDamagePopup(en.pos(), dmg, 0x9fd3ff); } catch(e) {}
+        try { this.effects.spawnDamagePopup(en.pos(), dmg, this._fx(SK).impact); } catch(e) {}
+        try {
+          this.effects.spawnStrike(en.pos(), 1.0, this._fx(SK).impact);
+          this.effects.spawnHitDecal(en.pos(), this._fx(SK).impact);
+        } catch (e2) {}
       }
     });
   }
@@ -563,17 +574,32 @@ export class SkillsSystem {
     const startT = now();
     const endT = startT + (SK.duration || 7);
     const center = this.player.pos().clone();
+    const fx = this._fx(SK);
 
-    // Queue up strikes over duration
-    const strikes = [];
-    for (let i = 0; i < (SK.strikes || 8); i++) {
-      const when = startT + Math.random() * (SK.duration || 7);
-      const ang = Math.random() * Math.PI * 2;
-      const r = Math.random() * (SK.radius || 12);
-      const pt = center.clone().add(new THREE.Vector3(Math.cos(ang) * r, 0, Math.sin(ang) * r));
-      strikes.push({ when, pt });
-    }
-    this.storms.push({ strikes, end: endT });
+    // Mark the storm area with a brief ground ring
+    try {
+      const ring = createGroundRing(Math.max(0.1, (SK.radius || 12) - 0.35), (SK.radius || 12) + 0.35, fx.ring, 0.22);
+      ring.position.set(center.x, 0.02, center.z);
+      this.effects.indicators.add(ring);
+      this.effects.queue.push({ obj: ring, until: now() + 0.6, fade: true, mat: ring.material, scaleRate: 0.4 });
+    } catch (_) {}
+
+    const rate = Math.max(0, (SK.strikes || 8) / Math.max(0.1, (SK.duration || 7)));
+    const strikeRadius = SK.strikeRadius || ((SK.id === "thunderdome" || SK.id === "maelstrom") ? 3.0 : 2.5);
+    const dmg = this.scaleSkillDamage(SK.dmg || 0);
+
+    // Accumulator-based scheduling
+    this.storms.push({
+      center,
+      radius: SK.radius || 12,
+      end: endT,
+      rate,
+      acc: 0,
+      last: startT,
+      fx,
+      dmg,
+      strikeRadius,
+    });
   }
 
   // ----- Utility new skill types -----
@@ -689,6 +715,7 @@ export class SkillsSystem {
       const from = this.player.pos().clone().add(new THREE.Vector3(0,1.6,0));
       this.effects.spawnElectricBeamAuto(from, to, this._fx(SK).beam, 0.12);
       this.effects.spawnStrike(target.pos(), 1.2, this._fx(SK).impact);
+      try { this.effects.spawnHitDecal(target.pos(), this._fx(SK).impact); } catch (_) {}
       audio.sfx("cast_beam");
     } catch (_) {}
   }
@@ -696,6 +723,7 @@ export class SkillsSystem {
   _castBlink(key, point = null) {
     const SK = SKILLS[key]; if (!SK) return;
     if (this.isOnCooldown(key) || !this.player.canSpend(SK.mana)) return;
+    const fx = this._fx(SK);
     const dist = Math.max(4, SK.range || SK.distance || 20);
     // Determine direction
     let dir = new THREE.Vector3(0,0,1).applyQuaternion(this.player.mesh.quaternion).normalize();
@@ -708,9 +736,9 @@ export class SkillsSystem {
     if (!this.player.canSpend(SK.mana)) return;
     this.player.spend(SK.mana);
     this.startCooldown(key, SK.cd);
-    try { this.effects.spawnStrike(this.player.pos(), 3, 0x9fd8ff); audio.sfx("storm_start"); } catch (e) {}
+    try { this.effects.spawnStrike(this.player.pos(), 3, fx.ring); audio.sfx("storm_start"); } catch (e) {}
     this.player.mesh.position.set(to.x, this.player.mesh.position.y, to.z);
-    try { this.effects.spawnStrike(this.player.pos(), 3, 0x9fd8ff); } catch (e) {}
+    try { this.effects.spawnStrike(this.player.pos(), 3, fx.impact); this.effects.spawnHitDecal(this.player.pos(), fx.impact); } catch (e) {}
     if (SK.explosionRadius) {
       const r = Math.max(4, SK.explosionRadius);
       this.effects.spawnStrike(this.player.pos(), r, this._fx(SK).ring);
@@ -730,6 +758,7 @@ export class SkillsSystem {
     const dist = Math.max(4, SK.distance || 14);
     let dir = new THREE.Vector3(0,0,1).applyQuaternion(this.player.mesh.quaternion).normalize();
     const to = this.player.pos().clone().add(dir.multiplyScalar(dist));
+    const fromPos = this.player.pos().clone();
     this.player.spend(SK.mana);
     this.startCooldown(key, SK.cd);
     try { this.effects.spawnHandLink(this.player, 0.06); audio.sfx("cast_beam"); } catch (e) {}
@@ -767,7 +796,7 @@ export class SkillsSystem {
     // schedule a thunder image that periodically zaps nearby enemies
     this.clones.push({ until: now() + duration, next: 0, rate, radius, dmg });
     try { this.effects.spawnHandFlash(this.player); audio.sfx("aura_on"); } catch(e) {}
-    try { this.effects.spawnStrike(this.player.pos(), 5, 0xbfe9ff); } catch(e) {}
+    try { this.effects.spawnStrike(this.player.pos(), 5, this._fx(SK).impact); } catch(e) {}
   }
 
   // Backwards-compatible wrappers (preserve existing API)
@@ -802,12 +831,11 @@ export class SkillsSystem {
       this.player.staticField.nextTick = t + SKILLS.E.tick;
 
       // Visual ring and zap
-      this.effects.spawnStrike(this.player.pos(), SKILLS.E.radius, 0x7fc7ff);
+      const fx = this._fx(SKILLS.E);
+      this.effects.spawnStrike(this.player.pos(), SKILLS.E.radius, fx.ring);
       audio.sfx("aura_tick");
-      // Pulse ring for aura tick (color shifts each pulse)
-      const phase = Math.sin(now() * 8);
-      const col = phase > 0 ? 0xbfe9ff : 0x7fc7ff;
-      const pulse = createGroundRing(SKILLS.E.radius - 0.25, SKILLS.E.radius + 0.25, col, 0.32);
+      // Pulse ring for aura tick
+      const pulse = createGroundRing(SKILLS.E.radius - 0.25, SKILLS.E.radius + 0.25, fx.ring, 0.32);
       const pl = this.player.pos();
       pulse.position.set(pl.x, 0.02, pl.z);
       this.effects.indicators.add(pulse);
@@ -818,7 +846,11 @@ export class SkillsSystem {
       this.enemies.forEach((en) => {
         if (en.alive && distance2D(en.pos(), this.player.pos()) <= (SKILLS.E.radius + 2.5)) {
           en.takeDamage(dmg);
-          try { this.effects.spawnDamagePopup(en.pos(), dmg, 0x7fc7ff); } catch(e) {}
+          try { this.effects.spawnDamagePopup(en.pos(), dmg, fx.impact); } catch(e) {}
+          try {
+            this.effects.spawnStrike(en.pos(), 0.9, fx.impact);
+            this.effects.spawnHitDecal(en.pos(), fx.impact);
+          } catch (_) {}
         }
       });
     }
@@ -828,28 +860,51 @@ export class SkillsSystem {
     const t = now();
     for (let i = this.storms.length - 1; i >= 0; i--) {
       const s = this.storms[i];
-      // Execute strikes due
-      for (let j = s.strikes.length - 1; j >= 0; j--) {
-        const st = s.strikes[j];
-        if (t >= st.when) {
-          this.effects.spawnStrike(st.pt, 3, 0xb5e2ff);
+      const dt = Math.max(0, t - (s.last || t));
+      s.last = t;
+      s.acc = (s.acc || 0) + dt * (s.rate || 0);
+
+      while (s.acc >= 1) {
+        s.acc -= 1;
+
+        // Prefer striking a random enemy inside the area; fallback to ground point
+        let impact = null;
+        const inArea = this.enemies.filter(en => en.alive && distance2D(en.pos(), s.center) <= (s.radius || 0));
+        if (inArea.length > 0) {
+          const target = inArea[Math.floor(Math.random() * inArea.length)];
+          impact = target.pos().clone();
+        } else {
+          const ang = Math.random() * Math.PI * 2;
+          const r = Math.random() * (s.radius || 12);
+          impact = s.center.clone().add(new THREE.Vector3(Math.cos(ang) * r, 0, Math.sin(ang) * r));
+        }
+
+        try {
+          this.effects.spawnStrike(impact, 3, s.fx?.impact || 0xb5e2ff);
           audio.sfx("strike");
-          // camera shake on big strikes
-          if (cameraShake) {
-            cameraShake.mag = Math.max(cameraShake.mag, 0.4);
-            cameraShake.until = now() + 0.18;
+        } catch (_) {}
+
+        // Damage around impact
+        const hitR = Math.max(0.5, s.strikeRadius || 2.5);
+        this.enemies.forEach((en) => {
+          if (!en.alive) return;
+          if (distance2D(en.pos(), impact) <= hitR) {
+            en.takeDamage(s.dmg || 0);
+            try { this.effects.spawnDamagePopup(en.pos(), s.dmg || 0, s.fx?.impact || 0xbfe2ff); } catch(e) {}
           }
-          const dmg = this.scaleSkillDamage(SKILLS.R.dmg || 0);
-          this.enemies.forEach((en) => {
-            if (en.alive && distance2D(en.pos(), st.pt) <= 5.0) {
-              en.takeDamage(dmg);
-              try { this.effects.spawnDamagePopup(en.pos(), dmg, 0xbfe2ff); } catch(e) {}
-            }
-          });
-          s.strikes.splice(j, 1);
+        });
+
+        // Distance-attenuated camera shake
+        if (cameraShake) {
+          const d = distance2D(this.player.pos(), impact);
+          const att = Math.max(0.1, 1 - d / Math.max(1, s.radius || 30));
+          const mag = Math.max(0, (s.fx?.shake || 0.3) * att);
+          cameraShake.mag = Math.max(cameraShake.mag || 0, mag);
+          cameraShake.until = now() + 0.18;
         }
       }
-      if (t >= s.end && s.strikes.length === 0) {
+
+      if (t >= s.end) {
         this.storms.splice(i, 1);
       }
     }
