@@ -191,6 +191,17 @@ export class EffectsManager {
       this.spawnBeam(point.clone().add(new THREE.Vector3(0, 0.4, 0)), p2, color, 0.08);
     }
   }
+  
+  // Expanding ground ring pulse (scales and fades)
+  spawnRingPulse(center, radius = 6, color = COLOR.blue, duration = 0.35, width = 0.6, opacity = 0.55) {
+    try {
+      const ring = createGroundRing(Math.max(0.05, radius - width * 0.5), radius + width * 0.5, color, opacity);
+      ring.position.set(center.x, 0.02, center.z);
+      this.indicators.add(ring);
+      // Scale out over time; fade handled by update loop
+      this.queue.push({ obj: ring, until: now() + duration, fade: true, mat: ring.material, scaleRate: 1.0 });
+    } catch (_) {}
+  }
 
   spawnHandFlash(player, left = false) {
     const p = left ? leftHandWorldPos(player) : handWorldPos(player);
