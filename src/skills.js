@@ -258,11 +258,9 @@ export class SkillsSystem {
     // FP hand VFX for basic attack
     try {
       this.effects.spawnHandFlash(this.player);
-    try {
       this.effects.spawnHandLink(this.player, 0.06);
       this.effects.spawnHandCrackle(this.player, false, 1.0);
       this.effects.spawnHandCrackle(this.player, true, 1.0);
-    } catch (e) {}
       this.effects.spawnHandFlash(this.player, true);
       this.effects.spawnHandLink(this.player, 0.08);
       this.effects.spawnHandCrackle(this.player, false, 1.2);
@@ -1122,11 +1120,12 @@ export class SkillsSystem {
           target.takeDamage(c.dmg);
           if (!c.shook) { this._requestShake(0.2); c.shook = true; }
         }
+        // schedule next zap
         c.next = t + (c.rate || 0.5);
       }
     }
   }
-  
+
   // Totems: periodic strikes around placed anchor
   runTotems() {
     const t = now();
