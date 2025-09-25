@@ -311,6 +311,42 @@
     }
     </script>
   <script type="module" src="src/main.js"></script>
+  <script>
+    // PWA: Register service worker (secure contexts only; dev over localhost is OK)
+    try {
+      if ("serviceWorker" in navigator) {
+        // Reload the page when a new controller takes over (ensures fresh assets)
+        navigator.serviceWorker.addEventListener?.("controllerchange", () => {
+          try {
+            // Optional UX hint:
+            // setCenterMsg && setCenterMsg("Updating…");
+            // setTimeout(() => clearCenterMsg && clearCenterMsg(), 800);
+          } catch (_) {}
+          // Full refresh to ensure updated shell/assets are applied
+          window.location.reload();
+        });
+
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("serviceworker.js").then((reg) => {
+            // If an updated worker is already waiting, activate it immediately
+            if (reg.waiting) {
+              try { reg.waiting.postMessage("skipWaiting"); } catch (_) {}
+            }
+            // When a new SW is found, request it to activate ASAP after install
+            reg.addEventListener("updatefound", () => {
+              const nw = reg.installing;
+              if (!nw) return;
+              nw.addEventListener("statechange", () => {
+                if (nw.state === "installed" && navigator.serviceWorker.controller) {
+                  try { reg.waiting && reg.waiting.postMessage("skipWaiting"); } catch (_) {}
+                }
+              });
+            });
+          }).catch(() => { /* ignore registration failures in non-secure contexts */ });
+        });
+      }
+    } catch (_) {}
+  </script>
 </body>
 
 </html>
