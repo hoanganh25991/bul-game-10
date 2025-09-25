@@ -3,12 +3,26 @@ import { COLOR } from "./constants.js";
 import { now } from "./utils.js";
 import { handWorldPos, leftHandWorldPos } from "./entities.js";
 
+// Normalize color inputs from various formats ("0x66ffc2", "#66ffc2", 0x66ffc2, 6750146)
+function normalizeColor(c, fallback = COLOR.blue) {
+  try {
+    if (typeof c === "number" && Number.isFinite(c)) return c >>> 0;
+    if (typeof c === "string") {
+      const s = c.trim();
+      if (/^0x[0-9a-fA-F]{6}$/.test(s)) return Number(s);
+      if (/^#[0-9a-fA-F]{6}$/.test(s)) return parseInt(s.slice(1), 16) >>> 0;
+      if (/^[0-9a-fA-F]{6}$/.test(s)) return parseInt(s, 16) >>> 0;
+    }
+  } catch (_) {}
+  return fallback >>> 0;
+}
+
 // Standalone ring factory (used by UI modules and effects)
 export function createGroundRing(innerR, outerR, color, opacity = 0.6) {
   const ring = new THREE.Mesh(
     new THREE.RingGeometry(innerR, outerR, 48),
     new THREE.MeshBasicMaterial({
-      color,
+      color: normalizeColor(color),
       transparent: true,
       opacity,
       side: THREE.DoubleSide,
@@ -70,7 +84,7 @@ export class EffectsManager {
   // ----- Beam helpers -----
   spawnBeam(from, to, color = COLOR.blue, life = 0.12) {
     const geometry = new THREE.BufferGeometry().setFromPoints([from.clone(), to.clone()]);
-    const material = new THREE.LineBasicMaterial({ color, linewidth: 2 });
+    const material = new THREE.LineBasicMaterial({ color: normalizeColor(color), linewidth: 2 });
     const line = new THREE.Line(geometry, material);
     this.transient.add(line);
     const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
@@ -96,7 +110,7 @@ export class EffectsManager {
     }
 
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = new THREE.LineBasicMaterial({ color });
+    const material = new THREE.LineBasicMaterial({ color: normalizeColor(color) });
     const line = new THREE.Line(geometry, material);
     this.transient.add(line);
     const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
@@ -108,7 +122,7 @@ export class EffectsManager {
       const mid = from.clone().lerp(to, 0.6);
       const forkEnd = mid.clone().add(normal.clone().multiplyScalar(1.2 + Math.random() * 1.2));
       const g2 = new THREE.BufferGeometry().setFromPoints([mid, forkEnd]);
-      const m2 = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.8 });
+      const m2 = new THREE.LineBasicMaterial({ color: normalizeColor(color), transparent: true, opacity: 0.8 });
       const l2 = new THREE.Line(g2, m2);
       this.transient.add(l2);
       const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
@@ -144,7 +158,7 @@ export class EffectsManager {
       }
       const g = new THREE.BufferGeometry().setFromPoints(pts);
       const opacity = Math.max(0.35, (0.7 + Math.min(0.3, length * 0.01) - n * 0.15));
-      const m = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+      const m = new THREE.LineBasicMaterial({ color: normalizeColor(color), transparent: true, opacity });
       const l = new THREE.Line(g, m);
       this.transient.add(l);
       const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
@@ -155,7 +169,7 @@ export class EffectsManager {
       const mid = from.clone().lerp(to, 0.6);
       const forkEnd = mid.clone().add(normal.clone().multiplyScalar(1.2 + Math.random() * 1.2));
       const g2 = new THREE.BufferGeometry().setFromPoints([mid, forkEnd]);
-      const m2 = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.8 });
+      const m2 = new THREE.LineBasicMaterial({ color: normalizeColor(color), transparent: true, opacity: 0.8 });
       const l2 = new THREE.Line(g2, m2);
       this.transient.add(l2);
       const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
@@ -211,19 +225,20 @@ export class EffectsManager {
       const h = Math.max(1.4, height);
       const yMid = h * 0.5;
       const r = Math.max(1, radius);
+      const col = normalizeColor(color);
       for (let i = 0; i < Math.max(6, bars); i++) {
         const ang = (i / Math.max(6, bars)) * Math.PI * 2;
         const x = center.x + Math.cos(ang) * r;
         const z = center.z + Math.sin(ang) * r;
         const geo = new THREE.CylinderGeometry(0.06, 0.06, h, 6);
-        const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 });
+        const mat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85 });
         const m = new THREE.Mesh(geo, mat);
         m.position.set(x, yMid, z);
         g.add(m);
         mats.push(mat);
       }
       // Ground ring tying the cage together
-      const baseRing = createGroundRing(Math.max(0.2, r - 0.25), r + 0.25, color, 0.4);
+      const baseRing = createGroundRing(Math.max(0.2, r - 0.25), r + 0.25, col, 0.4);
       baseRing.position.set(center.x, 0.02, center.z);
       g.add(baseRing);
       mats.push(baseRing.material);
@@ -236,7 +251,7 @@ export class EffectsManager {
   // Shield bubble that follows an entity and gently pulses
   spawnShieldBubble(entity, color = COLOR.blue, duration = 6, radius = 1.7) {
     try {
-      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, wireframe: true });
+      const mat = new THREE.MeshBasicMaterial({ color: normalizeColor(color), transparent: true, opacity: 0.22, wireframe: true });
       const bubble = new THREE.Mesh(new THREE.SphereGeometry(radius, 24, 16), mat);
       const p = entity.pos();
       bubble.position.set(p.x, 1.1, p.z);
@@ -261,7 +276,7 @@ export class EffectsManager {
       const thick = Math.max(0.6, radius * 0.08);
       const torus = new THREE.Mesh(
         new THREE.TorusGeometry(Math.max(2, radius * 0.8), thick * 0.5, 12, 32),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.18 })
+        new THREE.MeshBasicMaterial({ color: normalizeColor(color), transparent: true, opacity: 0.18 })
       );
       torus.position.set(center.x, height, center.z);
       torus.rotation.x = Math.PI / 2; // lie flat like a cloud disc
@@ -284,7 +299,7 @@ export class EffectsManager {
       for (let i = 0; i < count; i++) {
         const orb = new THREE.Mesh(
           new THREE.SphereGeometry(size, 10, 10),
-          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 })
+          new THREE.MeshBasicMaterial({ color: normalizeColor(color), transparent: true, opacity: 0.9 })
         );
         group.add(orb);
         children.push(orb);
@@ -322,7 +337,7 @@ export class EffectsManager {
     const p = left ? leftHandWorldPos(player) : handWorldPos(player);
     const s = new THREE.Mesh(
       new THREE.SphereGeometry(0.28, 12, 12),
-      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95 })
+      new THREE.MeshBasicMaterial({ color: normalizeColor(color), transparent: true, opacity: 0.95 })
     );
     s.position.copy(p);
     this.transient.add(s);
