@@ -31,6 +31,7 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 - Non-Functional: defined quality tiers (High/Medium/Low) with device target (Xiaomi Redmi Pad 6 30+ FPS); switching requires reload.
 - Technical Docs: added docs/technical/ui-screens.md; updated utils-and-config with envPrefs/renderPrefs/audioPrefs.
 
+- Map thumbnails now use deterministic emoji icons for all maps; removed image URLs from src/maps.js; UI renders large emoji in 64x64 thumbs.
 ### Removed
 - Removed 3D hero preview from Hero Screen: eliminated heroPreviewCanvas and related preview code in src/main.js.
 
