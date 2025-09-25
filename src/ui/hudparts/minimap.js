@@ -95,32 +95,62 @@ export class MinimapUI {
 
     // Roads (draw behind markers)
     try {
-      const segs = villages?.listRoadSegments?.() || [];
-      if (segs.length) {
+      const polys = villages?.listRoadPolylines?.() || [];
+      const usePolys = Array.isArray(polys) && polys.length > 0;
+      const segs = usePolys ? [] : (villages?.listRoadSegments?.() || []);
+      if (usePolys || segs.length) {
         ctx.save();
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         // Underlay (lighter edge)
         ctx.strokeStyle = "rgba(210, 200, 190, 0.15)";
         ctx.lineWidth = 4;
-        for (const s of segs) {
-          const a = w2p(s.a.x, s.a.z);
-          const b = w2p(s.b.x, s.b.z);
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-          ctx.stroke();
+        if (usePolys) {
+          for (const poly of polys) {
+            if (!Array.isArray(poly) || poly.length < 2) continue;
+            ctx.beginPath();
+            const p0 = w2p(poly[0].x, poly[0].z);
+            ctx.moveTo(p0.x, p0.y);
+            for (let i = 1; i < poly.length; i++) {
+              const pt = w2p(poly[i].x, poly[i].z);
+              ctx.lineTo(pt.x, pt.y);
+            }
+            ctx.stroke();
+          }
+        } else {
+          for (const s of segs) {
+            const a = w2p(s.a.x, s.a.z);
+            const b = w2p(s.b.x, s.b.z);
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+          }
         }
         // Main road line (dark)
         ctx.strokeStyle = "rgba(43, 36, 32, 0.9)"; // ~0x2b2420
         ctx.lineWidth = 2;
-        for (const s of segs) {
-          const a = w2p(s.a.x, s.a.z);
-          const b = w2p(s.b.x, s.b.z);
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-          ctx.stroke();
+        if (usePolys) {
+          for (const poly of polys) {
+            if (!Array.isArray(poly) || poly.length < 2) continue;
+            ctx.beginPath();
+            const p0 = w2p(poly[0].x, poly[0].z);
+            ctx.moveTo(p0.x, p0.y);
+            for (let i = 1; i < poly.length; i++) {
+              const pt = w2p(poly[i].x, poly[i].z);
+              ctx.lineTo(pt.x, pt.y);
+            }
+            ctx.stroke();
+          }
+        } else {
+          for (const s of segs) {
+            const a = w2p(s.a.x, s.a.z);
+            const b = w2p(s.b.x, s.b.z);
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+          }
         }
         ctx.restore();
       }
