@@ -19,6 +19,49 @@ import { createHouse } from "./meshes.js";
 export function initVillages(scene, portals, opts = {}) {
   const VILLAGE_SPACING = opts.spacing || 500;
 
+  // Logarithmic spacing/size controls
+  const SPACING_LOG_K = (typeof opts.spacingLogK === "number") ? opts.spacingLogK : 0.85;
+  const SIZE_LOG_K = (typeof opts.villageSizeLogK === "number") ? opts.villageSizeLogK : 0.65;
+  const SPACING_MULT = (typeof opts.spacingMultiplier === "number") ? opts.spacingMultiplier : 0.5;
+
+  // Spacing grows ~logarithmically with radius; increases distance required to find next village
+  function dynamicSpacingAtRadius(r) {
+    const base = VILLAGE_SPACING;
+    const rr = Math.max(0, r);
+    return base * (1 + Math.log1p(rr / base) * SPACING_LOG_K) * SPACING_MULT;
+  }
+
+  // Village size grows steadily with radius
+  function scaleFromDistance(distance) {
+    const base = VILLAGE_SPACING;
+    const s = 1 + Math.log1p(Math.max(0, distance) / base) * SIZE_LOG_K;
+    return Math.min(6, s);
+  }
+
+  // Deterministic "good" village names from key
+  function nameForKey(key) {
+    const A = ["Oak","Storm","Dawn","Iron","Sky","Elder","Moon","Sun","Frost","Ash","Raven","Wolf","Dragon","Silver","Gold","Star","High","Low","West","East","North","South","Bright","Shadow","Mist","Cloud","Thunder","Wind","Stone","River","Glen","Vale","Hill","Mist","Fire","Ice","Dust","Ember","Lumen","Myth"];
+    const B = ["field","watch","reach","ford","hold","haven","gate","spire","fall","brook","ridge","vale","crest","keep","market","run","moor","hollow","wick","stead","burgh","bridge","rock","cliff","grove","meadow","harbor","shore","spring","cairn","peak","barrow"];
+    const C = ["Village","Town","Haven","Outpost","Gate","Hold","Rest","Hamlet","Retreat","Sanctum"];
+    const r1 = Math.floor(_seededRand01(key + ":1") * A.length);
+    const r2 = Math.floor(_seededRand01(key + ":2") * B.length);
+    const r3 = Math.floor(_seededRand01(key + ":3") * C.length);
+    return A[r1] + B[r2].charAt(0).toUpperCase() + B[r2].slice(1) + " " + C[r3];
+  }
+
+  // Compute center for a given grid key with deterministic jitter, based on radial spacing
+  function centerForKey(ix, iz) {
+    const approxR = Math.hypot(ix, iz) * VILLAGE_SPACING;
+    const sp = dynamicSpacingAtRadius(approxR);
+    let cx = ix * sp;
+    let cz = iz * sp;
+    const key = `${ix},${iz}`;
+    const jitter = sp * 0.3;
+    cx += (_seededRand01(key + ":x") - 0.5) * jitter * 2;
+    cz += (_seededRand01(key + ":z") - 0.5) * jitter * 2;
+    return new THREE.Vector3(cx, 0, cz);
+  }
+
   // State
   const dynamicVillages = new Map(); // key "ix,iz" -> { center, radius, group, portal }
   const builtRoadKeys = new Set();   // canonical "a|b"
@@ -70,8 +113,8 @@ export function initVillages(scene, portals, opts = {}) {
           const [ixStr, izStr] = key.split(",");
           const ix = parseInt(ixStr, 10), iz = parseInt(izStr, 10);
           if (!Number.isFinite(ix) || !Number.isFinite(iz)) return;
-          const center = new THREE.Vector3(ix * VILLAGE_SPACING, 0, iz * VILLAGE_SPACING);
-          const info = createDynamicVillageAt(center, Math.hypot(center.x, center.z));
+          const center = centerForKey(ix, iz);
+          const info = createDynamicVillageAt(center, Math.hypot(center.x, center.z), nameForKey(key));
           dynamicVillages.set(key, info);
         });
       }
@@ -291,8 +334,8 @@ export function initVillages(scene, portals, opts = {}) {
     return sprite;
   }
 
-  function createDynamicVillageAt(center, distanceFromOrigin) {
-    const scale = Math.min(4, 1 + distanceFromOrigin / VILLAGE_SPACING); // 1..4
+  function createDynamicVillageAt(center, distanceFromOrigin, name) {
+    const scale = scaleFromDistance(distanceFromOrigin); // grows ~logarithmically with radius
     const fenceRadius = Math.max(REST_RADIUS + 4, REST_RADIUS * (0.9 + scale));
     const posts = Math.max(28, Math.floor(28 * (0.9 + scale * 0.6)));
     const houseCount = Math.max(6, Math.floor(6 * (0.8 + scale * 1.4)));
@@ -373,8 +416,8 @@ export function initVillages(scene, portals, opts = {}) {
       Math.abs(center.x) > Math.abs(center.z)
         ? (center.x >= 0 ? "East" : "West")
         : (center.z >= 0 ? "South" : "North");
-    const km = Math.round(distanceFromOrigin / VILLAGE_SPACING);
-    const label = createTextSprite(`${quadrant} Gate — ${km}km`);
+    const labelText = name || `${quadrant} Gate`;
+    const label = createTextSprite(labelText);
     label.position.set(gatePos.x, 3.6, gatePos.z + 0.01);
     villageGroup.add(label);
 
@@ -382,21 +425,22 @@ export function initVillages(scene, portals, opts = {}) {
     const portalOffset = new THREE.Vector3(-2.5, 0, 0);
     const portal = portals.addPortalAt(gatePos.clone().add(portalOffset), COLOR.portal);
 
-    return { center: center.clone(), radius: fenceRadius, group: villageGroup, portal };
+    return { center: center.clone(), radius: fenceRadius, group: villageGroup, portal, name };
   }
 
   function ensureFarVillage(playerPos) {
     if (!playerPos) return;
     const distFromOrigin = Math.hypot(playerPos.x - VILLAGE_POS.x, playerPos.z - VILLAGE_POS.z);
-    if (distFromOrigin < VILLAGE_SPACING * 0.9) return;
+    const sp = dynamicSpacingAtRadius(distFromOrigin);
+    if (distFromOrigin < sp * 0.9) return;
 
-    const ix = Math.round(playerPos.x / VILLAGE_SPACING);
-    const iz = Math.round(playerPos.z / VILLAGE_SPACING);
+    const ix = Math.round(playerPos.x / sp);
+    const iz = Math.round(playerPos.z / sp);
     const key = `${ix},${iz}`;
     if (dynamicVillages.has(key)) return;
 
-    const center = new THREE.Vector3(ix * VILLAGE_SPACING, 0, iz * VILLAGE_SPACING);
-    const info = createDynamicVillageAt(center, Math.hypot(center.x, center.z));
+    const center = centerForKey(ix, iz);
+    const info = createDynamicVillageAt(center, Math.hypot(center.x, center.z), nameForKey(key));
     dynamicVillages.set(key, info);
     saveVillagesToStorage();
   }
@@ -444,7 +488,7 @@ export function initVillages(scene, portals, opts = {}) {
   function listVillages() {
     const arr = [];
     dynamicVillages.forEach((v, key) => {
-      arr.push({ key, center: v.center.clone(), radius: v.radius });
+      arr.push({ key, center: v.center.clone(), radius: v.radius, name: v.name });
     });
     return arr;
   }
