@@ -203,6 +203,109 @@ export class EffectsManager {
     } catch (_) {}
   }
 
+  // Cage of vertical bars for "Static Prison" and similar effects
+  spawnCage(center, radius = 12, color = COLOR.blue, duration = 0.6, bars = 12, height = 2.2) {
+    try {
+      const g = new THREE.Group();
+      const mats = [];
+      const h = Math.max(1.4, height);
+      const yMid = h * 0.5;
+      const r = Math.max(1, radius);
+      for (let i = 0; i < Math.max(6, bars); i++) {
+        const ang = (i / Math.max(6, bars)) * Math.PI * 2;
+        const x = center.x + Math.cos(ang) * r;
+        const z = center.z + Math.sin(ang) * r;
+        const geo = new THREE.CylinderGeometry(0.06, 0.06, h, 6);
+        const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 });
+        const m = new THREE.Mesh(geo, mat);
+        m.position.set(x, yMid, z);
+        g.add(m);
+        mats.push(mat);
+      }
+      // Ground ring tying the cage together
+      const baseRing = createGroundRing(Math.max(0.2, r - 0.25), r + 0.25, color, 0.4);
+      baseRing.position.set(center.x, 0.02, center.z);
+      g.add(baseRing);
+      mats.push(baseRing.material);
+
+      this.transient.add(g);
+      this.queue.push({ obj: g, until: now() + duration, fade: true, mats });
+    } catch (_) {}
+  }
+
+  // Shield bubble that follows an entity and gently pulses
+  spawnShieldBubble(entity, color = COLOR.blue, duration = 6, radius = 1.7) {
+    try {
+      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, wireframe: true });
+      const bubble = new THREE.Mesh(new THREE.SphereGeometry(radius, 24, 16), mat);
+      const p = entity.pos();
+      bubble.position.set(p.x, 1.1, p.z);
+      this.transient.add(bubble);
+      this.queue.push({
+        obj: bubble,
+        until: now() + duration,
+        fade: true,
+        mat,
+        follow: entity,
+        followYOffset: 1.1,
+        pulseAmp: 0.06,
+        pulseRate: 3.5,
+        baseScale: 1
+      });
+    } catch (_) {}
+  }
+
+  // Storm cloud disc hovering over an area (rotates and fades)
+  spawnStormCloud(center, radius = 12, color = COLOR.blue, duration = 6, height = 3.6) {
+    try {
+      const thick = Math.max(0.6, radius * 0.08);
+      const torus = new THREE.Mesh(
+        new THREE.TorusGeometry(Math.max(2, radius * 0.8), thick * 0.5, 12, 32),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.18 })
+      );
+      torus.position.set(center.x, height, center.z);
+      torus.rotation.x = Math.PI / 2; // lie flat like a cloud disc
+      this.transient.add(torus);
+      this.queue.push({ obj: torus, until: now() + duration, fade: true, mat: torus.material, spinRate: 0.6 });
+    } catch (_) {}
+  }
+
+  // Orbiting energy orbs around an entity for a short duration
+  spawnOrbitingOrbs(entity, color = COLOR.blue, opts = {}) {
+    try {
+      const count = Math.max(1, opts.count ?? 4);
+      const r = Math.max(0.4, opts.radius ?? 1.2);
+      const duration = Math.max(0.2, opts.duration ?? 1.0);
+      const size = Math.max(0.06, opts.size ?? 0.16);
+      const rate = Math.max(0.5, opts.rate ?? 4.0);
+
+      const group = new THREE.Group();
+      const children = [];
+      for (let i = 0; i < count; i++) {
+        const orb = new THREE.Mesh(
+          new THREE.SphereGeometry(size, 10, 10),
+          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 })
+        );
+        group.add(orb);
+        children.push(orb);
+      }
+      const p = entity.pos();
+      group.position.set(p.x, 0, p.z);
+      this.transient.add(group);
+      this.queue.push({
+        obj: group,
+        until: now() + duration,
+        fade: true,
+        follow: entity,
+        followYOffset: 0,
+        orbitChildren: children,
+        orbitR: r,
+        orbitRate: rate,
+        orbitYOffset: 1.2
+      });
+    } catch (_) {}
+  }
+
   spawnHandFlash(player, left = false) {
     const p = left ? leftHandWorldPos(player) : handWorldPos(player);
     const s = new THREE.Mesh(
@@ -316,27 +419,75 @@ export class EffectsManager {
         e.obj.scale.multiplyScalar(s);
       }
 
-      if (e.fade && e.mat) {
-        e.mat.opacity = e.mat.opacity ?? 1;
-        e.mat.transparent = true;
-        e.mat.opacity = Math.max(0, e.mat.opacity - dt * 1.8);
+      // Follow an entity (for bubbles/rings that should stick to a unit)
+      if (e.follow && e.obj && typeof e.follow.pos === "function") {
+        const p = e.follow.pos();
+        try { e.obj.position.set(p.x, (e.followYOffset ?? e.obj.position.y), p.z); } catch (_) {}
+      }
+
+      // Pulsing scale (breathing bubble, buff auras)
+      if (e.pulseAmp && e.obj && e.obj.scale) {
+        const base = e.baseScale || 1;
+        const rate = e.pulseRate || 3;
+        const amp = e.pulseAmp || 0.05;
+        const s2 = base * (1 + Math.sin(t * rate) * amp);
+        try { e.obj.scale.set(s2, s2, s2); } catch (_) {}
+      }
+
+      // Spin rotation (e.g., storm cloud disc)
+      if (e.spinRate && e.obj && e.obj.rotation) {
+        try { e.obj.rotation.y += e.spinRate * dt; } catch (_) {}
+      }
+
+      // Orbiting orbs around a followed entity
+      if (e.orbitChildren && e.obj) {
+        const cnt = e.orbitChildren.length || 0;
+        e.orbitBase = (e.orbitBase || 0) + (e.orbitRate || 4) * dt;
+        const base = e.orbitBase || 0;
+        const r = e.orbitR || 1.2;
+        const y = e.orbitYOffset ?? 1.2;
+        for (let i = 0; i < cnt; i++) {
+          const child = e.orbitChildren[i];
+          if (!child) continue;
+          const ang = base + (i * Math.PI * 2) / Math.max(1, cnt);
+          try { child.position.set(Math.cos(ang) * r, y, Math.sin(ang) * r); } catch (_) {}
+        }
+      }
+
+      if (e.fade) {
+        const fadeOne = (m) => {
+          if (!m) return;
+          m.opacity = m.opacity ?? 1;
+          m.transparent = true;
+          m.opacity = Math.max(0, m.opacity - dt * 1.8);
+        };
+        if (e.mat) fadeOne(e.mat);
+        if (e.mats && Array.isArray(e.mats)) e.mats.forEach(fadeOne);
       }
 
       if (t >= e.until) {
         // Remove from either transient or indicators group if present
         this.transient.remove(e.obj);
         this.indicators.remove(e.obj);
-        // Dispose geometry (if any)
-        if (e.obj.geometry) e.obj.geometry.dispose?.();
-        // Dispose material and texture if present
-        if (e.obj.material) {
+        // Dispose recursively
+        const disposeMat = (m) => {
+          try { if (m && m.map) m.map.dispose?.(); } catch (_) {}
+          try { m && m.dispose?.(); } catch (_) {}
+        };
+        const disposeObj = (o) => {
+          try { o.geometry && o.geometry.dispose?.(); } catch (_) {}
           try {
-            if (e.obj.material.map) e.obj.material.map.dispose?.();
-          } catch (e2) {}
-          try {
-            e.obj.material.dispose?.();
-          } catch (e3) {}
-        }
+            if (Array.isArray(o.material)) o.material.forEach(disposeMat);
+            else disposeMat(o.material);
+          } catch (_) {}
+        };
+        try {
+          if (e.obj && typeof e.obj.traverse === "function") {
+            e.obj.traverse(disposeObj);
+          } else {
+            disposeObj(e.obj);
+          }
+        } catch (_) {}
         this.queue.splice(i, 1);
       }
     }
