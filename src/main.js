@@ -511,13 +511,12 @@ updateSkillBarLabels();
 try { window.updateSkillBarLabels = updateSkillBarLabels; } catch (e) {}
 window.addEventListener("loadout-changed", () => {
   try {
+    // Reload and apply loadout to runtime SKILLS mapping and refresh the HUD skillbar.
     currentLoadout = loadOrDefault(SKILL_POOL, DEFAULT_LOADOUT);
     applyLoadoutToSKILLS(currentLoadout);
     updateSkillBarLabels();
-    // If Hero Screen is visible, refresh its contents to reflect the new assignment
-    if (heroScreen && !heroScreen.classList.contains("hidden")) {
-      showHeroScreen("skills");
-    }
+    // Do NOT re-render the Hero screen here. The Skills tab updates its slots in-place.
+    // This preserves tab scroll positions (e.g., Maps list) and prevents cross-tab DOM pollution.
   } catch (_) {}
 });
 
