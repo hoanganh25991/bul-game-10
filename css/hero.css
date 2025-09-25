@@ -378,35 +378,81 @@
 
 /* ====== Hero Info: Buff/Debuff tags ====== */
 .hero-info .status-list {
-  margin: 4px 0 0 16px;
+  margin: 6px 0 0 0;
   padding: 0;
-  list-style: disc;
+  list-style: none;
 }
 
 .hero-info .status-list li {
-  margin: 2px 0;
+  margin: 6px 0;
 }
 
 .tag-buff {
   display: inline-block;
-  padding: 2px 6px;
-  border-radius: 6px;
-  background: rgba(80, 200, 120, 0.14);
-  color: #b8f7c0;
-  border: 1px solid rgba(80, 200, 120, 0.32);
-  font-size: 12px;
-  line-height: 1.4;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(34, 139, 84, 0.35); /* darker green for contrast */
+  color: #eafff1;                      /* light text for readability */
+  border: 1px solid rgba(34, 139, 84, 0.8);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
   margin: 0 4px;
 }
 
 .tag-debuff {
   display: inline-block;
-  padding: 2px 6px;
-  border-radius: 6px;
-  background: rgba(255, 80, 80, 0.12);
-  color: #ffb6b6;
-  border: 1px solid rgba(255, 100, 100, 0.32);
-  font-size: 12px;
-  line-height: 1.4;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(178, 34, 34, 0.35); /* darker red for contrast */
+  color: #ffecec;                      /* light text for readability */
+  border: 1px solid rgba(178, 34, 34, 0.8);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
   margin: 0 4px;
+}
+
+/* ====== Hero Info: Stats grid and sections ====== */
+.hero-info .stats {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  column-gap: 10px;
+  row-gap: 6px;
+  align-items: baseline;
+  margin-top: 6px;
+}
+.hero-info .stats > div {
+  display: contents; /* allows label/value to occupy grid columns */
+}
+.hero-info .stats .label {
+  color: #cfe9ff;
+  font-weight: 800;
+  opacity: 0.95;
+}
+.hero-info .stats .value {
+  color: #e6f4ff;
+}
+.hero-info .muted {
+  color: #cfe9ff;
+  opacity: 0.7;
+  font-weight: 600;
+}
+
+.hero-info .section {
+  margin-top: 12px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(124,196,255,0.15);
+}
+.hero-info .section-title {
+  font-weight: 900;
+  margin-bottom: 6px;
+  color: #bfe5ff;
+  letter-spacing: 0.2px;
+}
+
+@media (max-width: 720px) {
+  .hero-info .stats {
+    grid-template-columns: 120px 1fr;
+  }
 }

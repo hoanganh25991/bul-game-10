@@ -92,20 +92,31 @@ export function renderInfoTab(panelEl, ctx = {}) {
       : `<div style="opacity:0.8">—</div>`;
 
     info.innerHTML = `
-      <div><strong>${tt("hero.info.level") || "Level"}:</strong> ${level}</div>
-      <div><strong>${tt("hero.info.hp") || "HP"}:</strong> ${hp}</div>
-      <div><strong>${tt("hero.info.mp") || "MP"}:</strong> ${mp}</div>
-      <div style="margin-top:6px;"><strong>Base Damage:</strong> ${baseDmg}</div>
-      <div><strong>Move Speed:</strong> ${moveSpd}</div>
-      <div><strong>Attack Speed:</strong> ${atkSpdMul.toFixed(2)}x (${atkSpdPct >= 0 ? "+" : ""}${atkSpdPct}%)</div>
-      <div><strong>Defense:</strong> ${defPct}% ${defActive ? `<span class="tag-buff">(${defRem}s)</span>` : `<span style="opacity:0.7">(inactive)</span>`}</div>
-      ${mapName ? `<div style="margin-top:6px;"><strong>Map:</strong> ${mapName}${mapDepth ? ` &nbsp; <em>(Depth +${mapDepth})</em>` : ""}</div>` : ""}
-      <div style="margin-top:8px;"><strong>Buffs:</strong></div>
-      ${buffsHtml}
-      <div style="margin-top:6px;"><strong>Debuffs:</strong></div>
-      ${debuffsHtml}
-      <div style="margin-top:8px;"><strong>Uplifts:</strong></div>
-      ${upliftsHtml}
+      <div class="stats">
+        <div><span class="label"><strong>${tt("hero.info.level") || "Level"}</strong></span><span class="value">${level}</span></div>
+        <div><span class="label"><strong>${tt("hero.info.hp") || "HP"}</strong></span><span class="value">${hp}</span></div>
+        <div><span class="label"><strong>${tt("hero.info.mp") || "MP"}</strong></span><span class="value">${mp}</span></div>
+        <div><span class="label"><strong>Base Damage</strong></span><span class="value">${baseDmg}</span></div>
+        <div><span class="label"><strong>Move Speed</strong></span><span class="value">${moveSpd}</span></div>
+        <div><span class="label"><strong>Attack Speed</strong></span><span class="value">${atkSpdMul.toFixed(2)}x (${atkSpdPct >= 0 ? "+" : ""}${atkSpdPct}%)</span></div>
+        <div><span class="label"><strong>Defense</strong></span><span class="value">${defPct}% ${defActive ? `<span class="tag-buff">(${defRem}s)</span>` : `<span class="muted">(inactive)</span>`}</span></div>
+        ${mapName ? `<div><span class="label"><strong>Map</strong></span><span class="value">${mapName}${mapDepth ? ` &nbsp; <em>(Depth +${mapDepth})</em>` : ""}</span></div>` : ""}
+      </div>
+
+      <div class="section">
+        <div class="section-title">Buffs</div>
+        ${buffsHtml}
+      </div>
+
+      <div class="section">
+        <div class="section-title">Debuffs</div>
+        ${debuffsHtml}
+      </div>
+
+      <div class="section">
+        <div class="section-title">Uplifts</div>
+        ${upliftsHtml}
+      </div>
     `;
   } catch (_) {
     info.textContent = "—";
