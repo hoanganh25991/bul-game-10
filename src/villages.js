@@ -357,6 +357,22 @@ export function initVillages(scene, portals, opts = {}) {
     return arr;
   }
 
+  // For minimap: list road segments as world-space endpoints {a:{x,z}, b:{x,z}}
+  function listRoadSegments() {
+    const arr = [];
+    builtRoadKeys.forEach((canonical) => {
+      if (typeof canonical !== "string") return;
+      const parts = canonical.split("|");
+      if (parts.length !== 2) return;
+      const a = getVillageCenterByKey(parts[0]);
+      const b = getVillageCenterByKey(parts[1]);
+      if (a && b) {
+        arr.push({ a: { x: a.x, z: a.z }, b: { x: b.x, z: b.z } });
+      }
+    });
+    return arr;
+  }
+
   function updateVisitedVillage(playerPos) {
     const key = getVillageKeyAt(playerPos);
     // Do not clear currentVillageKey when outside; keep last visited so we can connect a road on next entry
@@ -392,6 +408,7 @@ export function initVillages(scene, portals, opts = {}) {
     getVillageKeyAt,
     isInsideAnyVillage,
     listVillages,
+    listRoadSegments,
     _debug: {
       dynamicVillages,
       dynamicRoads,

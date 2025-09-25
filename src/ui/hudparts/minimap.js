@@ -93,6 +93,39 @@ export class MinimapUI {
     const cy = cssH / 2;
     const w2p = (wx, wz) => ({ x: cx + (wx - center.x) * scale, y: cy + (wz - center.z) * scale });
 
+    // Roads (draw behind markers)
+    try {
+      const segs = villages?.listRoadSegments?.() || [];
+      if (segs.length) {
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        // Underlay (lighter edge)
+        ctx.strokeStyle = "rgba(210, 200, 190, 0.15)";
+        ctx.lineWidth = 4;
+        for (const s of segs) {
+          const a = w2p(s.a.x, s.a.z);
+          const b = w2p(s.b.x, s.b.z);
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        }
+        // Main road line (dark)
+        ctx.strokeStyle = "rgba(43, 36, 32, 0.9)"; // ~0x2b2420
+        ctx.lineWidth = 2;
+        for (const s of segs) {
+          const a = w2p(s.a.x, s.a.z);
+          const b = w2p(s.b.x, s.b.z);
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    } catch (_) {}
+
     // Origin village ring
     ctx.strokeStyle = "rgba(90,255,139,0.6)";
     ctx.beginPath();
