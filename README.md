@@ -7,7 +7,29 @@ A lightweight prototype featuring DOTA‑style controls, electric abilities, sim
 - Styles: src/style.css
 - Three.js: loaded as an ES module from unpkg
 
-Documentation:
+## Overview
+
+**Game Play**
+![guide](./images/got-guide.jpeg)
+
+**First Person**
+![guide](./images/got-first-person.jpeg)
+
+**Skills**
+![guide](./images/got-skills.jpeg)
+
+**Guide**
+![guide](./images/got-guide.jpeg)
+
+**Settings**
+![guide](./images/got-settings.jpeg)
+
+**Maps**
+![guide](./images/got-maps.jpeg)
+
+### Demo
+
+## Documentation
 - Requirements (modular index): docs/requirements/index.md
 - Technical Architecture (modular index): docs/technical/index.md
 - ADRs: docs/adr/
