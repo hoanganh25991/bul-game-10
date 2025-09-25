@@ -2,16 +2,18 @@
 <html lang="en" class="splash-active">
 
 <head>
-  <meta charset="utf-8" />
   <title>GoT RPG</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <script src="lock-zoom.js"></script>
   <link rel="preconnect" href="https://unpkg.com" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/landscape.css" />
-  <meta name="theme-color" content="#0b1a2b" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="icon.svg" />
+  <link rel="icon" href="icon.png" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <meta charset="utf-8" />
+  <meta name="theme-color" content="#0b1a2b" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
   <meta property="og:title" content="GoT RPG" />
   <meta property="og:type" content="website" />
   <meta property="og:description" content="Top-down action game with GoT and electric abilities." />
@@ -306,6 +308,8 @@
     </div>
   </div>
 
+  <script src="lock-zoom.js"></script>
+
   <!-- Module game code -->
   <script type="importmap">
     {
@@ -313,10 +317,11 @@
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
       }
     }
-    </script>
+  </script>
   <script type="module" src="src/main.js"></script>
+
+  <!-- PWA Register service worker -->
   <script>
-    // PWA: Register service worker (secure contexts only; dev over localhost is OK)
     try {
       if ("serviceWorker" in navigator) {
         // Reload the page when a new controller takes over (ensures fresh assets)
