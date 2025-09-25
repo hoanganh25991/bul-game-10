@@ -27,7 +27,7 @@ export function initEnvironment(scene, options = {}) {
       villageRadius: 12,
       enableWater: true,
       waterRadius: 22,
-      enableRain: false,
+      enableRain: true,
       rainCount: 800,
       seed: Date.now(),
     },

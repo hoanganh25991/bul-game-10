@@ -13,8 +13,25 @@ export function renderInfoTab(panelEl, ctx = {}) {
     panelEl.innerHTML = "";
   } catch (_) {}
 
-  const info = document.createElement("div");
-  info.className = "hero-info";
+  // Build a maps-style panel to keep consistent with Skills/Maps/Marks
+  const wrap = document.createElement("div");
+  wrap.className = "maps-panel";
+  try {
+    wrap.style.display = "flex";
+    wrap.style.flexDirection = "column";
+    wrap.style.flex = "1 1 auto";
+    wrap.style.minHeight = "0";
+  } catch (_) {}
+
+  const list = document.createElement("div");
+  list.className = "maps-list";
+  try {
+    list.style.flex = "1 1 auto";
+    list.style.minHeight = "0";
+    list.style.overflow = "auto";
+    list.style.maxHeight = "none";
+  } catch (_) {}
+
   try {
     const tt = typeof t === "function" ? t : (x) => x;
     const level = Math.max(1, player?.level ?? 1);
@@ -24,20 +41,22 @@ export function renderInfoTab(panelEl, ctx = {}) {
     const moveSpd = (player?.speed ?? 0).toFixed(1);
     const atkSpdMul = (player?.atkSpeedPerma ?? 1);
     const atkSpdPct = Math.round((atkSpdMul - 1) * 100);
-    // Map info (name/depth) if available
+
+    // Map info (name/depth/emoji) if available
     let mapName = "";
     let mapDepth = 0;
+    let mapEmoji = "🗺️";
     try {
       const mods = ctx?.mapManager?.getModifiers?.() || {};
       mapName = mods.name || "";
       mapDepth = mods.depth || 0;
+      const curIdx = ctx?.mapManager?.getCurrentIndex?.();
+      mapEmoji = ctx?.mapManager?.emojiForIndex?.(curIdx) || "🗺️";
     } catch (_) {}
+
     // Uplifts summary
     let upliftLines = [];
     try { upliftLines = getUpliftSummary?.() || []; } catch (_) {}
-    const upliftsHtml = upliftLines.length
-      ? `<ul style="margin:6px 0 0 16px; padding:0;">${upliftLines.map(s => `<li>${s}</li>`).join("")}</ul>`
-      : `<div style="opacity:0.8">No uplifts chosen yet</div>`;
 
     // Defense stat and status lists
     const defPct = Math.round((player?.defensePct ?? 0) * 100);
@@ -83,44 +102,79 @@ export function renderInfoTab(panelEl, ctx = {}) {
       debuffs.push(`Vulnerable +${pct}% dmg taken (${rem}s)`);
     }
 
-    const buffsHtml = buffs.length
-      ? `<ul class="status-list">${buffs.map(s => `<li class="tag-buff">${s}</li>`).join("")}</ul>`
-      : `<div style="opacity:0.8">—</div>`;
+    function addRow(emoji, titleText, descText = "", reqText = "") {
+      const row = document.createElement("div");
+      row.className = "maps-row";
 
-    const debuffsHtml = debuffs.length
-      ? `<ul class="status-list">${debuffs.map(s => `<li class="tag-debuff">${s}</li>`).join("")}</ul>`
-      : `<div style="opacity:0.8">—</div>`;
+      const thumb = document.createElement("div");
+      thumb.className = "maps-thumb";
+      const em = document.createElement("div");
+      em.className = "maps-thumb-ph";
+      em.textContent = emoji;
+      try { em.style.fontSize = "42px"; em.style.lineHeight = "1"; } catch (_) {}
+      thumb.appendChild(em);
 
-    info.innerHTML = `
-      <div class="stats">
-        <div><span class="label"><strong>${tt("hero.info.level") || "Level"}</strong></span><span class="value">${level}</span></div>
-        <div><span class="label"><strong>${tt("hero.info.hp") || "HP"}</strong></span><span class="value">${hp}</span></div>
-        <div><span class="label"><strong>${tt("hero.info.mp") || "MP"}</strong></span><span class="value">${mp}</span></div>
-        <div><span class="label"><strong>Base Damage</strong></span><span class="value">${baseDmg}</span></div>
-        <div><span class="label"><strong>Move Speed</strong></span><span class="value">${moveSpd}</span></div>
-        <div><span class="label"><strong>Attack Speed</strong></span><span class="value">${atkSpdMul.toFixed(2)}x (${atkSpdPct >= 0 ? "+" : ""}${atkSpdPct}%)</span></div>
-        <div><span class="label"><strong>Defense</strong></span><span class="value">${defPct}% ${defActive ? `<span class="tag-buff">(${defRem}s)</span>` : `<span class="muted">(inactive)</span>`}</span></div>
-        ${mapName ? `<div><span class="label"><strong>Map</strong></span><span class="value">${mapName}${mapDepth ? ` &nbsp; <em>(Depth +${mapDepth})</em>` : ""}</span></div>` : ""}
-      </div>
+      const info = document.createElement("div");
+      const title = document.createElement("div");
+      title.className = "maps-title";
+      title.textContent = titleText || "";
+      const desc = document.createElement("div");
+      desc.className = "maps-desc";
+      desc.textContent = descText || "";
+      const req = document.createElement("div");
+      req.className = "maps-req";
+      req.textContent = reqText || "";
 
-      <div class="section">
-        <div class="section-title">Buffs</div>
-        ${buffsHtml}
-      </div>
+      info.appendChild(title);
+      if (desc.textContent) info.appendChild(desc);
+      if (req.textContent) info.appendChild(req);
 
-      <div class="section">
-        <div class="section-title">Debuffs</div>
-        ${debuffsHtml}
-      </div>
+      const actions = document.createElement("div");
+      actions.className = "maps-actions";
 
-      <div class="section">
-        <div class="section-title">Uplifts</div>
-        ${upliftsHtml}
-      </div>
-    `;
+      row.appendChild(thumb);
+      row.appendChild(info);
+      row.appendChild(actions);
+      list.appendChild(row);
+    }
+
+    // Rows
+    addRow("👤", tt("hero.info.title") || "Hero", `Level ${level} • Move ${moveSpd} • Base DMG ${baseDmg}`, `HP ${hp} • MP ${mp}`);
+    addRow("⚡", "Attack", `Attack Speed ${atkSpdMul.toFixed(2)}x (${atkSpdPct >= 0 ? "+" : ""}${atkSpdPct}%)`, "");
+    addRow("🛡️", "Defense", `Defense ${defPct}%${defActive ? ` (${defRem}s)` : ""}`, defActive ? "Active" : "Inactive");
+    if (mapName) {
+      addRow(mapEmoji, "Map", mapName, mapDepth ? `Depth +${mapDepth}` : "");
+    }
+    addRow("🟢", "Buffs", (buffs.length ? buffs.join(", ") : "—"), "");
+    addRow("🔻", "Debuffs", (debuffs.length ? debuffs.join(", ") : "—"), "");
+    addRow("📈", "Uplifts", (upliftLines.length ? upliftLines.join(", ") : "No uplifts chosen yet"), "");
   } catch (_) {
-    info.textContent = "—";
+    const row = document.createElement("div");
+    row.className = "maps-row";
+    const thumb = document.createElement("div");
+    thumb.className = "maps-thumb";
+    const em = document.createElement("div");
+    em.className = "maps-thumb-ph";
+    em.textContent = "ℹ️";
+    try { em.style.fontSize = "42px"; em.style.lineHeight = "1"; } catch (_) {}
+    thumb.appendChild(em);
+    const infoDiv = document.createElement("div");
+    const title = document.createElement("div");
+    title.className = "maps-title";
+    title.textContent = "Info";
+    const desc = document.createElement("div");
+    desc.className = "maps-desc";
+    desc.textContent = "—";
+    infoDiv.appendChild(title);
+    infoDiv.appendChild(desc);
+    const actions = document.createElement("div");
+    actions.className = "maps-actions";
+    row.appendChild(thumb);
+    row.appendChild(infoDiv);
+    row.appendChild(actions);
+    list.appendChild(row);
   }
 
-  panelEl.appendChild(info);
+  wrap.appendChild(list);
+  panelEl.appendChild(wrap);
 }
