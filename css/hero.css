@@ -245,7 +245,7 @@
 /* Skillbook panel layout */
 .skillbook {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 .skillbook-list {
@@ -267,7 +267,6 @@
 .skillbook-detail .sb-icon { font-size: 28px; }
 .skillbook-detail .sb-expl { margin-top: 6px; }
 .skillbook-detail .sb-stats {
-  font-size: 12px;
   opacity: 0.9;
   line-height: 1.6;
 }

@@ -97,22 +97,73 @@ export function renderBookTab(panelEl, ctx = {}) {
     } catch (_) {}
   }
 
-  // Build list
+  // Build list (maps-style rows)
   SKILL_POOL.forEach((s) => {
-    const btn = document.createElement("div");
-    btn.className = "skillbook-item";
-    const ic = document.createElement("span");
-    ic.textContent = getSkillIcon(s.short || s.name);
-    const nm = document.createElement("span");
-    nm.textContent = s.name;
-    btn.appendChild(ic);
-    btn.appendChild(nm);
-    btn.addEventListener("click", () => renderDetail(s));
-    ul.appendChild(btn);
+    const row = document.createElement("div");
+    row.className = "maps-row";
+    row.dataset.skillId = s.id;
+
+    const thumb = document.createElement("div");
+    thumb.className = "maps-thumb";
+    const em = document.createElement("div");
+    em.className = "maps-thumb-ph";
+    em.textContent = getSkillIcon(s.short || s.name);
+    try {
+      em.style.fontSize = "42px";
+      em.style.lineHeight = "1";
+    } catch (_) {}
+    thumb.appendChild(em);
+
+    const info = document.createElement("div");
+    const titleRow = document.createElement("div");
+    titleRow.className = "maps-title";
+    titleRow.textContent = `${s.name}${s.short ? " • " + s.short : ""}`;
+    const desc = document.createElement("div");
+    desc.className = "maps-desc";
+    desc.textContent = s.type || "";
+    const req = document.createElement("div");
+    req.className = "maps-req";
+    const parts = [];
+    if (s.cd != null) parts.push(`CD ${s.cd}s`);
+    if (s.mana != null) parts.push(`MP ${s.mana}`);
+    if (parts.length) req.textContent = parts.join(" • ");
+
+    info.appendChild(titleRow);
+    if (desc.textContent) info.appendChild(desc);
+    if (req.textContent) info.appendChild(req);
+
+    const actions = document.createElement("div");
+    actions.className = "maps-actions";
+    const preview = document.createElement("button");
+    preview.className = "pill-btn pill-btn--yellow";
+    preview.textContent = "▶️";
+    preview.title = "Preview";
+    preview.addEventListener("click", (e) => {
+      e.stopPropagation();
+      try { window.__skillsRef && window.__skillsRef.previewSkill(s); } catch (_) {}
+    });
+    actions.appendChild(preview);
+
+    row.appendChild(thumb);
+    row.appendChild(info);
+    row.appendChild(actions);
+
+    row.addEventListener("click", () => {
+      renderDetail(s);
+      try {
+        ul.querySelectorAll(".maps-row").forEach((it) => it.classList.remove("selected"));
+        row.classList.add("selected");
+      } catch (_) {}
+    });
+
+    ul.appendChild(row);
   });
 
   try {
-    if (SKILL_POOL.length) renderDetail(SKILL_POOL[0]);
+    if (SKILL_POOL.length) {
+      renderDetail(SKILL_POOL[0]);
+      try { ul.querySelector(".maps-row")?.classList.add("selected"); } catch (_) {}
+    }
   } catch (_) {}
 
   wrap.appendChild(list);
