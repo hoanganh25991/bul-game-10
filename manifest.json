@@ -1,4 +1,5 @@
 {
+  "id": "./",
   "name": "GoT RPG",
   "short_name": "GoT",
   "icons": [
@@ -10,9 +11,14 @@
     }
   ],
   "display": "standalone",
-  "start_url": "https://hoanganh25991.github.io/bul-game-10",
+  "start_url": "./",
   "dir": "ltr",
-  "scope": "bul-game-10",
+  "scope": "./",
+  "scope_extensions": [
+    {
+      "origin": "https://hoanganh25991.github.io"
+    }
+  ],
   "lang": "vi",
   "orientation": "landscape",
   "background_color": "#0b1a2b",
