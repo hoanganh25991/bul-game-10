@@ -176,8 +176,30 @@ export function createInputService({
     }
 
     if (k === "escape") {
+      // If a confirm modal is visible, let it handle ESC itself
+      try {
+        const modal = document.getElementById("qualityReloadConfirm");
+        if (modal && !modal.classList.contains("hidden")) {
+          return; // do not preventDefault/stopPropagation so modal can capture it
+        }
+      } catch (_) {}
+      // Default behavior: prevent and close open screens
       e.preventDefault(); e.stopImmediatePropagation();
       cancelAim();
+      try {
+        const settingsPanel = document.getElementById("settingsPanel");
+        if (settingsPanel && !settingsPanel.classList.contains("hidden")) {
+          settingsPanel.classList.add("hidden");
+          return;
+        }
+      } catch (_) {}
+      try {
+        const heroScreen = document.getElementById("heroScreen");
+        if (heroScreen && !heroScreen.classList.contains("hidden")) {
+          heroScreen.classList.add("hidden");
+          return;
+        }
+      } catch (_) {}
       return;
     }
 
