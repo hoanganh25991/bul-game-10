@@ -79,7 +79,13 @@ export function renderHeroScreen(initialTab = "skills", ctx = {}) {
     if (btn.dataset.bound === "1") return;
     btn.addEventListener("click", () => {
       const id = btn.getAttribute("aria-controls");
-      if (id) showPanelById(id);
+      if (id) {
+        showPanelById(id);
+        // Re-render Info tab on activation to reflect live buffs/debuffs/defense timers
+        if (id === "heroTabInfo") {
+          try { renderInfoTab(infoPanel, ctx); } catch (_) {}
+        }
+      }
     });
     btn.dataset.bound = "1";
   });
