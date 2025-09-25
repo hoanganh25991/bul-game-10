@@ -1,31 +1,43 @@
 {
   "id": "./",
+  "start_url": "./",
   "name": "GoT RPG",
   "short_name": "GoT",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0b1a2b",
+  "theme_color": "#0b1a2b",
+  "description": "GoT RPG — top-down action with storms, skills, and endless maps.",
   "icons": [
     {
       "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
-  "display": "standalone",
-  "start_url": "./",
-  "dir": "ltr",
-  "scope": "./",
   "scope_extensions": [
     {
       "origin": "https://hoanganh25991.github.io"
     }
   ],
   "lang": "vi",
-  "orientation": "landscape",
-  "background_color": "#0b1a2b",
-  "theme_color": "#0b1a2b",
-  "description": "GoT RPG — top-down action with storms, skills, and endless maps.",
   "categories": [
     "games",
     "entertainment"
-  ]
+  ],
+  "dir": "ltr",
+  "scope": "./"
 }
