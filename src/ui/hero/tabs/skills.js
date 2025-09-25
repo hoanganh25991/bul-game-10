@@ -15,6 +15,9 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
     updateSkillBarLabels,
   } = ctx;
 
+  // Maintain a live copy of loadout to avoid full screen re-rendering
+  let activeLoadout = currentLoadout.slice();
+
   // Static containers defined in index.html
   const container = document.getElementById("heroSkillsList");
   const leftCol = document.getElementById("heroSkillsLeft");
@@ -35,7 +38,7 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
     const slot = document.createElement("div");
     slot.className = "loadout-slot loadout-slot--compact";
     slot.dataset.slotIndex = String(i);
-    const skillId = currentLoadout[i];
+    const skillId = activeLoadout[i];
     const skillDef = SKILL_POOL.find((s) => s.id === skillId);
     slot.innerHTML = `
       <div class="slot-key">${keys[i]}</div>
@@ -87,16 +90,34 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
       window.dispatchEvent(new Event("loadout-changed"));
     } catch (_) {}
   }
+  // Update only the slot tiles to avoid full Hero screen re-render and keep scroll positions stable
+  function updateSlotsFromLoadout(loadout) {
+    try {
+      slotsWrap.querySelectorAll(".loadout-slot").forEach((slotEl) => {
+        const i = parseInt(slotEl.dataset.slotIndex, 10);
+        const skillId = loadout[i];
+        const skillDef = SKILL_POOL.find((s) => s.id === skillId);
+        slotEl.innerHTML = `
+      <div class="slot-key">${keys[i]}</div>
+      <div class="skill-icon">${getSkillIcon(skillDef ? skillDef.short : null)}</div>
+      <div class="slot-short">${skillDef ? (skillDef.short || "—") : "—"}</div>
+      <div class="slot-name">${skillDef ? (skillDef.name || "—") : (t ? (t("hero.slot.empty") || "Empty") : "Empty")}</div>
+    `;
+      });
+    } catch (_) {}
+  }
   function applyLoadoutChange(next) {
     try {
       setLoadoutAndSave && setLoadoutAndSave(next);
+      activeLoadout = next.slice();
       safeDispatchLoadoutChanged();
       updateSkillBarLabels && updateSkillBarLabels();
-      if (typeof rerender === "function") rerender("skills", { currentLoadout: next });
+      // Update slots UI in place to preserve scroll and avoid remounting other tabs
+      updateSlotsFromLoadout(activeLoadout);
     } catch (_) {}
   }
   function assignSkillTo(slotIndex, skillId) {
-    const next = currentLoadout.slice();
+    const next = activeLoadout.slice();
     next[slotIndex] = skillId;
     applyLoadoutChange(next);
   }
