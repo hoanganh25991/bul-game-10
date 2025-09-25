@@ -1,7 +1,7 @@
 # Entities (Player & Enemy) — Functional Requirements
 
 Scope
-- Defines data, stats, and visual primitives for Player (Zeus) and Enemy units.
+- Defines data, stats, and visual primitives for Player (GoT) and Enemy units.
 - Behavior-only specs; AI logic is defined separately in ./ai.md.
 
 Base Entity
@@ -15,7 +15,7 @@ Base Entity
     - hides mesh
     - invokes onDeath if provided
 
-Player (Zeus)
+Player (GoT)
 - Visuals:
   - Mesh composed in blue/white/dark-blue tones
   - Optional GLTF model load via URL parameter (?model=URL) with auto-scaling to ~2.2 units height; hides placeholder when loaded

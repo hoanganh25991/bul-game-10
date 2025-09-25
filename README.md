@@ -1,4 +1,4 @@
-# Zeus RPG (Three.js Top‑Down Action/RTS‑like Prototype)
+# GoT RPG (Three.js Top‑Down Action/RTS‑like Prototype)
 
 A lightweight prototype featuring DOTA‑style controls, electric abilities, simple AI, HUD/minimap, portals/recall, and a village regen zone — implemented as modular ES modules with Three.js.
 
@@ -56,7 +56,7 @@ Keyboard
 
 ## Gameplay Overview
 
-- Player (Zeus) moves with RTS‑style orders and auto‑attacks when in range.
+- Player (GoT) moves with RTS‑style orders and auto‑attacks when in range.
 - Enemies aggro, chase, attack, or wander when idle.
 - Four skills with cooldowns and mana:
   - Q Chain Lightning (chains targets in range)
@@ -76,7 +76,7 @@ Keyboard
 - src/config.js — runtime flags (DEBUG, HERO_MODEL_URL)
 - src/constants.js — COLOR, WORLD, STATS_BASE, SKILLS, VILLAGE_POS, REST_RADIUS
 - src/utils.js — math/time helpers, worldToMinimap, makeNoiseTexture
-- src/meshes.js — createZeusMesh, createEnemyMesh, createBillboardHPBar, createPortalMesh, createHouse
+- src/meshes.js — createGoTMesh, createEnemyMesh, createBillboardHPBar, createPortalMesh, createHouse
 - src/entities.js — Entity, Player, Enemy, getNearestEnemy, handWorldPos
 - src/effects.js — EffectsManager (transients/indicators), createGroundRing
 - src/skills.js — SkillsSystem (cooldowns, basic attack, Q/W/E/R, ticks)

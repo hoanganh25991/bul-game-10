@@ -23,7 +23,7 @@ Code modules (src/):
 - config.js — runtime flags (DEBUG, HERO_MODEL_URL)
 - constants.js — COLOR, WORLD, STATS_BASE, SKILLS, VILLAGE_POS, REST_RADIUS
 - utils.js — math/time helpers, worldToMinimap, makeNoiseTexture
-- meshes.js — createZeusMesh, createEnemyMesh, createBillboardHPBar, createPortalMesh, createHouse
+- meshes.js — createGoTMesh, createEnemyMesh, createBillboardHPBar, createPortalMesh, createHouse
 - entities.js — Entity, Player, Enemy, getNearestEnemy, handWorldPos
 - effects.js — EffectsManager, createGroundRing
 - skills.js — SkillsSystem (cooldowns, basic attack, Q/W/E/R)

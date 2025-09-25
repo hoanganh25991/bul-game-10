@@ -1,4 +1,4 @@
-# Zeus RPG — Technical Architecture (Modularized)
+# GoT RPG — Technical Architecture (Modularized)
 
 The original single-page technical architecture document has been split into focused module documents under docs/technical/. This preserves behavior and tuning while making each system easier to reason about and evolve.
 

@@ -1,4 +1,4 @@
-// Zeus RPG — Modular Orchestrator
+// GoT RPG — Modular Orchestrator
 // This refactor splits the original monolithic file into modules per system.
 // Behavior is preserved; tuning values unchanged.
 

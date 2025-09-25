@@ -25,14 +25,14 @@ Key Constructs
   - spawnStrike(point, radius?, color?)
     - Vertical strike + short radial sparks.
   - spawnHandFlash(player)
-    - Brief emissive sphere at Zeus’ right hand.
+    - Brief emissive sphere at GoT’ right hand.
   - update(t, dt)
     - Fades materials (if fade=true), applies scaleRate expansion, removes expired entries from scene, and disposes geometry.
 - createGroundRing(innerR, outerR, color, opacity?)
   - Reusable ring mesh factory for selection, aim previews, debuffs, and pings.
 
 Micro‑Sparks (Hand Ready State)
-- When any skill is off cooldown (ready), small arcing micro‑sparks are spawned intermittently around Zeus’ hand.
+- When any skill is off cooldown (ready), small arcing micro‑sparks are spawned intermittently around GoT’ hand.
 
 Integration
 - EffectsManager is created once and shared across systems via main.js.

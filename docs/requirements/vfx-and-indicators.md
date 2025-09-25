@@ -30,7 +30,7 @@ Indicators
   - Move ping on ground‑right‑click; target ping when setting an enemy target.
 
 Hand Micro‑Sparks
-- While any skill is off cooldown (ready), small micro‑sparks occasionally arc around Zeus’ right hand.
+- While any skill is off cooldown (ready), small micro‑sparks occasionally arc around GoT’ right hand.
 
 Acceptance Criteria
 - Electric beams and strikes are short‑lived and visually distinct.

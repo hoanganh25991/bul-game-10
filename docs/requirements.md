@@ -1,4 +1,4 @@
-# Zeus RPG — Requirements Specification (Modularized)
+# GoT RPG — Requirements Specification (Modularized)
 
 The original single-page requirements have been split into focused module documents under docs/requirements/. This preserves all behavior and tuning, while making it easier to reason about each system.
 

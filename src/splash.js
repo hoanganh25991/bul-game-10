@@ -1,5 +1,5 @@
 /**
- * Simple splash controller for Zeus RPG.
+ * Simple splash controller for GoT RPG.
  *
  * Behavior:
  * - Shows the #flashOverlay full-screen overlay at startup.

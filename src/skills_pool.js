@@ -1,5 +1,5 @@
 /**
- * Zeus Skill Pool — Enhanced with per-skill VFX "effects" and diversified roles
+ * GoT Skill Pool — Enhanced with per-skill VFX "effects" and diversified roles
  *
  * effects:
  *  - beam: beam/electric color (hex)
@@ -97,8 +97,8 @@ export const SKILL_POOL = [
     "behavior": "On cast:\n- Anchor the storm to the caster's current position; the storm area (radius) is stationary for duration.\n- Strike scheduling uses an accumulator at rate = strikes / duration; each time the accumulator >= 1, spawn a strike and decrement by 1. Multiple strikes can occur in a single frame.\n- Each strike:\n - If there are enemies inside radius, pick one at random and impact at their position; otherwise pick a random point uniformly within radius.\n - Deal dmg electric to all enemies within strikeRadius = 2.5 units of impact.\n - Play effects.impact at impact location and apply camera shake effects.shake (scaled down by distance to player).\n- On cast, play effects.hand and a large effects.ring on the ground. Ignores LoS."
   },
   {
-    "id": "zeus_bolt",
-    "name": "Zeus Bolt",
+    "id": "got_bolt",
+    "name": "GoT Bolt",
     "short": "Bolt+",
     "type": "beam",
     "cd": 2.5,
@@ -654,8 +654,8 @@ export const SKILL_POOL = [
     "behavior": "On cast:\n- Spawn a stationary spectral clone at the caster's position lasting duration seconds. It is untargetable and does not block movement.\n- Every rate seconds, the clone searches for the nearest enemy within radius and LoS. If found, it fires a hitscan zap that deals dmg electric to that target.\n- Visuals: clone idles with a low-intensity effects.ring; on each attack fire a short effects.beam (engine's default for clone) and effects.impact on the target; small camera shake effects.shake on first hit only.\n- The clone despawns when duration ends."
   },
   {
-    "id": "zeus_judgement",
-    "name": "Zeus' Judgement",
+    "id": "got_judgement",
+    "name": "GoT' Judgement",
     "short": "Judg",
     "type": "nova",
     "cd": 42,

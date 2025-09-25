@@ -12,7 +12,7 @@ Flags
 
 Model Injection
 - ?model=URL
-  - Attempts to load an external GLTF/GLB model for the hero (Zeus) using GLTFLoader.
+  - Attempts to load an external GLTF/GLB model for the hero (GoT) using GLTFLoader.
   - On success:
     - Placeholder geometry is hidden.
     - The model is auto-scaled so that its height is approximately 2.2 world units.
@@ -22,7 +22,7 @@ Model Injection
 
 Usage Examples
 - http://localhost:8000/?debug=1
-- http://localhost:8000/?model=/assets/zeus.glb
+- http://localhost:8000/?model=/assets/got.glb
 - http://localhost:8000/?debug=1&model=https://example.com/hero.glb
 
 Behavior Parity

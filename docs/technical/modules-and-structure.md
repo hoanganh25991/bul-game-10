@@ -19,7 +19,7 @@ Source Modules (src/)
   - initWorld(): sets up renderer, scene, camera, lights, ground; returns handles.
   - updateCamera(), updateGridFollow(), addResizeHandler().
 - meshes.js
-  - Geometry factories: createZeusMesh(), createEnemyMesh(), createBillboardHPBar(), createPortalMesh(), createHouse().
+  - Geometry factories: createGoTMesh(), createEnemyMesh(), createBillboardHPBar(), createPortalMesh(), createHouse().
 - entities.js
   - Entity base class; Player and Enemy classes; getNearestEnemy(); handWorldPos(player).
 - effects.js

@@ -1,4 +1,4 @@
-# Zeus RPG — Technical Architecture (Modular)
+# GoT RPG — Technical Architecture (Modular)
 
 This folder refactors the original single technical.md into module-focused pages. It mirrors the runtime modules in src/ and explains responsibilities, data flow, and extension points. Behavior and tuning remain unchanged.
 

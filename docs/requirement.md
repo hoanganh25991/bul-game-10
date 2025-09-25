@@ -1,4 +1,4 @@
-# Zeus RPG — Requirements (Business Logic Index)
+# GoT RPG — Requirements (Business Logic Index)
 
 This file serves as an alias to the modularized requirements. The primary, up-to-date requirements live under the docs/requirements folder.
 

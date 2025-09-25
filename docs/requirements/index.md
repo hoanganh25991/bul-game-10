@@ -1,4 +1,4 @@
-# Zeus RPG — Requirements by Module
+# GoT RPG — Requirements by Module
 
 This folder breaks the monolithic requirements into focused module specifications. Each document contains user-facing requirements and acceptance criteria relevant to that module. Behavior and tuning values remain identical to the original requirements.md.
 

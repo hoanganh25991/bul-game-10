@@ -646,7 +646,7 @@ export class SkillsSystem {
     this._burstArcs(this.player.pos(), SK.radius, SK);
     try {
       this.effects.spawnRingPulse(this.player.pos(), Math.max(4, (SK.radius || 0) * 0.85), fx.ring, 0.5, 1.1, 0.5);
-      if (SK.id === "zeus_judgement") {
+      if (SK.id === "got_judgement") {
         // Secondary heavier pulse for ultimate
         this.effects.spawnRingPulse(this.player.pos(), Math.max(6, (SK.radius || 0) * 0.6), fx.impact, 0.6, 1.4, 0.6);
       }

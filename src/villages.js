@@ -30,8 +30,8 @@ export function initVillages(scene, portals, opts = {}) {
   scene.add(dynamicRoads);
 
   // Persistence keys
-  const STORAGE_VILLAGES = "zeus.dynamic.villages.v1";
-  const STORAGE_ROADS = "zeus.dynamic.roads.v1";
+  const STORAGE_VILLAGES = "got.dynamic.villages.v1";
+  const STORAGE_ROADS = "got.dynamic.roads.v1";
 
   function saveVillagesToStorage() {
     try {

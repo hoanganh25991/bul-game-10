@@ -4,7 +4,7 @@
  * Helpers for persisting and resolving the player's chosen 4-skill loadout.
  *
  * Responsibilities:
- * - Save / load a simple array of 4 skill id strings to localStorage ("zeus_loadout")
+ * - Save / load a simple array of 4 skill id strings to localStorage ("got_loadout")
  * - Validate saved data and gracefully fallback to defaults
  * - Resolve a final runtime loadout (array of 4 valid skill ids) given the SKILL_POOL
  *
@@ -12,7 +12,7 @@
  * so it can be used from anywhere (eg. src/main.js) by passing the skill pool array.
  */
 
-const STORAGE_KEY = "zeus_loadout";
+const STORAGE_KEY = "got_loadout";
 
 /**
  * Save a loadout (array of skill id strings) to localStorage.

@@ -1,5 +1,5 @@
 /**
- * Mobile Touch Controls for Zeus RPG
+ * Mobile Touch Controls for GoT RPG
  * - Virtual joystick bottom-left for movement
  * - Skill wheel bottom-right: center = basic, Q/W/E/R around
  * - Cancel button near joystick to cancel current aim
