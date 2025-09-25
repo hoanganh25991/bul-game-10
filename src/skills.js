@@ -1122,7 +1122,9 @@ export class SkillsSystem {
           target.takeDamage(c.dmg);
           if (!c.shook) { this._requestShake(0.2); c.shook = true; }
       }
+      c.next = t + (c.rate || 0.5);
     }
+  }
   }
   
   // Totems: periodic strikes around placed anchor
