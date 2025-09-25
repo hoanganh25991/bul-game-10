@@ -17,6 +17,7 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 - Settings screen: sliders display numeric badges for Zoom/Environment Density/Rain Density; quality changes gated by in-game confirm and full reload (renderPrefs.quality).
 - Guide overlay: non-blocking, auto-closes Settings while active, reopens on exit; localized via i18n; persists language.
 - Hero Skills Preview overlay: in-game key selection (Q/W/E/R) replaces native prompt for assignment; countdown+cast flow with persistence.
+- FX controls: Added FX in src/constants.js to control VFX lifetimes and animation rates (timeScale, fadeSpeedScale, scaleRateScale, spinRateScale, orbitRateScale, pulseRateScale, popupDurationScale, sfxOnCast). Defaults slow down effects for better feel; a generic cast sound now fires immediately on skill cast (configurable via FX.sfxOnCast).
 
 ### Changed
 - Mobile UI scale for small screens (≤ 932px):

@@ -1,5 +1,5 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { WORLD, SKILLS, COLOR, VILLAGE_POS, REST_RADIUS, SCALING } from "./constants.js";
+import { WORLD, SKILLS, COLOR, VILLAGE_POS, REST_RADIUS, SCALING, FX } from "./constants.js";
 import { distance2D, now } from "./utils.js";
 import { handWorldPos } from "./entities.js";
 import { createGroundRing } from "./effects.js";
@@ -321,6 +321,7 @@ export class SkillsSystem {
       return;
     }
     this._vfxCastFlash(SK);
+    try { if (FX && FX.sfxOnCast) audio.sfx("cast"); } catch (_) {}
 
     switch (SK.type) {
       case "chain":
@@ -691,7 +692,7 @@ export class SkillsSystem {
       const ring = createGroundRing(Math.max(0.1, (SK.radius || 12) - 0.35), (SK.radius || 12) + 0.35, fx.ring, 0.22);
       ring.position.set(center.x, 0.02, center.z);
       this.effects.indicators.add(ring);
-      this.effects.queue.push({ obj: ring, until: now() + 0.6, fade: true, mat: ring.material, scaleRate: 0.4 });
+      this.effects.queue.push({ obj: ring, until: now() + 0.6 * FX.timeScale, fade: true, mat: ring.material, scaleRate: 0.4 });
     } catch (_) {}
     try { this.effects.spawnStormCloud(center, SK.radius || 12, fx.ring, SK.duration || 7, 3.6); } catch (_) {}
     try { this.effects.spawnRingPulse(center, Math.max(6, (SK.radius || 12) * 0.85), fx.ring, 0.6, 1.4, 0.5); } catch (_) {}
@@ -1013,7 +1014,7 @@ export class SkillsSystem {
       pulse.position.set(pl.x, 0.02, pl.z);
       this.effects.indicators.add(pulse);
       // queue for fade/scale cleanup
-      this.effects.queue.push({ obj: pulse, until: now() + 0.22, fade: true, mat: pulse.material, scaleRate: 0.6 });
+      this.effects.queue.push({ obj: pulse, until: now() + 0.22 * FX.timeScale, fade: true, mat: pulse.material, scaleRate: 0.6 });
 
       // Crackle arcs around the ring for visual richness
       try {
@@ -1163,7 +1164,7 @@ export class SkillsSystem {
           const ring = createGroundRing(Math.max(0.1, r - 0.35), r + 0.35, col, a);
           ring.position.set(center.x, 0.02, center.z);
           this.effects.indicators.add(ring);
-          this.effects.queue.push({ obj: ring, until: now() + 0.4, fade: true, mat: ring.material, scaleRate: 0.4 });
+          this.effects.queue.push({ obj: ring, until: now() + 0.4 * FX.timeScale, fade: true, mat: ring.material, scaleRate: 0.4 });
         } catch (_) {}
       };
       switch (def.type) {

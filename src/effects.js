@@ -1,5 +1,5 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { COLOR } from "./constants.js";
+import { COLOR, FX } from "./constants.js";
 import { now } from "./utils.js";
 import { handWorldPos, leftHandWorldPos } from "./entities.js";
 
@@ -59,7 +59,7 @@ export class EffectsManager {
     const ring = createGroundRing(0.6, 0.85, color, 0.8);
     ring.position.set(point.x, 0.02, point.z);
     this.indicators.add(ring);
-    this.queue.push({ obj: ring, until: now() + 0.8, fade: true, mat: ring.material, scaleRate: 1.6 });
+    this.queue.push({ obj: ring, until: now() + 0.8 * FX.timeScale, fade: true, mat: ring.material, scaleRate: 1.6 });
   }
 
   spawnTargetPing(entity, color = 0xff6060) {
@@ -68,7 +68,7 @@ export class EffectsManager {
     const ring = createGroundRing(0.65, 0.9, color, 0.85);
     ring.position.set(p.x, 0.02, p.z);
     this.indicators.add(ring);
-    this.queue.push({ obj: ring, until: now() + 0.7, fade: true, mat: ring.material, scaleRate: 1.4 });
+    this.queue.push({ obj: ring, until: now() + 0.7 * FX.timeScale, fade: true, mat: ring.material, scaleRate: 1.4 });
   }
 
   showNoTargetHint(player, radius) {
@@ -76,7 +76,7 @@ export class EffectsManager {
     const p = player.pos();
     ring.position.set(p.x, 0.02, p.z);
     this.indicators.add(ring);
-    this.queue.push({ obj: ring, until: now() + 0.8, fade: true, mat: ring.material });
+    this.queue.push({ obj: ring, until: now() + 0.8 * FX.timeScale, fade: true, mat: ring.material });
     // subtle spark at player for feedback
     this.spawnStrike(player.pos(), 1.2, 0x8fd3ff);
   }
@@ -88,7 +88,7 @@ export class EffectsManager {
     const line = new THREE.Line(geometry, material);
     this.transient.add(line);
     const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
-    this.queue.push({ obj: line, until: now() + life * lifeMul, fade: true, mat: material });
+    this.queue.push({ obj: line, until: now() + life * lifeMul * FX.timeScale, fade: true, mat: material });
   }
 
   // Jagged electric beam with small fork
@@ -114,7 +114,7 @@ export class EffectsManager {
     const line = new THREE.Line(geometry, material);
     this.transient.add(line);
     const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
-    this.queue.push({ obj: line, until: now() + life * lifeMul, fade: true, mat: material });
+    this.queue.push({ obj: line, until: now() + life * lifeMul * FX.timeScale, fade: true, mat: material });
 
     // occasional fork flicker
     const length = dir.length() || 1;
@@ -126,7 +126,7 @@ export class EffectsManager {
       const l2 = new THREE.Line(g2, m2);
       this.transient.add(l2);
       const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
-      this.queue.push({ obj: l2, until: now() + life * lifeMul * 0.7, fade: true, mat: m2 });
+      this.queue.push({ obj: l2, until: now() + life * lifeMul * 0.7 * FX.timeScale, fade: true, mat: m2 });
     }
   }
 
@@ -162,7 +162,7 @@ export class EffectsManager {
       const l = new THREE.Line(g, m);
       this.transient.add(l);
       const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
-      this.queue.push({ obj: l, until: now() + life * lifeMul, fade: true, mat: m });
+      this.queue.push({ obj: l, until: now() + life * lifeMul * FX.timeScale, fade: true, mat: m });
     }
 
     if (length > 6) {
@@ -173,7 +173,7 @@ export class EffectsManager {
       const l2 = new THREE.Line(g2, m2);
       this.transient.add(l2);
       const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
-      this.queue.push({ obj: l2, until: now() + life * lifeMul * 0.7, fade: true, mat: m2 });
+      this.queue.push({ obj: l2, until: now() + life * lifeMul * 0.7 * FX.timeScale, fade: true, mat: m2 });
     }
   }
 
@@ -188,7 +188,7 @@ export class EffectsManager {
     const ring = createGroundRing(0.2, 0.55, color, 0.5);
     ring.position.set(center.x, 0.02, center.z);
     this.indicators.add(ring);
-    this.queue.push({ obj: ring, until: now() + 0.22, fade: true, mat: ring.material, scaleRate: 1.3 });
+    this.queue.push({ obj: ring, until: now() + 0.22 * FX.timeScale, fade: true, mat: ring.material, scaleRate: 1.3 });
   }
 
   spawnStrike(point, radius = 2, color = COLOR.blue) {
@@ -213,7 +213,7 @@ export class EffectsManager {
       ring.position.set(center.x, 0.02, center.z);
       this.indicators.add(ring);
       // Scale out over time; fade handled by update loop
-      this.queue.push({ obj: ring, until: now() + duration, fade: true, mat: ring.material, scaleRate: 1.0 });
+      this.queue.push({ obj: ring, until: now() + duration * FX.timeScale, fade: true, mat: ring.material, scaleRate: 1.0 });
     } catch (_) {}
   }
 
@@ -244,7 +244,7 @@ export class EffectsManager {
       mats.push(baseRing.material);
 
       this.transient.add(g);
-      this.queue.push({ obj: g, until: now() + duration, fade: true, mats });
+      this.queue.push({ obj: g, until: now() + duration * FX.timeScale, fade: true, mats });
     } catch (_) {}
   }
 
@@ -258,7 +258,7 @@ export class EffectsManager {
       this.transient.add(bubble);
       this.queue.push({
         obj: bubble,
-        until: now() + duration,
+        until: now() + duration * FX.timeScale,
         fade: true,
         mat,
         follow: entity,
@@ -281,7 +281,7 @@ export class EffectsManager {
       torus.position.set(center.x, height, center.z);
       torus.rotation.x = Math.PI / 2; // lie flat like a cloud disc
       this.transient.add(torus);
-      this.queue.push({ obj: torus, until: now() + duration, fade: true, mat: torus.material, spinRate: 0.6 });
+      this.queue.push({ obj: torus, until: now() + duration * FX.timeScale, fade: true, mat: torus.material, spinRate: 0.6 });
     } catch (_) {}
   }
 
@@ -309,7 +309,7 @@ export class EffectsManager {
       this.transient.add(group);
       this.queue.push({
         obj: group,
-        until: now() + duration,
+        until: now() + duration * FX.timeScale,
         fade: true,
         follow: entity,
         followYOffset: 0,
@@ -329,7 +329,7 @@ export class EffectsManager {
     );
     s.position.copy(p);
     this.transient.add(s);
-    this.queue.push({ obj: s, until: now() + 0.12, fade: true, mat: s.material, scaleRate: 1.8 });
+    this.queue.push({ obj: s, until: now() + 0.12 * FX.timeScale, fade: true, mat: s.material, scaleRate: 1.8 });
   }
 
   // Colored variant for skill-tinted flashes
@@ -341,7 +341,7 @@ export class EffectsManager {
     );
     s.position.copy(p);
     this.transient.add(s);
-    this.queue.push({ obj: s, until: now() + 0.14, fade: true, mat: s.material, scaleRate: 2.0 });
+    this.queue.push({ obj: s, until: now() + 0.14 * FX.timeScale, fade: true, mat: s.material, scaleRate: 2.0 });
   }
 
   /**
@@ -388,7 +388,7 @@ export class EffectsManager {
     this.transient.add(spr);
     this.queue.push({
       obj: spr,
-      until: now() + 1.0,
+      until: now() + 1.0 * FX.popupDurationScale,
       fade: true,
       mat: mat,
       velY: 0.9,
@@ -430,7 +430,7 @@ export class EffectsManager {
 
       // Optional animated scaling (for pings)
       if (e.scaleRate && e.obj && e.obj.scale) {
-        const s = 1 + e.scaleRate * dt;
+        const s = 1 + (e.scaleRate || 0) * dt * FX.scaleRateScale;
         e.obj.scale.multiplyScalar(s);
       }
 
@@ -443,7 +443,7 @@ export class EffectsManager {
       // Pulsing scale (breathing bubble, buff auras)
       if (e.pulseAmp && e.obj && e.obj.scale) {
         const base = e.baseScale || 1;
-        const rate = e.pulseRate || 3;
+        const rate = (e.pulseRate || 3) * FX.pulseRateScale;
         const amp = e.pulseAmp || 0.05;
         const s2 = base * (1 + Math.sin(t * rate) * amp);
         try { e.obj.scale.set(s2, s2, s2); } catch (_) {}
@@ -451,13 +451,13 @@ export class EffectsManager {
 
       // Spin rotation (e.g., storm cloud disc)
       if (e.spinRate && e.obj && e.obj.rotation) {
-        try { e.obj.rotation.y += e.spinRate * dt; } catch (_) {}
+        try { e.obj.rotation.y += (e.spinRate || 0) * dt * FX.spinRateScale; } catch (_) {}
       }
 
       // Orbiting orbs around a followed entity
       if (e.orbitChildren && e.obj) {
         const cnt = e.orbitChildren.length || 0;
-        e.orbitBase = (e.orbitBase || 0) + (e.orbitRate || 4) * dt;
+        e.orbitBase = (e.orbitBase || 0) + (e.orbitRate || 4) * dt * FX.orbitRateScale;
         const base = e.orbitBase || 0;
         const r = e.orbitR || 1.2;
         const y = e.orbitYOffset ?? 1.2;
@@ -474,7 +474,7 @@ export class EffectsManager {
           if (!m) return;
           m.opacity = m.opacity ?? 1;
           m.transparent = true;
-          m.opacity = Math.max(0, m.opacity - dt * 1.8);
+          m.opacity = Math.max(0, m.opacity - dt * 1.8 * FX.fadeSpeedScale);
         };
         if (e.mat) fadeOne(e.mat);
         if (e.mats && Array.isArray(e.mats)) e.mats.forEach(fadeOne);
