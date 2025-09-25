@@ -1,7 +1,7 @@
 {
   "name": "GoT RPG",
   "short_name": "GoT RPG",
-  "id": "/",
+  "id": "bul-game-10",
   "start_url": "https://hoanganh25991.github.io/bul-game-10",
   "scope": "https://hoanganh25991.github.io/bul-game-10",
   "display": "standalone",
