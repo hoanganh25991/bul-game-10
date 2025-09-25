@@ -28,16 +28,16 @@
       "purpose": "any"
     }
   ],
-  "scope_extensions": [
-    {
-      "origin": "https://hoanganh25991.github.io"
-    }
-  ],
   "lang": "vi",
   "categories": [
     "games",
     "entertainment"
   ],
   "dir": "ltr",
-  "scope": "./"
+  "scope": "./",
+  "scope_extensions": [
+    {
+      "origin": "https://hoanganh25991.github.io"
+    }
+  ]
 }
