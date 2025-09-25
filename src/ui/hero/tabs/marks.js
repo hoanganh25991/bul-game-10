@@ -12,7 +12,13 @@ export function renderMarksTab(panelEl, ctx = {}) {
   } catch (_) {}
 
   const wrap = document.createElement("div");
-  wrap.className = "marks-panel";
+  wrap.className = "maps-panel";
+  try {
+    wrap.style.display = "flex";
+    wrap.style.flexDirection = "column";
+    wrap.style.flex = "1 1 auto";
+    wrap.style.minHeight = "0";
+  } catch (_) {}
 
   const head = document.createElement("div");
   head.className = "marks-head";
@@ -21,7 +27,13 @@ export function renderMarksTab(panelEl, ctx = {}) {
   head.appendChild(cd);
 
   const list = document.createElement("div");
-  list.className = "marks-list";
+  list.className = "maps-list";
+  try {
+    list.style.flex = "1 1 auto";
+    list.style.minHeight = "0";
+    list.style.overflow = "auto";
+    list.style.maxHeight = "none";
+  } catch (_) {}
 
   function fmtTime(ts) {
     try {
@@ -44,21 +56,44 @@ export function renderMarksTab(panelEl, ctx = {}) {
       } else {
         arr.forEach((m) => {
           const row = document.createElement("div");
-          row.className = "marks-row";
+          row.className = "maps-row";
+
+          const thumb = document.createElement("div");
+          thumb.className = "maps-thumb";
+          const em = document.createElement("div");
+          em.className = "maps-thumb-ph";
+          em.textContent = "🚩";
+          try {
+            em.style.fontSize = "42px";
+            em.style.lineHeight = "1";
+          } catch (_) {}
+          thumb.appendChild(em);
 
           const info = document.createElement("div");
-          info.className = "marks-info";
           const nm = (m.name && String(m.name).trim()) ? m.name : `Mark ${m.index + 1}`;
-          info.textContent = `${nm} • (${Math.round(m.x)}, ${Math.round(m.z)}) • ${fmtTime(m.createdAt)}`;
+          const title = document.createElement("div");
+          title.className = "maps-title";
+          title.textContent = nm;
+          const desc = document.createElement("div");
+          desc.className = "maps-desc";
+          desc.textContent = `Created: ${fmtTime(m.createdAt)}`;
+          const req = document.createElement("div");
+          req.className = "maps-req";
+          req.textContent = `(${Math.round(m.x)}, ${Math.round(m.z)})`;
+
+          info.appendChild(title);
+          info.appendChild(desc);
+          info.appendChild(req);
 
           const actions = document.createElement("div");
-          actions.className = "marks-actions";
+          actions.className = "maps-actions";
 
           const rn = document.createElement("button");
           rn.className = "pill-btn";
           rn.textContent = "✏️";
           rn.title = "Rename";
-          rn.addEventListener("click", () => {
+          rn.addEventListener("click", (e) => {
+            e.stopPropagation();
             try {
               const newName = prompt("Enter mark name", nm);
               if (newName != null) {
@@ -72,7 +107,8 @@ export function renderMarksTab(panelEl, ctx = {}) {
           tp.className = "pill-btn pill-btn--yellow";
           tp.textContent = "🌀";
           tp.title = "Teleport";
-          tp.addEventListener("click", () => {
+          tp.addEventListener("click", (e) => {
+            e.stopPropagation();
             try {
               portals.teleportToMark?.(m.index, player);
             } catch (_) {}
@@ -82,7 +118,8 @@ export function renderMarksTab(panelEl, ctx = {}) {
           rm.className = "pill-btn";
           rm.textContent = "🗑️";
           rm.title = "Remove";
-          rm.addEventListener("click", () => {
+          rm.addEventListener("click", (e) => {
+            e.stopPropagation();
             try {
               portals.removePersistentMark?.(m.index);
               render();
@@ -93,6 +130,7 @@ export function renderMarksTab(panelEl, ctx = {}) {
           actions.appendChild(tp);
           actions.appendChild(rm);
 
+          row.appendChild(thumb);
           row.appendChild(info);
           row.appendChild(actions);
           list.appendChild(row);
