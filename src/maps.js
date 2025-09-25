@@ -16,6 +16,13 @@ export function createMapManager() {
     countGrowthPerDepth: 1.04,
   };
 
+  // Deterministic icon set for maps (emoji). Order matters for stable mapping.
+  const MAP_EMOJIS = [
+    "🌩️","🌾","⛰️","🏰","⚒️","🌪️","🗺️","🔥","🌊","❄️",
+    "🌿","🌀","⚡","☄️","🌋","🏜️","🏞️","🛡️","🧭","🔮",
+    "🌫️","⛏️","🌧️","🌥️","🌠"
+  ];
+
   // Definitions: tune per-map enemy tint and multipliers
   const maps = [
     {
@@ -96,6 +103,11 @@ export function createMapManager() {
     return idx;
   }
 
+  function emojiForIndex(i) {
+    const idx = clampIndex(i);
+    return MAP_EMOJIS[(idx - 1) % MAP_EMOJIS.length];
+  }
+
   function depthForIndex(i) {
     const idx = clampIndex(i);
     return idx > maps.length ? (idx - maps.length) : 0;
@@ -132,6 +144,7 @@ export function createMapManager() {
       ...m,
       unlocked: m.index <= unlockedMax,
       current: m.index === currentIndex,
+      emoji: emojiForIndex(m.index),
     }));
   }
 
@@ -150,6 +163,7 @@ export function createMapManager() {
       enemyDmgMul: base.enemyDmgMul,
       desc: `Endless Depth ${depth}. Enemies grow stronger with each depth.`,
       strongEnemies: base.strongEnemies,
+      emoji: emojiForIndex(currentIndex),
       img: base.img,
       imgHint: base.imgHint,
       _endlessDepth: depth,
@@ -222,5 +236,6 @@ export function createMapManager() {
     canSelect,
     setCurrent,
     unlockByLevel,
+    emojiForIndex,
   };
 }

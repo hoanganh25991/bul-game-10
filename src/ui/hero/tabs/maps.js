@@ -100,7 +100,7 @@ export function renderMapsTab(panelEl, ctx = {}) {
       enemyCountMul: lastBase.enemyCountMul || 1,
       desc,
       strongEnemies: [`${elite} (empowered)`],
-      img: lastBase.img,
+      emoji: mapManager.emojiForIndex?.(idx),
       imgHint: lastBase.imgHint || `Endless Depth +${depth}`,
     };
   }
@@ -125,7 +125,19 @@ export function renderMapsTab(panelEl, ctx = {}) {
 
       const thumb = document.createElement("div");
       thumb.className = "maps-thumb";
-      if (m.img) {
+      const emoji = m.emoji || mapManager.emojiForIndex?.(m.index);
+      if (emoji) {
+        const em = document.createElement("div");
+        em.className = "maps-thumb-ph";
+        em.textContent = emoji;
+        try {
+          em.style.fontSize = "42px"; /* large to match 64x64 container */
+          em.style.lineHeight = "1";
+        } catch (_) {}
+        thumb.appendChild(em);
+        if (m.imgHint) thumb.title = m.imgHint;
+      } else if (m.img) {
+        // Fallback to image if no emoji available
         thumb.style.backgroundImage = `url(${m.img})`;
         thumb.style.backgroundSize = "cover";
         thumb.style.backgroundPosition = "center";
