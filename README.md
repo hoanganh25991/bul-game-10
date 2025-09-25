@@ -29,6 +29,8 @@ A lightweight prototype featuring DOTA‑style controls, electric abilities, sim
 
 ### Demo
 
+[demo.mp4](demo.mp4)
+
 ## Documentation
 - Requirements (modular index): docs/requirements/index.md
 - Technical Architecture (modular index): docs/technical/index.md
