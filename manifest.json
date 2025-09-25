@@ -3,7 +3,7 @@
   "start_url": "./",
   "name": "GoT RPG",
   "short_name": "GoT",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#0b1a2b",
   "theme_color": "#0b1a2b",
