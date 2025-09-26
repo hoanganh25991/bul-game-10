@@ -243,5 +243,11 @@
       "got_judgement": "Judg",
       "maelstrom": "Mael"
     }
+  },
+  "maps": {
+    "endless": "Endless",
+    "current": "Current",
+    "locked": "Locked",
+    "requires": "Requires"
   }
 }

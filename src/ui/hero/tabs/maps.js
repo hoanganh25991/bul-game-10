@@ -5,7 +5,8 @@
  * - "Load more" appends next 20 items deterministically; endless generation is stable.
  */
 export function renderMapsTab(panelEl, ctx = {}) {
-  const { mapManager, enemies, applyMapModifiersToEnemy, setCenterMsg, clearCenterMsg } = ctx;
+  const { mapManager, enemies, applyMapModifiersToEnemy, setCenterMsg, clearCenterMsg, t } = ctx;
+  const tt = typeof t === "function" ? t : (x) => x;
   if (!panelEl || !mapManager) return;
 
   // Clear panel content
@@ -86,7 +87,7 @@ export function renderMapsTab(panelEl, ctx = {}) {
     const depth = idx - BASE_LEN;
     const theme = THEMES[(depth - 1) % THEMES.length];
     const elite = ELITES[(depth - 1) % ELITES.length];
-    const name = `Endless +${depth} — ${theme}`;
+    const name = `${tt("maps.endless")} +${depth} — ${theme}`;
     const requiredLevel = Math.max(1, (lastBase.requiredLevel || 1) + depth * 5);
     const desc = `Depth +${depth}. Each step strengthens foes: more HP, damage, speed and density.`;
     return {
@@ -152,13 +153,13 @@ export function renderMapsTab(panelEl, ctx = {}) {
       const info = document.createElement("div");
       const title = document.createElement("div");
       title.className = "maps-title";
-      title.textContent = `${m.name}${current ? " • Current" : ""}${(!unlocked ? " • Locked" : "")}`;
+      title.textContent = `${m.name}${current ? ` • ${tt("maps.current")}` : ""}${(!unlocked ? ` • ${tt("maps.locked")}` : "")}`;
       const d = document.createElement("div");
       d.className = "maps-desc";
       d.textContent = m.desc || "";
       const req = document.createElement("div");
       req.className = "maps-req";
-      req.textContent = `Requires Lv ${m.requiredLevel}`;
+      req.textContent = `${tt("maps.requires")} Lv ${m.requiredLevel}`;
       const elites = document.createElement("div");
       elites.className = "maps-elites";
       elites.textContent = (m.strongEnemies && m.strongEnemies.length) ? `Elites: ${m.strongEnemies.join(", ")}` : "";
