@@ -514,7 +514,7 @@ export function initEnvironment(scene, options = {}) {
     // Unified density approach:
     // - Compute the same total spot count as before (per quality).
     // - For each spot, randomly pick a structure type (equal chance) and place it with its constraints.
-    const __templeCountForDensity = (__q === "low") ? 0 : (__q === "medium" ? 1 : (rng() < 0.3 ? 2 : 1));
+    const __templeCountForDensity = (__q === "low") ? 0 : 1;
     const __villaCountForDensity = (__q === "low") ? 2 : (__q === "medium" ? 4 : 7);
     const __columnCountForDensity = (__q === "low") ? 4 : (__q === "medium" ? 8 : 14);
     const __statueCountForDensity = (__q === "low") ? 3 : (__q === "medium" ? 5 : 8);

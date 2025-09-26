@@ -1,0 +1,165 @@
+/* css/preview.css
+   Styles for Hero preview overlays: key select and casting confirmation.
+*/
+
+#__previewKeySelect {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.35);
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+  pointer-events: auto;
+}
+
+#__previewKeySelect[aria-hidden="false"] {
+  display: flex;
+}
+
+#__previewKeySelect .preview-box {
+  min-width: 300px;
+  max-width: 90vw;
+  background: rgba(10,20,30,0.9);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 14px;
+  color: #dfefff;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+  text-align: center;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+}
+
+.__preview-title {
+  font-weight: 600;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.__preview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 6px;
+  margin-bottom: 10px;
+  align-items: start;
+}
+
+.__preview-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.preview-key-btn {
+  padding: 12px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(40,60,90,0.85);
+  color: #eaf6ff;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background 140ms ease;
+}
+
+.preview-key-btn:hover,
+.preview-key-btn:focus {
+  background: rgba(60,90,140,0.9);
+  outline: none;
+}
+
+.preview-key-info {
+  font-size: 11px;
+  opacity: 0.8;
+  text-align: center;
+}
+
+.__preview-tip {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 6px;
+}
+
+.__preview-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.preview-cancel {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(120,40,40,0.85);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.preview-cancel:hover,
+.preview-cancel:focus {
+  background: rgba(160,60,60,0.9);
+  outline: none;
+}
+
+/* Casting overlay */
+#__previewCasting {
+  position: fixed;
+  left: 50%;
+  top: 18%;
+  transform: translate(-50%, -50%);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+#__previewCasting[aria-hidden="false"] {
+  display: flex;
+}
+
+.__preview-card {
+  min-width: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  color: #e8f6ff;
+  text-align: center;
+  box-shadow: none;
+}
+
+/* Number element used for countdown and cast confirmation */
+.__preview-number {
+  font-size: 42px;
+  font-weight: 800;
+  color: #bfe9ff;
+  text-shadow: 0 0 12px rgba(100,180,255,0.6);
+  min-height: 1.2em;
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 140ms ease, transform 140ms ease;
+  display: inline-block;
+}
+
+/* Large style used temporarily by JS */
+.__preview-number--large {
+  font-size: 126px;
+}
+
+/* small confirmation */
+.__preview-number--small {
+  font-size: 42px;
+}
+
+/* Utility hidden helper */
+.hidden {
+  display: none !important;
+}

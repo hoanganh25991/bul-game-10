@@ -243,7 +243,6 @@
   <div id="flashOverlay" class="flash" style="display: grid;">
     <div class="flash-card" role="status" aria-live="polite" aria-busy="true">
       <h2 class="flash-title" data-i18n="flash.title">Đang tải Thần Sấm Mãi Đỉnh</h2>
-      <div class="flash-subtitle" aria-hidden="true" style="font-size:12px;opacity:0.8;margin-top:2px;" data-i18n="flash.motto">Thần Sấm — Mãi Đỉnh</div>
       <p class="flash-desc" data-i18n="flash.desc">Chuẩn bị trải nghiệm sấm sét…</p>
       <div class="progress" aria-hidden="false">
         <div class="bar" id="flashProgressBar" style="width: 0%" role="progressbar" aria-valuemin="0"
@@ -371,6 +370,22 @@
   </div>
 
   <div id="upliftToast" role="status" aria-live="polite"></div>
+
+  <!-- Preview overlays (static shells used by src/ui/hero/preview.js) -->
+  <div id="__previewKeySelect" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="preview-box">
+      <div class="__preview-title"></div>
+      <div class="__preview-grid"></div>
+      <div class="__preview-tip"></div>
+      <div class="__preview-actions"><button class="preview-cancel"></button></div>
+    </div>
+  </div>
+
+  <div id="__previewCasting" aria-hidden="true" role="status" aria-live="polite">
+    <div class="__preview-card">
+      <div class="__preview-number"></div>
+    </div>
+  </div>
 
   <script src="lock-zoom.js"></script>
 
