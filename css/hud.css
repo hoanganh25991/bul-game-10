@@ -130,7 +130,7 @@
 }
 
 /* Instructions list inside settings (small helper; kept here as HUD-related content) */
-.instr-title{ font-weight:800; margin-bottom: 6px; color:#bfe5ff; }
+.instr-title{ font-weight:800; margin-bottom: 6px;  }
 #settingsInstructions ul{ margin: 6px 0 0 18px; padding:0; }
 #settingsInstructions li{ margin: 4px 0; }
 

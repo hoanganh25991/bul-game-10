@@ -60,7 +60,6 @@
 
 .loadout-slot .slot-name {
   font-size: 13px;
-  color: #bfe5ff;
   opacity: 0.95;
 }
 
@@ -72,7 +71,6 @@
 .skill-pool-header {
   margin-top: 8px;
   font-weight: 800;
-  color: #bfe5ff;
   margin-bottom: 6px;
 }
 

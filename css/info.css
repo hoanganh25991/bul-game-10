@@ -44,14 +44,12 @@
 
 .maps-title {
   font-weight: 700;
-  color: #dff4ff;
   margin-bottom: 4px;
 }
 
 .maps-desc,
 .maps-req {
   font-size: 13px;
-  color: #bfe5ff;
   opacity: 0.95;
 }
 
@@ -68,7 +66,6 @@
   border: 1px solid rgba(255,255,255,0.03);
   padding: 10px;
   border-radius: 8px;
-  color: #cfefff;
 }
 
 .row {
