@@ -301,7 +301,7 @@
 .items-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  max-height: calc(100vh - 168px);
 }
 .items-list {
   display: flex;
