@@ -21,10 +21,10 @@ export function getTargetPixelRatio() {
   }
   if (quality === "high") {
     // Cap to 2x to avoid excessive GPU cost on ultra-high DPI
-    return Math.min(dpr, 3);
+    return Math.min(dpr, 2);
   }
 
-  return 3;
+  return 2;
 }
 
 /**
@@ -34,7 +34,22 @@ export function getTargetPixelRatio() {
 export function initWorld() {
   const prefs = (() => { try { return JSON.parse(localStorage.getItem("renderPrefs") || "{}"); } catch (_) { return {}; } })();
   const q = typeof prefs.quality === "string" ? prefs.quality : "high";
-  const renderer = new THREE.WebGLRenderer({ antialias: q === "high", alpha: true, powerPreference: "high-performance" });
+  const renderer = new THREE.WebGLRenderer({
+    antialias: q === "high",
+    alpha: true,
+    powerPreference: "high-performance",
+    failIfMajorPerformanceCaveat: true,
+    stencil: false,
+    depth: true
+  });
+  // GPU-friendly defaults (reduce overhead, keep colors correct)
+  try {
+    renderer.debug && (renderer.debug.checkShaderErrors = false);
+  } catch (_) {}
+  try { renderer.outputColorSpace = THREE.SRGBColorSpace; } catch (_) {}
+  try { renderer.toneMapping = THREE.NoToneMapping; } catch (_) {}
+  try { renderer.shadowMap.enabled = false; } catch (_) {}
+  try { renderer.physicallyCorrectLights = false; } catch (_) {}
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(getTargetPixelRatio());
   document.body.prepend(renderer.domElement);

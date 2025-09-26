@@ -46,6 +46,45 @@ let renderQuality = (typeof _renderPrefs.quality === "string" && ["low", "medium
 const effects = new EffectsManager(scene, { quality: renderQuality });
 const mapManager = createMapManager();
 
+// Perf collector: smoothed FPS, 1% low, frame ms, and renderer.info snapshot
+const __perf = {
+  prevMs: performance.now(),
+  hist: [],
+  fps: 0,
+  fpsLow1: 0,
+  ms: 0
+};
+function __computePerf(nowMs) {
+  const dtMs = Math.max(0.1, Math.min(1000, nowMs - (__perf.prevMs || nowMs)));
+  __perf.prevMs = nowMs;
+  __perf.ms = dtMs;
+  __perf.hist.push(dtMs);
+  if (__perf.hist.length > 600) __perf.hist.shift(); // ~10s at 60fps
+
+  // Smooth FPS over recent 30 frames
+  const recent = __perf.hist.slice(-30);
+  const avgMs = recent.reduce((a, b) => a + b, 0) / Math.max(1, recent.length);
+  __perf.fps = 1000 / avgMs;
+
+  // 1% low based on worst 1% of recent frames
+  const sorted = __perf.hist.slice().sort((a, b) => a - b);
+  const p99Idx = Math.min(sorted.length - 1, Math.floor(sorted.length * 0.99));
+  const ms99 = sorted[p99Idx] || avgMs;
+  __perf.fpsLow1 = 1000 / ms99;
+}
+function getPerf() {
+  const ri = renderer.info;
+  const r = {
+    calls: ri.render.calls,
+    triangles: ri.render.triangles,
+    lines: ri.render.lines,
+    points: ri.render.points,
+    geometries: ri.memory.geometries,
+    textures: ri.memory.textures
+  };
+  return { fps: __perf.fps, fpsLow1: __perf.fpsLow1, ms: __perf.ms, renderer: r };
+}
+
 // Load environment preferences from localStorage (persist rain + density)
 const _envPrefs = JSON.parse(localStorage.getItem("envPrefs") || "{}");
 let envRainState = !!_envPrefs.rain;
@@ -188,6 +227,7 @@ const renderCtx = {
   getQuality: () => renderQuality,
   setQuality: (q) => { renderQuality = q; },
   getTargetPixelRatio: () => getTargetPixelRatio(),
+  getPerf,
 };
 setupSettingsScreen({
   t,
@@ -1219,6 +1259,12 @@ function animate() {
   }
 
   renderer.render(scene, camera);
+
+  // Update perf metrics
+  try {
+    __computePerf(performance.now());
+    window.__perfMetrics = getPerf();
+  } catch (_) {}
 }
 animate();
 
