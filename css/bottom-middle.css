@@ -1,0 +1,77 @@
+/* css/bottom-middle.css
+   Bottom-middle desktop controls (desktop-only).
+   - Two rows: actions (camera/portal/mark) and skills (Q/W/E/R)
+   - Hidden on mobile, visible on desktop (min-width: 641px)
+*/
+
+#bottomMiddle {
+  display: none; /* default hidden (mobile) */
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  gap: 8px;
+  pointer-events: auto;
+  user-select: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+/* Row containers */
+#bottomMiddle .bm-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Action buttons (re-using icon-btn visual language) */
+#bottomMiddle .icon-btn {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: linear-gradient(180deg, #122836, #0b2330);
+  color: #e8f6ff;
+  font-size: 18px;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Square skill buttons row */
+#bottomMiddle .bm-skills .square-skill {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: linear-gradient(180deg, #1b3c6b, #0f294a);
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Small responsive tweaks */
+@media (pointer: fine) {
+  /* Desktop: show bottomMiddle, hide mobile joystick and bottom-right group */
+  #bottomMiddle {
+    display: flex;
+  }
+
+  #bottomLeftGroup {
+    display: none !important;
+  }
+
+  /* Hide whole bottom-right group (core + skill wheel) on desktop */
+  #bottomRightGroup {
+    display: none !important;
+  }
+}

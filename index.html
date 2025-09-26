@@ -321,6 +321,22 @@
     </div>
   </div>
 
+  <!-- Bottom-middle desktop controls (shown on desktop; mobile uses joystick + skill wheel) -->
+  <div id="bottomMiddle" aria-hidden="true" role="group" aria-label="Desktop controls">
+    <div class="bm-row bm-actions" role="toolbar" aria-label="Actions">
+      <button id="bmCamera" class="icon-btn" title="Camera">🎥</button>
+      <button id="bmPortal" class="icon-btn" title="Portal">🌀</button>
+      <button id="bmMark" class="icon-btn" title="Mark">🚩</button>
+    </div>
+    <div class="bm-row bm-skills" role="toolbar" aria-label="Skills">
+      <button class="square-skill" data-key="basic" title="Basic">⚡</button>
+      <button class="square-skill" data-key="Q" title="Q">Q</button>
+      <button class="square-skill" data-key="W" title="W">W</button>
+      <button class="square-skill" data-key="E" title="E">E</button>
+      <button class="square-skill" data-key="R" title="R">R</button>
+    </div>
+  </div>
+
   <!-- Guide overlay (static, JS-managed) -->
   <div id="guideOverlayRoot" class="guide-overlay hidden" role="dialog" aria-modal="true">
     <div class="guide-blocker"></div>
@@ -388,6 +404,7 @@
   </div>
 
   <script src="lock-zoom.js"></script>
+  <script type="module" src="src/ui/bottom-middle.js"></script>
 
   <!-- Module game code -->
   <script type="importmap">

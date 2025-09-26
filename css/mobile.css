@@ -103,3 +103,18 @@
     max-height: 160px;
   }
 }
+
+@media (pointer: coarse) {
+  /* Mobile: ensure bottom-middle hidden and original mobile UI visible */
+  #bottomMiddle {
+    display: none !important;
+  }
+
+  #bottomLeftGroup {
+    display: block;
+  }
+
+  #bottomRightGroup {
+    display: block;
+  }
+}

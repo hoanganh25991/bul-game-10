@@ -12,6 +12,7 @@
 @import "splash.css";
 @import "uplift.css";
 @import "preview.css";
+@import "bottom-middle.css";
 
 /* NOTE:
    - The component files will live alongside this file in the css/ directory.
