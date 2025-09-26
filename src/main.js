@@ -620,7 +620,7 @@ player.mesh.add(heroBars.container);
 // Respawn/death messaging
 player.onDeath = () => {
   player.deadUntil = now() + 3;
-  setCenterMsg("You died. Respawning...");
+  setCenterMsg(t("death.msg"));
   player.aimMode = false;
   player.aimModeSkill = null;
   player.moveTarget = null;

@@ -2,6 +2,8 @@ import { SKILLS } from "../../constants.js";
 import { saveLoadout, loadOrDefault } from "../../loadout.js";
 import { SKILL_POOL, DEFAULT_LOADOUT } from "../../skills_pool.js";
 import { now } from "../../utils.js";
+import { t } from "../../i18n.js";
+const tt = typeof t === "function" ? t : (x) => x;
 
 /**
  * Enhanced Skillbook preview flow:
@@ -79,7 +81,8 @@ function showKeySelectOverlay(def) {
     });
 
     const title = document.createElement("div");
-    title.textContent = `Assign "${def?.name || "Skill"}" to key:`;
+    const nameLocal = def?.id ? (tt(`skills.names.${def.id}`) || def?.name || "Skill") : (def?.name || "Skill");
+    title.textContent = `${tt("assign.assign")} "${nameLocal}" ${tt("assign.toKey")}`;
     Object.assign(title.style, { fontWeight: "600", marginBottom: "10px", fontSize: "16px" });
 
     const grid = document.createElement("div");
@@ -121,7 +124,8 @@ function showKeySelectOverlay(def) {
 
       wrap.appendChild(btn);
       const info = document.createElement("div");
-      info.textContent = SKILLS[k]?.name ? `(${SKILLS[k].name})` : "(empty)";
+      const nm = SKILLS[k]?.id ? (tt(`skills.names.${SKILLS[k].id}`) || SKILLS[k]?.name) : SKILLS[k]?.name;
+      info.textContent = nm ? `(${nm})` : `(${tt("hero.slot.empty") || "Empty"})`;
       Object.assign(info.style, { fontSize: "11px", opacity: "0.8" });
       wrap.appendChild(info);
 
@@ -132,14 +136,14 @@ function showKeySelectOverlay(def) {
     });
 
     const tip = document.createElement("div");
-    tip.textContent = "Tip: press Q, W, E or R to choose quickly";
+    tip.textContent = tt("assign.tip");
     Object.assign(tip.style, { fontSize: "12px", opacity: "0.8", marginTop: "6px" });
 
     const actions = document.createElement("div");
     Object.assign(actions.style, { marginTop: "10px", display: "flex", gap: "8px", justifyContent: "center" });
 
     const cancel = document.createElement("button");
-    cancel.textContent = "Cancel";
+    cancel.textContent = tt("btn.cancel");
     Object.assign(cancel.style, {
       padding: "8px 12px",
       borderRadius: "6px",
@@ -261,7 +265,7 @@ async function showCastingOverlayAndCast(skills, def, key) {
 
     // Show brief confirmation (keep small); mapping remains assigned and persisted
     number.style.fontSize = "42px";
-    await setNumber(number, "⚡ Casted!", 1500);
+    await setNumber(number, `⚡ ${tt("assign.casted")}`, 1500);
   } finally {
     // Cleanup overlay
     try {

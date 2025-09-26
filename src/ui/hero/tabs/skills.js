@@ -15,6 +15,8 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
     updateSkillBarLabels,
   } = ctx;
 
+  const tt = typeof t === "function" ? t : (x) => x;
+
   // Maintain a live copy of loadout to avoid full screen re-rendering
   let activeLoadout = currentLoadout.slice();
 
@@ -43,8 +45,8 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
     slot.innerHTML = `
       <div class="slot-key">${keys[i]}</div>
       <div class="skill-icon">${getSkillIcon(skillDef ? skillDef.short : null)}</div>
-      <div class="slot-short">${skillDef ? (skillDef.short || "—") : "—"}</div>
-      <div class="slot-name">${skillDef ? (skillDef.name || "—") : (t ? (t("hero.slot.empty") || "Empty") : "Empty")}</div>
+      <div class="slot-short">${skillDef ? (tt(`skills.shorts.${skillDef.id}`) || skillDef.short || "—") : "—"}</div>
+      <div class="slot-name">${skillDef ? (tt(`skills.names.${skillDef.id}`) || skillDef.name || "—") : (t ? (t("hero.slot.empty") || "Empty") : "Empty")}</div>
     `;
     slotsWrap.appendChild(slot);
   }
@@ -87,7 +89,9 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
     const info = document.createElement("div");
     const title = document.createElement("div");
     title.className = "maps-title";
-    title.textContent = `${s.name}${s.short ? " • " + s.short : ""}`;
+    const nameLocal = tt(`skills.names.${s.id}`) || s.name;
+    const shortLocal = tt(`skills.shorts.${s.id}`) || s.short;
+    title.textContent = `${nameLocal}${shortLocal ? " • " + shortLocal : ""}`;
     const desc = document.createElement("div");
     desc.className = "maps-desc";
     desc.textContent = s.type ? s.type : "";
@@ -107,7 +111,7 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
     const btn = document.createElement("button");
     btn.className = "pill-btn pill-btn--yellow";
     btn.textContent = "➕";
-    btn.title = "Assign";
+    btn.title = tt("hero.assign");
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       showAssignBar(s.id);
@@ -158,8 +162,8 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
         slotEl.innerHTML = `
       <div class="slot-key">${keys[i]}</div>
       <div class="skill-icon">${getSkillIcon(skillDef ? skillDef.short : null)}</div>
-      <div class="slot-short">${skillDef ? (skillDef.short || "—") : "—"}</div>
-      <div class="slot-name">${skillDef ? (skillDef.name || "—") : (t ? (t("hero.slot.empty") || "Empty") : "Empty")}</div>
+      <div class="slot-short">${skillDef ? (tt(`skills.shorts.${skillDef.id}`) || skillDef.short || "—") : "—"}</div>
+      <div class="slot-name">${skillDef ? (tt(`skills.names.${skillDef.id}`) || skillDef.name || "—") : (t ? (t("hero.slot.empty") || "Empty") : "Empty")}</div>
     `;
       });
     } catch (_) {}
@@ -200,6 +204,7 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
   const cancelBtn = document.createElement("button");
   cancelBtn.className = "pill-btn";
   cancelBtn.textContent = "❌";
+  cancelBtn.title = tt("btn.cancel");
   cancelBtn.addEventListener("click", () => {
     selectedSkillId = null;
     try {
@@ -237,7 +242,9 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
     } catch (_) {}
     const sd = SKILL_POOL.find((s) => s.id === skillId);
     const icon = getSkillIcon(sd ? sd.short : null);
-    assignLabel.textContent = `Assign ${sd ? sd.name : ""} (${sd && sd.short ? sd.short : ""}) ${icon} to slot:`;
+    const nameLocal2 = sd ? (tt(`skills.names.${sd.id}`) || sd.name || "") : "";
+    const shortLocal2 = sd ? (tt(`skills.shorts.${sd.id}`) || sd.short || "") : "";
+    assignLabel.textContent = `${tt("assign.assign")} ${nameLocal2} (${shortLocal2}) ${icon} ${tt("assign.toSlot")}`;
     assignBar.classList.add("active");
   }
 
