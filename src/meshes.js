@@ -333,14 +333,14 @@ export function createHouse() {
   const house = new THREE.Group();
   const base = new THREE.Mesh(
     new THREE.BoxGeometry(6, 3, 6),
-    new THREE.MeshStandardMaterial({ color: 0x15315c, roughness: 0.8 })
+    new THREE.MeshLambertMaterial({ color: 0x15315c })
   );
   base.position.y = 1.5;
   house.add(base);
 
   const roof = new THREE.Mesh(
     new THREE.ConeGeometry(4.5, 2.5, 4),
-    new THREE.MeshStandardMaterial({ color: 0x0a1f3e, metalness: 0.2 })
+    new THREE.MeshLambertMaterial({ color: 0x0a1f3e })
   );
   roof.position.y = 4.1;
   roof.rotation.y = Math.PI / 4;
@@ -393,7 +393,7 @@ export function createGreekColumn(options = {}) {
   } = options;
 
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color, roughness, metalness });
+  const mat = new THREE.MeshLambertMaterial({ color });
 
   // Stylobate/plinth
   const plinthH = Math.max(0.14, height * 0.03);
@@ -455,7 +455,7 @@ export function createGreekTemple(options = {}) {
   } = options;
 
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.04 });
+  const mat = new THREE.MeshLambertMaterial({ color });
 
   const width = (cols - 1) * colSpacingX;
   const depth = (rows - 1) * colSpacingZ;
@@ -532,7 +532,7 @@ export function createVilla(options = {}) {
 
   const base = new THREE.Mesh(
     new THREE.BoxGeometry(width, height, depth),
-    new THREE.MeshStandardMaterial({ color: colorBase, roughness: 0.8 })
+    new THREE.MeshLambertMaterial({ color: colorBase })
   );
   base.position.y = height / 2;
   g.add(base);
@@ -540,7 +540,7 @@ export function createVilla(options = {}) {
   // Pyramid-like roof
   const roof = new THREE.Mesh(
     new THREE.ConeGeometry(Math.max(width, depth) * 0.6, height * 0.9, 4),
-    new THREE.MeshStandardMaterial({ color: colorRoof, metalness: 0.2, roughness: 0.6 })
+    new THREE.MeshLambertMaterial({ color: colorRoof })
   );
   roof.position.y = height + (height * 0.45);
   roof.rotation.y = Math.PI / 4;
@@ -572,7 +572,7 @@ export function createCypressTree() {
   const trunkH = 1.6 + Math.random() * 0.8;
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(0.06, 0.08, trunkH, 6),
-    new THREE.MeshStandardMaterial({ color: 0x2a2119, roughness: 0.9 })
+    new THREE.MeshLambertMaterial({ color: 0x2a2119 })
   );
   trunk.position.y = trunkH / 2;
   g.add(trunk);
@@ -582,7 +582,7 @@ export function createCypressTree() {
     const h = 1.0 + (levels - i) * 0.5;
     const cone = new THREE.Mesh(
       new THREE.ConeGeometry(0.4 + (levels - i) * 0.18, h, 8),
-      new THREE.MeshStandardMaterial({ color: 0x3c6f52, roughness: 0.8 })
+      new THREE.MeshLambertMaterial({ color: 0x3c6f52 })
     );
     cone.position.y = trunkH + (i * h * 0.55);
     g.add(cone);
@@ -597,12 +597,12 @@ export function createOliveTree() {
   const trunkH = 1.3 + Math.random() * 0.7;
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(0.12, 0.16, trunkH, 8),
-    new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.95 })
+    new THREE.MeshLambertMaterial({ color: 0x5a4a3a })
   );
   trunk.position.y = trunkH / 2;
   g.add(trunk);
 
-  const canopyMat = new THREE.MeshStandardMaterial({ color: 0x7a8f6a, roughness: 0.75 });
+  const canopyMat = new THREE.MeshLambertMaterial({ color: 0x7a8f6a });
   const s1 = new THREE.Mesh(new THREE.SphereGeometry(0.8, 12, 12), canopyMat);
   const s2 = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 12), canopyMat);
   const s3 = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 12), canopyMat);
@@ -619,7 +619,7 @@ export function createGreekStatue(options = {}) {
     color = 0xf4f4f4
   } = options;
 
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.03 });
+  const mat = new THREE.MeshLambertMaterial({ color });
   const g = new THREE.Group();
 
   const plinth = new THREE.Mesh(
@@ -660,7 +660,7 @@ export function createObelisk(options = {}) {
   } = options;
 
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.7, metalness: 0.02 });
+  const mat = new THREE.MeshLambertMaterial({ color });
 
   const base = new THREE.Mesh(
     new THREE.BoxGeometry(baseSize, 0.35, baseSize),

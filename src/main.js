@@ -52,7 +52,8 @@ const __perf = {
   hist: [],
   fps: 0,
   fpsLow1: 0,
-  ms: 0
+  ms: 0,
+  avgMs: 0
 };
 function __computePerf(nowMs) {
   const dtMs = Math.max(0.1, Math.min(1000, nowMs - (__perf.prevMs || nowMs)));
@@ -64,6 +65,7 @@ function __computePerf(nowMs) {
   // Smooth FPS over recent 30 frames
   const recent = __perf.hist.slice(-30);
   const avgMs = recent.reduce((a, b) => a + b, 0) / Math.max(1, recent.length);
+  __perf.avgMs = avgMs;
   __perf.fps = 1000 / avgMs;
 
   // 1% low based on worst 1% of recent frames
@@ -82,7 +84,7 @@ function getPerf() {
     geometries: ri.memory.geometries,
     textures: ri.memory.textures
   };
-  return { fps: __perf.fps, fpsLow1: __perf.fpsLow1, ms: __perf.ms, renderer: r };
+  return { fps: __perf.fps, fpsLow1: __perf.fpsLow1, ms: __perf.ms, avgMs: __perf.avgMs, renderer: r };
 }
 
 // Load environment preferences from localStorage (persist rain + density)
@@ -676,7 +678,7 @@ function adjustEnemyCountForCurrentMap() {
   try {
     const mods = mapManager.getModifiers?.() || {};
     const baseTarget = ENEMY_COUNT_BY_QUALITY[renderQuality] || WORLD.enemyCount;
-    const desired = Math.max(1, Math.floor(baseTarget * (mods.enemyCountMul || 1)));
+    const desired = Math.max(1, Math.floor(baseTarget * (mods.enemyCountMul || 1) * __enemyPerfScale));
     if (enemies.length < desired) {
       const toAdd = desired - enemies.length;
       for (let i = 0; i < toAdd; i++) {
@@ -1052,6 +1054,8 @@ let lastT = now();
 
 let __aiStride = renderQuality === "low" ? 3 : (renderQuality === "medium" ? 2 : 1);
 let __aiOffset = 0;
+let __enemyPerfScale = 1;
+let __adaptNextT = 0;
 const __MOVE_PING_INTERVAL = 0.3; // seconds between continuous move pings (joystick/arrow). Match right-click cadence.
 let __joyContPingT = 0;
 let __arrowContPingT = 0;
@@ -1265,6 +1269,24 @@ function animate() {
     __computePerf(performance.now());
     window.__perfMetrics = getPerf();
   } catch (_) {}
+
+  // Adaptive performance: adjust AI stride and enemy count based on FPS
+  try {
+    if (!__adaptNextT || t >= __adaptNextT) {
+      const fps = __perf.fps || 60;
+      if (fps < 25) {
+        __aiStride = Math.min(5, (__aiStride || 1) + 1);
+        __enemyPerfScale = Math.max(0.5, (__enemyPerfScale || 1) - 0.1);
+        adjustEnemyCountForCurrentMap();
+      } else if (fps > 50) {
+        __aiStride = Math.max(1, (__aiStride || 1) - 1);
+        __enemyPerfScale = Math.min(1, (__enemyPerfScale || 1) + 0.05);
+        adjustEnemyCountForCurrentMap();
+      }
+      __adaptNextT = t + 1.5;
+    }
+  } catch (_) {}
+
 }
 animate();
 

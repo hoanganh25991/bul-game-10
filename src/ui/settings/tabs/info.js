@@ -14,7 +14,8 @@ export function renderInfoTab(panelEl, ctx = {}) {
         <div style="display:flex;gap:16px;flex-wrap:wrap;">
           <div><b>FPS:</b> <span id="perfFps">--</span></div>
           <div><b>1% low:</b> <span id="perfFpsLow">--</span></div>
-          <div><b>Frame ms:</b> <span id="perfMs">--</span></div>
+          <div><b>Avg ms:</b> <span id="perfAvgMs">--</span></div>
+          <div><b>Last ms:</b> <span id="perfMs">--</span></div>
         </div>
         <div style="display:flex;gap:16px;flex-wrap:wrap;">
           <div><b>Draw calls:</b> <span id="perfCalls">--</span></div>
@@ -50,6 +51,7 @@ export function renderInfoTab(panelEl, ctx = {}) {
   const el = (id) => panelEl.querySelector(id);
   const $fps = el("#perfFps");
   const $fpsLow = el("#perfFpsLow");
+  const $avg = el("#perfAvgMs");
   const $ms = el("#perfMs");
   const $calls = el("#perfCalls");
   const $tris = el("#perfTriangles");
@@ -97,7 +99,8 @@ export function renderInfoTab(panelEl, ctx = {}) {
       if (perf) {
         if ($fps) $fps.textContent = String(round(perf.fps || 0, 1));
         if ($fpsLow) $fpsLow.textContent = String(round(perf.fpsLow1 || 0, 1));
-        if ($ms) $ms.textContent = `${round(perf.ms || 0, 2)} ms`;
+        if ($avg) $avg.textContent = `${round(perf.avgMs || perf.ms || 0, 2)} ms`;
+        if ($ms) $ms.textContent = `${round(perf.ms || perf.avgMs || 0, 2)} ms`;
 
         const ri = perf.renderer || {};
         if ($calls) $calls.textContent = String(ri.calls || 0);

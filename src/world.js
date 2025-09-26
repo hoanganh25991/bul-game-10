@@ -34,17 +34,29 @@ export function getTargetPixelRatio() {
 export function initWorld() {
   const prefs = (() => { try { return JSON.parse(localStorage.getItem("renderPrefs") || "{}"); } catch (_) { return {}; } })();
   const q = typeof prefs.quality === "string" ? prefs.quality : "high";
-  const renderer = new THREE.WebGLRenderer({
-    antialias: q === "high",
-    alpha: true,
-    powerPreference: "high-performance",
-    failIfMajorPerformanceCaveat: true,
-    stencil: false,
-    depth: true
-  });
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({
+      antialias: q === "high",
+      alpha: true,
+      powerPreference: "high-performance",
+      failIfMajorPerformanceCaveat: false,
+      stencil: false,
+      depth: true
+    });
+  } catch (e) {
+    // Fallback if context creation fails due to driver/flag quirks
+    try {
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false });
+    } catch (e2) {}
+  }
+  if (!renderer) {
+    // Last-resort minimal context
+    renderer = new THREE.WebGLRenderer();
+  }
   // GPU-friendly defaults (reduce overhead, keep colors correct)
   try {
-    renderer.debug && (renderer.debug.checkShaderErrors = false);
+    if (renderer.debug) renderer.debug.checkShaderErrors = false;
   } catch (_) {}
   try { renderer.outputColorSpace = THREE.SRGBColorSpace; } catch (_) {}
   try { renderer.toneMapping = THREE.NoToneMapping; } catch (_) {}
@@ -91,13 +103,10 @@ export function initWorld() {
   groundTex.repeat.set(80, 80);
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(WORLD.groundSize, WORLD.groundSize),
-    new THREE.MeshStandardMaterial({
+    new THREE.MeshLambertMaterial({
       color: 0x0a1424,
-      emissive: 0x060e1c,
       side: THREE.DoubleSide,
-      map: groundTex,
-      metalness: 0.0,
-      roughness: 1.0,
+      map: groundTex
     })
   );
   ground.rotation.x = -Math.PI / 2;
@@ -146,8 +155,8 @@ export function updateGridFollow(ground, player) {
   ground.position.x = p.x;
   ground.position.z = p.z;
   if (ground.material && ground.material.map) {
+    // Offset scroll does not require re-upload; avoid forcing needsUpdate each frame
     ground.material.map.offset.set(p.x * 0.0004, p.z * 0.0004);
-    ground.material.map.needsUpdate = true;
   }
 }
 
