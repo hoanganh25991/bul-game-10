@@ -86,116 +86,136 @@ export function getUpliftSummary() {
   return out;
 }
 
-// Minimal popup for choosing one uplift option at milestone levels
+/* Minimal popup for choosing one uplift option at milestone levels.
+   Refactored to use static DOM in index.html and css/uplift.css when available.
+   Falls back to creating the DOM if the static markup is not present.
+*/
 export function promptBasicUpliftIfNeeded(player) {
   if (typeof document === "undefined") return;
   if (!player) return;
   const pending = getPendingMilestone(player.level);
   if (!pending) return;
 
-  // Prevent multiple
-  if (document.getElementById("upliftPopup")) return;
+  // Prefer existing markup in index.html
+  let root = document.getElementById("upliftPopup");
 
-  const root = document.createElement("div");
-  root.id = "upliftPopup";
-  root.style.position = "fixed";
-  root.style.left = "0";
-  root.style.top = "0";
-  root.style.right = "0";
-  root.style.bottom = "0";
-  root.style.background = "rgba(0,0,0,0.6)";
-  root.style.zIndex = "9999";
-  root.style.display = "flex";
-  root.style.alignItems = "center";
-  root.style.justifyContent = "center";
+  // If the popup is present and already visible, don't show duplicate
+  if (root && root.getAttribute && root.getAttribute("aria-hidden") === "false") return;
 
-  const card = document.createElement("div");
-  card.style.minWidth = "280px";
-  card.style.maxWidth = "90vw";
-  card.style.background = "rgba(12,28,52,0.95)";
-  card.style.border = "1px solid rgba(124,196,255,0.35)";
-  card.style.boxShadow = "0 12px 28px rgba(0,0,0,0.6)";
-  card.style.borderRadius = "10px";
-  card.style.padding = "16px";
-  card.style.color = "#fff";
-  card.style.textAlign = "center";
+  // Fallback: create the basic DOM structure if not present
+  const createFallback = () => {
+    const r = document.createElement("div");
+    r.id = "upliftPopup";
+    r.setAttribute("aria-hidden", "true");
+    r.setAttribute("role", "dialog");
+    r.setAttribute("aria-modal", "true");
 
-  const title = document.createElement("div");
-  title.textContent = `${t("uplift.unlocked")} — ${t("uplift.lv")} ${pending}`;
-  title.style.fontSize = "18px";
-  title.style.marginBottom = "8px";
-  title.style.color = "#ffd86a";
+    const card = document.createElement("div");
+    card.className = "uplift-card";
 
-  const desc = document.createElement("div");
-  desc.textContent = t("uplift.choose");
-  desc.style.opacity = "0.9";
-  desc.style.marginBottom = "12px";
+    const title = document.createElement("div");
+    title.className = "uplift-title";
 
-  const btnRow = document.createElement("div");
-  btnRow.style.display = "flex";
-  btnRow.style.gap = "8px";
-  btnRow.style.justifyContent = "center";
-  btnRow.style.flexWrap = "wrap";
+    const desc = document.createElement("div");
+    desc.className = "uplift-desc";
 
-  function mkBtn(label, kind) {
-    const b = document.createElement("button");
-    b.textContent = label;
-    b.style.padding = "10px 12px";
-    b.style.borderRadius = "8px";
-    b.style.border = "1px solid rgba(124,196,255,0.35)";
-    b.style.background = "linear-gradient(180deg, #1b3c6b, #0f294a)";
-    b.style.color = "#fff";
-    b.style.cursor = "pointer";
-    b.style.minWidth = "110px";
-    b.style.textAlign = "center";
-    b.addEventListener("click", () => {
+    const row = document.createElement("div");
+    row.className = "uplift-btn-row";
+    row.setAttribute("role", "list");
+
+    const btnAoE = document.createElement("button");
+    btnAoE.className = "uplift-btn";
+    btnAoE.dataset.kind = "basic-aoe";
+    btnAoE.setAttribute("role", "listitem");
+
+    const btnChain = document.createElement("button");
+    btnChain.className = "uplift-btn";
+    btnChain.dataset.kind = "basic-chain";
+    btnChain.setAttribute("role", "listitem");
+
+    const btnImpact = document.createElement("button");
+    btnImpact.className = "uplift-btn";
+    btnImpact.dataset.kind = "basic-impact";
+    btnImpact.setAttribute("role", "listitem");
+
+    row.appendChild(btnAoE);
+    row.appendChild(btnChain);
+    row.appendChild(btnImpact);
+
+    const footer = document.createElement("div");
+    footer.className = "uplift-footer";
+
+    const skip = document.createElement("button");
+    skip.className = "uplift-skip";
+    skip.dataset.action = "skip";
+
+    footer.appendChild(skip);
+
+    card.appendChild(title);
+    card.appendChild(desc);
+    card.appendChild(row);
+    card.appendChild(footer);
+    r.appendChild(card);
+
+    const toast = document.createElement("div");
+    toast.id = "upliftToast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+
+    document.body.appendChild(r);
+    document.body.appendChild(toast);
+
+    return r;
+  };
+
+  if (!root) root = createFallback();
+
+  const titleEl = root.querySelector(".uplift-title");
+  const descEl = root.querySelector(".uplift-desc");
+  const btns = Array.from(root.querySelectorAll(".uplift-btn"));
+  const skipBtn = root.querySelector(".uplift-skip");
+  const toast = document.getElementById("upliftToast");
+
+  if (titleEl) titleEl.textContent = `${t("uplift.unlocked")} — ${t("uplift.lv")} ${pending}`;
+  if (descEl) descEl.textContent = t("uplift.choose");
+
+  const labels = {
+    "basic-aoe": t("uplift.btn.aoe"),
+    "basic-chain": t("uplift.btn.chain"),
+    "basic-impact": t("uplift.btn.impact"),
+  };
+
+  // Replace buttons to remove old listeners, then attach fresh handlers
+  btns.forEach((b) => {
+    const kind = b.dataset.kind;
+    const fresh = b.cloneNode(true);
+    fresh.textContent = labels[kind] || kind;
+    fresh.addEventListener("click", () => {
       const st = getUpliftState();
       st.choices.push({ level: pending, kind });
       saveUpliftState(st);
-      try { document.body.removeChild(root); } catch (_) {}
-      // Optional small toast
+      try { root.setAttribute("aria-hidden", "true"); } catch (_) {}
       try {
-        const msg = document.createElement("div");
-        msg.textContent = t("uplift.applied");
-        msg.style.position = "fixed";
-        msg.style.left = "50%";
-        msg.style.top = "12%";
-        msg.style.transform = "translateX(-50%)";
-        msg.style.background = "rgba(20,40,70,0.95)";
-        msg.style.border = "1px solid rgba(124,196,255,0.35)";
-        msg.style.borderRadius = "8px";
-        msg.style.padding = "8px 12px";
-        msg.style.color = "#fff";
-        msg.style.zIndex = "9999";
-        document.body.appendChild(msg);
-        setTimeout(() => { try { document.body.removeChild(msg); } catch(_) {} }, 1100);
+        if (toast) {
+          toast.textContent = t("uplift.applied");
+          toast.classList.add("show");
+          setTimeout(() => {
+            try { toast.classList.remove("show"); toast.textContent = ""; } catch (_) {}
+          }, 1100);
+        }
       } catch (_) {}
     });
-    return b;
+    b.parentNode.replaceChild(fresh, b);
+  });
+
+  if (skipBtn) {
+    const s = skipBtn.cloneNode(true);
+    s.textContent = t("uplift.decideLater");
+    s.addEventListener("click", () => {
+      try { root.setAttribute("aria-hidden", "true"); } catch (_) {}
+    });
+    skipBtn.parentNode.replaceChild(s, skipBtn);
   }
 
-  btnRow.appendChild(mkBtn(t("uplift.btn.aoe"), "basic-aoe"));
-  btnRow.appendChild(mkBtn(t("uplift.btn.chain"), "basic-chain"));
-  btnRow.appendChild(mkBtn(t("uplift.btn.impact"), "basic-impact"));
-
-  const closeRow = document.createElement("div");
-  closeRow.style.marginTop = "10px";
-  const skip = document.createElement("button");
-  skip.textContent = t("uplift.decideLater");
-  skip.style.padding = "6px 10px";
-  skip.style.borderRadius = "6px";
-  skip.style.border = "1px solid rgba(124,196,255,0.25)";
-  skip.style.background = "rgba(12,28,52,0.85)";
-  skip.style.color = "#ddd";
-  skip.addEventListener("click", () => {
-    try { document.body.removeChild(root); } catch (_) {}
-  });
-  closeRow.appendChild(skip);
-
-  card.appendChild(title);
-  card.appendChild(desc);
-  card.appendChild(btnRow);
-  card.appendChild(closeRow);
-  root.appendChild(card);
-  document.body.appendChild(root);
+  try { root.setAttribute("aria-hidden", "false"); } catch (_) {}
 }

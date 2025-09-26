@@ -6,6 +6,7 @@
   <link rel="preconnect" href="https://unpkg.com" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/landscape.css" />
+  <link rel="stylesheet" href="css/uplift.css" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon.png" />
   <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -309,6 +310,26 @@
       </div>
     </div>
   </div>
+
+  <!-- Uplift popup (DOM placed here so JS can just show/hide and populate) -->
+  <div id="upliftPopup" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="uplift-card">
+      <div class="uplift-title"></div>
+      <div class="uplift-desc"></div>
+
+      <div class="uplift-btn-row" role="list">
+        <button class="uplift-btn" data-kind="basic-aoe" role="listitem"></button>
+        <button class="uplift-btn" data-kind="basic-chain" role="listitem"></button>
+        <button class="uplift-btn" data-kind="basic-impact" role="listitem"></button>
+      </div>
+
+      <div class="uplift-footer">
+        <button class="uplift-skip" data-action="skip"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="upliftToast" role="status" aria-live="polite"></div>
 
   <script src="lock-zoom.js"></script>
 
