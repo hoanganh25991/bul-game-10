@@ -103,10 +103,12 @@ export function initWorld() {
   groundTex.repeat.set(80, 80);
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(WORLD.groundSize, WORLD.groundSize),
-    new THREE.MeshLambertMaterial({
-      color: 0x0a1424,
+    new THREE.MeshStandardMaterial({
+      emissive: 0x060e1c,
       side: THREE.DoubleSide,
-      map: groundTex
+      map: groundTex,
+      metalness: 0.0,
+      roughness: 1.0,
     })
   );
   ground.rotation.x = -Math.PI / 2;
