@@ -4,7 +4,7 @@
    - Additionally: sync icons, keys and skill names from the main skill wheel
      and rely on SkillsSystem to mirror cooldown visuals into .cooldown[data-cd="..."].
 */
-document.addEventListener("DOMContentLoaded", () => {
+export function setupDesktopControls(){
   const bmCamera = document.getElementById("bmCamera");
   const bmPortal = document.getElementById("bmPortal");
   const bmMark = document.getElementById("bmMark");
@@ -107,4 +107,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Note: cooldown visuals are mirrored by src/skills.js which copies the conic-gradient/text
   // into any .cooldown inside #bottomMiddle that has data-cd="cdX" matching the master id.
-});
+}

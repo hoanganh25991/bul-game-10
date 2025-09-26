@@ -30,6 +30,7 @@ import { setupSettingsScreen } from "./ui/settings/index.js";
 import { renderHeroScreen as renderHeroScreenUI } from "./ui/hero/index.js";
 import { updateSkillBarLabels } from "./ui/skillbar.js";
 import { promptBasicUpliftIfNeeded } from "./uplift.js";
+import { setupDesktopControls } from "./ui/deskop-controls.js"
 import * as payments from './payments.js';
 
 
@@ -113,6 +114,8 @@ try {
 initSplash();
 // Initialize i18n (default Vietnamese)
 initI18n();
+// Bottom Middle = Desktop Controls
+setupDesktopControls();
 
 // Payments (Digital Goods / Play Billing)
 // - Checks whether the user already owns the configured one-time product via Digital Goods
