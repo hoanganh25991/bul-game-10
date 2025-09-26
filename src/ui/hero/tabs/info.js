@@ -8,29 +8,36 @@ export function renderInfoTab(panelEl, ctx = {}) {
   const { t, player } = ctx;
   if (!panelEl) return;
 
-  // Clear panel content
-  try {
-    panelEl.innerHTML = "";
-  } catch (_) {}
+  // Prefer static DOM provided in index.html when available
+  let list = panelEl.querySelector(".maps-list");
+  if (list) {
+    // Clear existing list content but keep the shell provided in the HTML
+    try { list.innerHTML = ""; } catch (_) {}
+  } else {
+    // Create shell like before if not present (fallback)
+    try { panelEl.innerHTML = ""; } catch (_) {}
 
-  // Build a maps-style panel to keep consistent with Skills/Maps/Marks
-  const wrap = document.createElement("div");
-  wrap.className = "maps-panel";
-  try {
-    wrap.style.display = "flex";
-    wrap.style.flexDirection = "column";
-    wrap.style.flex = "1 1 auto";
-    wrap.style.minHeight = "0";
-  } catch (_) {}
+    const wrap = document.createElement("div");
+    wrap.className = "maps-panel";
+    try {
+      wrap.style.display = "flex";
+      wrap.style.flexDirection = "column";
+      wrap.style.flex = "1 1 auto";
+      wrap.style.minHeight = "0";
+    } catch (_) {}
 
-  const list = document.createElement("div");
-  list.className = "maps-list";
-  try {
-    list.style.flex = "1 1 auto";
-    list.style.minHeight = "0";
-    list.style.overflow = "auto";
-    list.style.maxHeight = "none";
-  } catch (_) {}
+    list = document.createElement("div");
+    list.className = "maps-list";
+    try {
+      list.style.flex = "1 1 auto";
+      list.style.minHeight = "0";
+      list.style.overflow = "auto";
+      list.style.maxHeight = "none";
+    } catch (_) {}
+
+    wrap.appendChild(list);
+    panelEl.appendChild(wrap);
+  }
 
   try {
     const tt = typeof t === "function" ? t : (x) => x;

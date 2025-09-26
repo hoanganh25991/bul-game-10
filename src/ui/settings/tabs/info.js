@@ -6,46 +6,11 @@ export function renderInfoTab(panelEl, ctx = {}) {
   const { renderer, getPerf } = ctx;
   if (!panelEl || panelEl.dataset.rendered === "1") return;
 
-  // Build UI
-  panelEl.innerHTML = `
-    <div class="row">
-      <span class="row-label">Performance</span>
-      <div class="perf-block" style="display:flex;flex-direction:column;gap:6px;">
-        <div style="display:flex;gap:16px;flex-wrap:wrap;">
-          <div><b>FPS:</b> <span id="perfFps">--</span></div>
-          <div><b>1% low:</b> <span id="perfFpsLow">--</span></div>
-          <div><b>Avg ms:</b> <span id="perfAvgMs">--</span></div>
-          <div><b>Last ms:</b> <span id="perfMs">--</span></div>
-        </div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;">
-          <div><b>Draw calls:</b> <span id="perfCalls">--</span></div>
-          <div><b>Triangles:</b> <span id="perfTriangles">--</span></div>
-          <div><b>Lines:</b> <span id="perfLines">--</span></div>
-          <div><b>Points:</b> <span id="perfPoints">--</span></div>
-          <div><b>Geometries:</b> <span id="perfGeoms">--</span></div>
-          <div><b>Textures:</b> <span id="perfTex">--</span></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="row">
-      <span class="row-label">WebGL</span>
-      <div class="gl-block" style="display:flex;flex-direction:column;gap:6px;">
-        <div style="display:flex;gap:16px;flex-wrap:wrap;">
-          <div><b>API:</b> <span id="glApi">--</span></div>
-          <div><b>Antialias:</b> <span id="glAA">--</span></div>
-          <div><b>Power:</b> <span id="glPower">--</span></div>
-        </div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;">
-          <div><b>Vendor:</b> <span id="glVendor">--</span></div>
-          <div><b>Renderer:</b> <span id="glRenderer">--</span></div>
-        </div>
-        <div style="font-size:12px;opacity:0.8;">
-          Tip: On macOS Safari/Chrome, ensure “Use hardware acceleration” is enabled in browser settings.
-        </div>
-      </div>
-    </div>
-  `;
+  // Require static markup in index.html (css/info.css provides styles).
+  // The shell should be present in the HTML; if it's missing, do nothing.
+  if (!panelEl.querySelector(".perf-block")) {
+    return;
+  }
 
   // Query elements
   const el = (id) => panelEl.querySelector(id);
