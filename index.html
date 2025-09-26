@@ -328,9 +328,7 @@
     try {
       if (window.location.hostname == "localhost") {
         console.log("Ignore serviceworker on localhost");
-        return;
-      }
-      if ("serviceWorker" in navigator) {
+      } else if ("serviceWorker" in navigator) {
         // Reload the page when a new controller takes over (ensures fresh assets)
         navigator.serviceWorker.addEventListener?.("controllerchange", () => {
           try {
