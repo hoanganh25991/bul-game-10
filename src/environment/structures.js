@@ -1,3 +1,4 @@
+import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 /**
  * placeStructures(params)
  * - Extracted placement logic for Greek-inspired structures and nature extras from src/environment.js
@@ -46,9 +47,9 @@ export function placeStructures(params = {}) {
 
   if (!root || !rng || !seededRange || !pickPos) return;
 
-  const archGroup = new (root.constructor)(); // THREE.Group-like - assume same constructor
+  const archGroup = new THREE.Group();
   archGroup.name = "greek-architecture";
-  const natureExtraGroup = new (root.constructor)();
+  const natureExtraGroup = new THREE.Group();
   natureExtraGroup.name = "nature-extras";
 
   const placed = [];
@@ -115,14 +116,11 @@ export function placeStructures(params = {}) {
         archGroup.add(t);
 
         if (__q !== "low" && acquireLight(2)) {
-          const torchL = new (root.constructor).PointLight ? new (root.constructor).PointLight(0xffd8a8, __q === "medium" ? 0.5 : 0.8, 14, 2) : null;
-          // If PointLight isn't available on root.constructor, skip adding torches here; caller can supply proper THREE in params if needed.
-          if (torchL) {
-            torchL.position.set(pos.x + 2.5, 1.2, pos.z - 4.5);
-            const torchR = torchL.clone();
-            torchR.position.set(pos.x - 2.5, 1.2, pos.z - 4.5);
-            root.add(torchL, torchR);
-          }
+          const torchL = new THREE.PointLight(0xffd8a8, __q === "medium" ? 0.5 : 0.8, 14, 2);
+          torchL.position.set(pos.x + 2.5, 1.2, pos.z - 4.5);
+          const torchR = torchL.clone();
+          torchR.position.set(pos.x - 2.5, 1.2, pos.z - 4.5);
+          root.add(torchL, torchR);
         }
       }
     },
@@ -167,11 +165,9 @@ export function placeStructures(params = {}) {
         s.rotation.y = seededRange(rng, -Math.PI, Math.PI);
         archGroup.add(s);
         if (__q !== "low" && acquireLight(1)) {
-          const l = new (root.constructor).PointLight ? new (root.constructor).PointLight(0xffe0b8, __q === "medium" ? 0.35 : 0.55, 10, 2) : null;
-          if (l) {
-            l.position.set(pos.x, 1.0, pos.z);
-            root.add(l);
-          }
+          const l = new THREE.PointLight(0xffe0b8, __q === "medium" ? 0.35 : 0.55, 10, 2);
+          l.position.set(pos.x, 1.0, pos.z);
+          root.add(l);
         }
       }
     },
@@ -223,9 +219,9 @@ export function placeStructures(params = {}) {
   const __oliveCountForDensity = (__q === "low") ? 16 : (__q === "medium" ? 26 : 40);
   const natureTreeSpotCount = __cypressCountForDensity + __oliveCountForDensity;
 
-  const cypressGroup = new (root.constructor)();
+  const cypressGroup = new THREE.Group();
   cypressGroup.name = "cypress";
-  const oliveGroup = new (root.constructor)();
+  const oliveGroup = new THREE.Group();
   oliveGroup.name = "olive";
 
   const naturePool = [];
