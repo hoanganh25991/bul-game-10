@@ -54,3 +54,28 @@ export function makeNoiseTexture(size = 256) {
   tex.anisotropy = 4;
   return tex;
 }
+
+// Seeded RNG utilities
+export function hashStringToInt(s) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+export function createSeededRNG(seed = 0) {
+  let t = (typeof seed === "number" ? seed >>> 0 : hashStringToInt(String(seed))) >>> 0;
+  return function () {
+    t += 0x6D2B79F5;
+    let x = t;
+    x = Math.imul(x ^ (x >>> 15), 1 | x);
+    x ^= x + Math.imul(x ^ (x >>> 7), 61 | x);
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export function seededRange(rng, min, max) {
+  return min + (max - min) * rng();
+}

@@ -1,7 +1,7 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { makeNoiseTexture } from "./utils.js";
+import { makeNoiseTexture, createSeededRNG, seededRange } from "./utils.js";
 import { WORLD } from "./constants.js";
-import { createHouse } from "./meshes.js";
+import { createHouse, createGreekTemple, createVilla, createGreekColumn, createCypressTree, createOliveTree, createGreekStatue, createObelisk } from "./meshes.js";
 
 /**
  * initEnvironment(scene, options)
@@ -62,6 +62,7 @@ export function initEnvironment(scene, options = {}) {
   const root = new THREE.Group();
   root.name = "environment";
   scene.add(root);
+  const rng = createSeededRNG(cfg.seed);
 
   // atmospheric fog tuned for thunder/blue theme
   scene.fog = scene.fog || new THREE.FogExp2(0x081827, 0.0009);
@@ -102,6 +103,13 @@ export function initEnvironment(scene, options = {}) {
       (Math.random() * 2 - 1) * half,
       0,
       (Math.random() * 2 - 1) * half
+    );
+  }
+  function seededRandomPosInBounds() {
+    return new THREE.Vector3(
+      (rng() * 2 - 1) * half,
+      0,
+      (rng() * 2 - 1) * half
     );
   }
 
@@ -441,6 +449,192 @@ export function initEnvironment(scene, options = {}) {
     water.position.set(0, 0.02, -Math.max(20, WORLD.groundSize * 0.15));
     water.receiveShadow = false;
     root.add(water);
+  }
+
+  // ----------------
+  // Greek-inspired structures and extras (randomized, quality-scaled)
+  // ----------------
+  // Place after water/villages so we can avoid them
+  try {
+    const archGroup = new THREE.Group();
+    archGroup.name = "greek-architecture";
+    const natureExtraGroup = new THREE.Group();
+    natureExtraGroup.name = "nature-extras";
+
+    const placed = [];
+
+    const waterCenter = (cfg.enableWater && water) ? new THREE.Vector3(water.position.x, 0, water.position.z) : null;
+
+    function farFromVillages(p, minD) {
+      if (!villageCenters || villageCenters.length === 0) return true;
+      for (const c of villageCenters) {
+        if (p.distanceTo(c) < (minD + (cfg.villageRadius || 0))) return false;
+      }
+      return true;
+    }
+    function farFromWater(p, minD) {
+      if (!waterCenter) return true;
+      return p.distanceTo(waterCenter) >= ((cfg.waterRadius || 0) + minD);
+    }
+    function farFromPlaced(p, minD) {
+      for (const q of placed) {
+        if (p.distanceTo(q) < minD) return false;
+      }
+      return true;
+    }
+    function pickPos(minVillage = 12, minWater = 10, minBetween = 10, maxTries = 60) {
+      let tries = maxTries;
+      while (tries-- > 0) {
+        const p = seededRandomPosInBounds();
+        if (farFromVillages(p, minVillage) && farFromWater(p, minWater) && farFromPlaced(p, minBetween)) {
+          placed.push(p.clone());
+          return p;
+        }
+      }
+      const p = seededRandomPosInBounds();
+      placed.push(p.clone());
+      return p;
+    }
+
+    // Unified density approach:
+    // - Compute the same total spot count as before (per quality).
+    // - For each spot, randomly pick a structure type (equal chance) and place it with its constraints.
+    const __templeCountForDensity = (__q === "low") ? 0 : (__q === "medium" ? 1 : (rng() < 0.3 ? 2 : 1));
+    const __villaCountForDensity = (__q === "low") ? 2 : (__q === "medium" ? 4 : 7);
+    const __columnCountForDensity = (__q === "low") ? 4 : (__q === "medium" ? 8 : 14);
+    const __statueCountForDensity = (__q === "low") ? 3 : (__q === "medium" ? 5 : 8);
+    const __obeliskCountForDensity = (__q === "low") ? 2 : (__q === "medium" ? 4 : 6);
+    const structureSpotCount =
+      __templeCountForDensity +
+      __villaCountForDensity +
+      __columnCountForDensity +
+      __statueCountForDensity +
+      __obeliskCountForDensity;
+
+    const orders = ["doric", "ionic", "corinthian"];
+    let structureTypes = [
+      {
+        key: "temple",
+        place() {
+          const pos = pickPos(16, 14, 24);
+          const t = createGreekTemple({
+            cols: Math.max(5, Math.floor(seededRange(rng, 6, 9))),
+            rows: Math.max(7, Math.floor(seededRange(rng, 9, 12))),
+            columnHeight: seededRange(rng, 5.2, 6.2),
+            colSpacingX: seededRange(rng, 2.2, 2.8),
+            colSpacingZ: seededRange(rng, 2.3, 3.0),
+          });
+          t.position.set(pos.x, 0, pos.z);
+          t.rotation.y = seededRange(rng, 0, Math.PI * 2);
+          archGroup.add(t);
+
+          // Accent lights at entrance if perf allows
+          if (__q !== "low") {
+            const torchL = new THREE.PointLight(0xffd8a8, __q === "medium" ? 0.5 : 0.8, 14, 2);
+            torchL.position.set(pos.x + 2.5, 1.2, pos.z - 4.5);
+            const torchR = torchL.clone();
+            torchR.position.set(pos.x - 2.5, 1.2, pos.z - 4.5);
+            root.add(torchL, torchR);
+          }
+        }
+      },
+      {
+        key: "villa",
+        place() {
+          const pos = pickPos(10, 10, 12);
+          const v = createVilla({
+            width: seededRange(rng, 10, 16),
+            depth: seededRange(rng, 8, 12),
+            height: seededRange(rng, 3.5, 5.2),
+          });
+          v.position.set(pos.x, 0, pos.z);
+          v.rotation.y = seededRange(rng, 0, Math.PI * 2);
+          v.scale.setScalar(seededRange(rng, 0.9, 1.2));
+          archGroup.add(v);
+        }
+      },
+      {
+        key: "column",
+        place() {
+          const pos = pickPos(8, 8, 8);
+          const c = createGreekColumn({
+            height: seededRange(rng, 4.2, 6.2),
+            radius: seededRange(rng, 0.24, 0.34),
+            order: orders[Math.floor(seededRange(rng, 0, orders.length)) | 0],
+          });
+          c.position.set(pos.x, 0, pos.z);
+          c.rotation.y = seededRange(rng, 0, Math.PI * 2);
+          archGroup.add(c);
+        }
+      },
+      {
+        key: "statue",
+        place() {
+          const pos = pickPos(8, 8, 10);
+          const s = createGreekStatue();
+          s.position.set(pos.x, 0, pos.z);
+          s.rotation.y = seededRange(rng, -Math.PI, Math.PI);
+          archGroup.add(s);
+          if (__q !== "low") {
+            const l = new THREE.PointLight(0xffe0b8, __q === "medium" ? 0.35 : 0.55, 10, 2);
+            l.position.set(pos.x, 1.0, pos.z);
+            root.add(l);
+          }
+        }
+      },
+      {
+        key: "obelisk",
+        place() {
+          const pos = pickPos(10, 10, 12);
+          const o = createObelisk({ height: seededRange(rng, 5.5, 7.5) });
+          o.position.set(pos.x, 0, pos.z);
+          o.rotation.y = seededRange(rng, 0, Math.PI * 2);
+          archGroup.add(o);
+        }
+      }
+    ];
+
+    if (__q === "low") {
+      structureTypes = structureTypes.filter(t => t.key !== "temple");
+    }
+
+    for (let i = 0; i < structureSpotCount; i++) {
+      const idx = Math.floor(seededRange(rng, 0, structureTypes.length));
+      structureTypes[idx].place();
+    }
+
+    // Nature extras unified density: same total budget, random type per spot
+    const __cypressCountForDensity = (__q === "low") ? 24 : (__q === "medium" ? 40 : 60);
+    const __oliveCountForDensity = (__q === "low") ? 16 : (__q === "medium" ? 26 : 40);
+    const natureTreeSpotCount = __cypressCountForDensity + __oliveCountForDensity;
+
+    const cypressGroup = new THREE.Group();
+    cypressGroup.name = "cypress";
+    const oliveGroup = new THREE.Group();
+    oliveGroup.name = "olive";
+
+    for (let i = 0; i < natureTreeSpotCount; i++) {
+      const pick = Math.floor(seededRange(rng, 0, 2));
+      const p = pickPos(4, 6, 2);
+      if (pick === 0) {
+        const t = createCypressTree();
+        t.position.set(p.x, 0, p.z);
+        t.rotation.y = seededRange(rng, 0, Math.PI * 2);
+        t.scale.setScalar(seededRange(rng, 0.85, 1.25));
+        cypressGroup.add(t);
+      } else {
+        const t = createOliveTree();
+        t.position.set(p.x, 0, p.z);
+        t.rotation.y = seededRange(rng, 0, Math.PI * 2);
+        t.scale.setScalar(seededRange(rng, 0.85, 1.2));
+        oliveGroup.add(t);
+      }
+    }
+    natureExtraGroup.add(cypressGroup, oliveGroup);
+
+    root.add(archGroup, natureExtraGroup);
+  } catch (e) {
+    console.warn("Extra structures generation failed", e);
   }
 
   // ----------------
