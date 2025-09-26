@@ -6,6 +6,8 @@
  * - Exposes a minimal DOM popup prompt
  */
 
+import { t } from "./i18n.js";
+
 const LS_KEY = "upliftChoices_v1";
 
 // Milestones: every N levels starting at 'start'
@@ -74,12 +76,12 @@ export function getBasicUplift() {
 // Human-readable summary for UI
 export function getUpliftSummary() {
   const st = getUpliftState();
-  if (!st.choices.length) return ["No uplifts chosen yet"];
+  if (!st.choices.length) return [t("uplift.none")];
   const out = [];
   for (const c of st.choices) {
-    if (c.kind === "basic-aoe") out.push(`Lv ${c.level}: Basic Uplift — AOE`);
-    else if (c.kind === "basic-chain") out.push(`Lv ${c.level}: Basic Uplift — Chain`);
-    else if (c.kind === "basic-impact") out.push(`Lv ${c.level}: Basic Uplift — Impact FX`);
+    if (c.kind === "basic-aoe") out.push(`${t("uplift.lv")} ${c.level}: ${t("uplift.basic")} — ${t("uplift.btn.aoe")}`);
+    else if (c.kind === "basic-chain") out.push(`${t("uplift.lv")} ${c.level}: ${t("uplift.basic")} — ${t("uplift.btn.chain")}`);
+    else if (c.kind === "basic-impact") out.push(`${t("uplift.lv")} ${c.level}: ${t("uplift.basic")} — ${t("uplift.btn.impact")}`);
   }
   return out;
 }
@@ -119,13 +121,13 @@ export function promptBasicUpliftIfNeeded(player) {
   card.style.textAlign = "center";
 
   const title = document.createElement("div");
-  title.textContent = `Uplift Unlocked — Level ${pending}`;
+  title.textContent = `${t("uplift.unlocked")} — ${t("uplift.lv")} ${pending}`;
   title.style.fontSize = "18px";
   title.style.marginBottom = "8px";
   title.style.color = "#ffd86a";
 
   const desc = document.createElement("div");
-  desc.textContent = "Choose an enhancement for your Basic Attack:";
+  desc.textContent = t("uplift.choose");
   desc.style.opacity = "0.9";
   desc.style.marginBottom = "12px";
 
@@ -144,6 +146,8 @@ export function promptBasicUpliftIfNeeded(player) {
     b.style.background = "linear-gradient(180deg, #1b3c6b, #0f294a)";
     b.style.color = "#fff";
     b.style.cursor = "pointer";
+    b.style.minWidth = "110px";
+    b.style.textAlign = "center";
     b.addEventListener("click", () => {
       const st = getUpliftState();
       st.choices.push({ level: pending, kind });
@@ -152,7 +156,7 @@ export function promptBasicUpliftIfNeeded(player) {
       // Optional small toast
       try {
         const msg = document.createElement("div");
-        msg.textContent = "Uplift applied!";
+        msg.textContent = t("uplift.applied");
         msg.style.position = "fixed";
         msg.style.left = "50%";
         msg.style.top = "12%";
@@ -170,14 +174,14 @@ export function promptBasicUpliftIfNeeded(player) {
     return b;
   }
 
-  btnRow.appendChild(mkBtn("AOE", "basic-aoe"));
-  btnRow.appendChild(mkBtn("Chain", "basic-chain"));
-  btnRow.appendChild(mkBtn("Impact FX", "basic-impact"));
+  btnRow.appendChild(mkBtn(t("uplift.btn.aoe"), "basic-aoe"));
+  btnRow.appendChild(mkBtn(t("uplift.btn.chain"), "basic-chain"));
+  btnRow.appendChild(mkBtn(t("uplift.btn.impact"), "basic-impact"));
 
   const closeRow = document.createElement("div");
   closeRow.style.marginTop = "10px";
   const skip = document.createElement("button");
-  skip.textContent = "Decide later";
+  skip.textContent = t("uplift.decideLater");
   skip.style.padding = "6px 10px";
   skip.style.borderRadius = "6px";
   skip.style.border = "1px solid rgba(124,196,255,0.25)";
