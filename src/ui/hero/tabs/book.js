@@ -69,7 +69,7 @@ export function renderBookTab(panelEl, ctx = {}) {
       title.textContent = `${nameLocal}${shortLocal ? " (" + shortLocal + ")" : ""}`;
       const dmgLine = typeof s.dmg === "number" ? `Damage: ${computeDamage(s)} (base ${s.dmg})` : "";
       const lines = [
-        "---"
+        "---",
         `Type: ${s.type}`,
         s.cd != null ? `Cooldown: ${s.cd}s` : "",
         s.mana != null ? `Mana: ${s.mana}` : "",

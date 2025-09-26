@@ -2,6 +2,7 @@ import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import { makeNoiseTexture, createSeededRNG, seededRange } from "./utils.js";
 import { WORLD } from "./constants.js";
 import { createHouse, createGreekTemple, createVilla, createGreekColumn, createCypressTree, createOliveTree, createGreekStatue, createObelisk } from "./meshes.js";
+import { placeStructures } from "./environment/structures.js";
 
 /**
  * initEnvironment(scene, options)
@@ -122,6 +123,8 @@ export function initEnvironment(scene, options = {}) {
 
   // Cache of objects that sway to avoid traversing full scene graph every frame
   const swayObjs = [];
+  // Water placeholder (declared early so update() can reference it safely)
+  let water = null;
 
   // ----------------
   // Primitive props
@@ -295,11 +298,10 @@ export function initEnvironment(scene, options = {}) {
 
   // ----------------
   // Village generator (simple clustering of houses)
-  // ----------------
   function generateVillage(center = new THREE.Vector3(0, 0, 0), count = 6, radius = 8) {
     const vgroup = new THREE.Group();
     vgroup.name = "village";
-      for (let i = 0; i < count; i++) {
+    for (let i = 0; i < count; i++) {
       try {
         const house = createHouse();
         const ang = Math.random() * Math.PI * 2;
@@ -351,337 +353,46 @@ export function initEnvironment(scene, options = {}) {
     return vgroup;
   }
 
-  // Place a village or multiple villages
+  // create villages and collect their centers so structures avoid them
   const villages = [];
   const villageCenters = [];
   for (let i = 0; i < cfg.villageCount; i++) {
-    const c = randomPosInBounds();
+    const c = seededRandomPosInBounds();
     villages.push(generateVillage(c, 4 + Math.floor(Math.random() * 6), cfg.villageRadius));
     villageCenters.push(c);
   }
 
-  // Build curved, connected road network between villages using MST (minimal, fully connected)
   try {
-    if (villageCenters.length >= 2) {
-      const roadsGroup = new THREE.Group();
-      roadsGroup.name = "roads";
-
-      // Prepare 2D points (y = 0)
-      const pts = villageCenters.map(v => v.clone().setY(0));
-      const n = pts.length;
-
-      // Prim's algorithm for MST
-      const inTree = new Array(n).fill(false);
-      const d = new Array(n).fill(Infinity);
-      const parent = new Array(n).fill(-1);
-
-      inTree[0] = true;
-      for (let j = 1; j < n; j++) {
-        d[j] = pts[0].distanceTo(pts[j]);
-        parent[j] = 0;
-      }
-      for (let k = 1; k < n; k++) {
-        let m = -1, best = Infinity;
-        for (let j = 0; j < n; j++) {
-          if (!inTree[j] && d[j] < best) { best = d[j]; m = j; }
+    placeStructures({
+      rng,
+      seededRange,
+      root,
+      villageCenters,
+      water,
+      cfg,
+      __q,
+      acquireLight,
+      createGreekTemple,
+      createVilla,
+      createGreekColumn,
+      createCypressTree,
+      createOliveTree,
+      createGreekStatue,
+      createObelisk,
+      pickPos: (minVillage = 12, minWater = 10, minBetween = 10, maxTries = 60) => {
+        let tries = maxTries;
+        while (tries-- > 0) {
+          const p = seededRandomPosInBounds();
+          if (p) return p;
         }
-        if (m < 0) break;
-        inTree[m] = true;
-        for (let j = 0; j < n; j++) {
-          if (!inTree[j]) {
-            const nd = pts[m].distanceTo(pts[j]);
-            if (nd < d[j]) { d[j] = nd; parent[j] = m; }
-          }
-        }
-      }
-
-      // Create a curved road segment for each MST edge
-      for (let i = 1; i < n; i++) {
-        const a = pts[i];
-        const b = pts[parent[i]];
-        const mid = a.clone().lerp(b, 0.5);
-        const dir = b.clone().sub(a).setY(0);
-        const len = Math.max(1, dir.length());
-        dir.normalize();
-        const perp = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), dir).normalize();
-        const curveAmt = Math.min(30, len * 0.25);
-        const ctrl = mid.clone().addScaledVector(perp, (i % 2 === 0 ? 1 : -1) * curveAmt);
-        ctrl.y = 0.0;
-
-        const road = createCurvedRoad([a, ctrl, b], 6, __roadSegs, 0x2b2420);
-        roadsGroup.add(road);
-      }
-
-      root.add(roadsGroup);
-    }
-  } catch (e) {
-    console.warn("Road network generation failed", e);
-  }
-
-  // Fireflies: small glowing points around village centers for ambiance
-  const fireflies = new THREE.Group();
-  villageCenters.forEach((center, idx) => {
-    const baseCount = 24 + Math.floor(Math.random() * 16);
-    const count = Math.max(0, Math.floor(baseCount * __fireflyMul));
-    const positions = new Float32Array(count * 3);
-    for (let j = 0; j < count; j++) {
-      const a = Math.random() * Math.PI * 2;
-      const r = Math.random() * (cfg.villageRadius * 0.6);
-      positions[j * 3 + 0] = center.x + Math.cos(a) * r + (Math.random() - 0.5) * 1.2;
-      positions[j * 3 + 1] = 0.6 + Math.random() * 1.6;
-      positions[j * 3 + 2] = center.z + Math.sin(a) * r + (Math.random() - 0.5) * 1.2;
-    }
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    const mat = new THREE.PointsMaterial({
-      color: 0xffe0a8,
-      size: 0.06,
-      transparent: true,
-      opacity: 0.9,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
-    const pts = new THREE.Points(geom, mat);
-    fireflies.add(pts);
-  });
-  root.add(fireflies);
-
-  // ----------------
-  // Water pool (optional)
-  // ----------------
-  let water = null;
-  if (cfg.enableWater) {
-    const geo = new THREE.CircleGeometry(cfg.waterRadius, 64);
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x083b5d,
-      metalness: 0.35,
-      roughness: 0.35,
-      transparent: true,
-      opacity: 0.9,
-    });
-    water = new THREE.Mesh(geo, mat);
-    water.rotation.x = -Math.PI / 2;
-    water.position.set(0, 0.02, -Math.max(20, WORLD.groundSize * 0.15));
-    water.receiveShadow = false;
-    root.add(water);
-  }
-
-  // ----------------
-  // Greek-inspired structures and extras (randomized, quality-scaled)
-  // ----------------
-  // Place after water/villages so we can avoid them
-  try {
-    const archGroup = new THREE.Group();
-    archGroup.name = "greek-architecture";
-    const natureExtraGroup = new THREE.Group();
-    natureExtraGroup.name = "nature-extras";
-
-    const placed = [];
-
-    const waterCenter = (cfg.enableWater && water) ? new THREE.Vector3(water.position.x, 0, water.position.z) : null;
-
-    function farFromVillages(p, minD) {
-      if (!villageCenters || villageCenters.length === 0) return true;
-      for (const c of villageCenters) {
-        if (p.distanceTo(c) < (minD + (cfg.villageRadius || 0))) return false;
-      }
-      return true;
-    }
-    function farFromWater(p, minD) {
-      if (!waterCenter) return true;
-      return p.distanceTo(waterCenter) >= ((cfg.waterRadius || 0) + minD);
-    }
-    function farFromPlaced(p, minD) {
-      for (const q of placed) {
-        if (p.distanceTo(q) < minD) return false;
-      }
-      return true;
-    }
-    function pickPos(minVillage = 12, minWater = 10, minBetween = 10, maxTries = 60) {
-      let tries = maxTries;
-      while (tries-- > 0) {
-        const p = seededRandomPosInBounds();
-        if (farFromVillages(p, minVillage) && farFromWater(p, minWater) && farFromPlaced(p, minBetween)) {
-          placed.push(p.clone());
-          return p;
-        }
-      }
-      const p = seededRandomPosInBounds();
-      placed.push(p.clone());
-      return p;
-    }
-
-    // Unified density approach:
-    // - Compute the same total spot count as before (per quality).
-    // - For each spot, randomly pick a structure type (equal chance) and place it with its constraints.
-    const __templeCountForDensity = (__q === "low") ? 0 : 1;
-    const __villaCountForDensity = (__q === "low") ? 2 : (__q === "medium" ? 4 : 7);
-    const __columnCountForDensity = (__q === "low") ? 4 : (__q === "medium" ? 8 : 14);
-    const __statueCountForDensity = (__q === "low") ? 3 : (__q === "medium" ? 5 : 8);
-    const __obeliskCountForDensity = (__q === "low") ? 2 : (__q === "medium" ? 4 : 6);
-    const structureSpotCount =
-      __templeCountForDensity +
-      __villaCountForDensity +
-      __columnCountForDensity +
-      __statueCountForDensity +
-      __obeliskCountForDensity;
-
-    const orders = ["doric", "ionic", "corinthian"];
-    let structureTypes = [
-      {
-        key: "temple",
-        place() {
-          const pos = pickPos(16, 14, 24);
-          const t = createGreekTemple({
-            cols: Math.max(5, Math.floor(seededRange(rng, 6, 9))),
-            rows: Math.max(7, Math.floor(seededRange(rng, 9, 12))),
-            columnHeight: seededRange(rng, 5.2, 6.2),
-            colSpacingX: seededRange(rng, 2.2, 2.8),
-            colSpacingZ: seededRange(rng, 2.3, 3.0),
-          });
-          t.position.set(pos.x, 0, pos.z);
-          t.rotation.y = seededRange(rng, 0, Math.PI * 2);
-          archGroup.add(t);
-
-          // Accent lights at entrance if perf allows
-      if (__q !== "low" && acquireLight(2)) {
-        const torchL = new THREE.PointLight(0xffd8a8, __q === "medium" ? 0.5 : 0.8, 14, 2);
-        torchL.position.set(pos.x + 2.5, 1.2, pos.z - 4.5);
-        const torchR = torchL.clone();
-        torchR.position.set(pos.x - 2.5, 1.2, pos.z - 4.5);
-        root.add(torchL, torchR);
-      }
-        }
-      },
-      {
-        key: "villa",
-        place() {
-          const pos = pickPos(10, 10, 12);
-          const v = createVilla({
-            width: seededRange(rng, 10, 16),
-            depth: seededRange(rng, 8, 12),
-            height: seededRange(rng, 3.5, 5.2),
-          });
-          v.position.set(pos.x, 0, pos.z);
-          v.rotation.y = seededRange(rng, 0, Math.PI * 2);
-          v.scale.setScalar(seededRange(rng, 0.9, 1.2));
-          archGroup.add(v);
-        }
-      },
-      {
-        key: "column",
-        place() {
-          const pos = pickPos(8, 8, 8);
-          const c = createGreekColumn({
-            height: seededRange(rng, 4.2, 6.2),
-            radius: seededRange(rng, 0.24, 0.34),
-            order: orders[Math.floor(seededRange(rng, 0, orders.length)) | 0],
-          });
-          c.position.set(pos.x, 0, pos.z);
-          c.rotation.y = seededRange(rng, 0, Math.PI * 2);
-          archGroup.add(c);
-        }
-      },
-      {
-        key: "statue",
-        place() {
-          const pos = pickPos(8, 8, 10);
-          const s = createGreekStatue();
-          s.position.set(pos.x, 0, pos.z);
-          s.rotation.y = seededRange(rng, -Math.PI, Math.PI);
-          archGroup.add(s);
-      if (__q !== "low" && acquireLight(1)) {
-        const l = new THREE.PointLight(0xffe0b8, __q === "medium" ? 0.35 : 0.55, 10, 2);
-        l.position.set(pos.x, 1.0, pos.z);
-        root.add(l);
-      }
-        }
-      },
-      {
-        key: "obelisk",
-        place() {
-          const pos = pickPos(10, 10, 12);
-          const o = createObelisk({ height: seededRange(rng, 5.5, 7.5) });
-          o.position.set(pos.x, 0, pos.z);
-          o.rotation.y = seededRange(rng, 0, Math.PI * 2);
-          archGroup.add(o);
-        }
-      }
-    ];
-
-    if (__q === "low") {
-      structureTypes = structureTypes.filter(t => t.key !== "temple");
-    }
-
-    // Preserve per-type counts while randomizing order to avoid blowing up heavy types.
-    const typeByKey = Object.fromEntries(structureTypes.map(t => [t.key, t]));
-    const typePool = [];
-    const pushNTimes = (key, count) => { for (let i = 0; i < count; i++) typePool.push(key); };
-    pushNTimes("temple", __templeCountForDensity);
-    pushNTimes("villa", __villaCountForDensity);
-    pushNTimes("column", __columnCountForDensity);
-    pushNTimes("statue", __statueCountForDensity);
-    pushNTimes("obelisk", __obeliskCountForDensity);
-
-    // Safety on low: ensure no temples even if counts change in the future.
-    if (__q === "low") {
-      for (let i = typePool.length - 1; i >= 0; i--) {
-        if (typePool[i] === "temple") typePool.splice(i, 1);
-      }
-    }
-
-    // Seeded Fisher–Yates shuffle
-    for (let i = typePool.length - 1; i > 0; i--) {
-      const j = Math.floor(seededRange(rng, 0, i + 1));
-      const tmp = typePool[i]; typePool[i] = typePool[j]; typePool[j] = tmp;
-    }
-
-    typePool.forEach((key) => {
-      const t = typeByKey[key];
-      if (t) t.place();
-    });
-
-    // Nature extras unified density: same total budget, random type per spot
-    const __cypressCountForDensity = (__q === "low") ? 24 : (__q === "medium" ? 40 : 60);
-    const __oliveCountForDensity = (__q === "low") ? 16 : (__q === "medium" ? 26 : 40);
-    const natureTreeSpotCount = __cypressCountForDensity + __oliveCountForDensity;
-
-    const cypressGroup = new THREE.Group();
-    cypressGroup.name = "cypress";
-    const oliveGroup = new THREE.Group();
-    oliveGroup.name = "olive";
-
-    // Preserve original ratio between cypress and olive, but randomize order
-    const naturePool = [];
-    for (let i = 0; i < __cypressCountForDensity; i++) naturePool.push("cypress");
-    for (let i = 0; i < __oliveCountForDensity; i++) naturePool.push("olive");
-    // Seeded shuffle
-    for (let i = naturePool.length - 1; i > 0; i--) {
-      const j = Math.floor(seededRange(rng, 0, i + 1));
-      const tmp = naturePool[i]; naturePool[i] = naturePool[j]; naturePool[j] = tmp;
-    }
-    naturePool.forEach((kind) => {
-      const p = pickPos(4, 6, 2);
-      if (kind === "cypress") {
-        const t = createCypressTree();
-        t.position.set(p.x, 0, p.z);
-        t.rotation.y = seededRange(rng, 0, Math.PI * 2);
-        t.scale.setScalar(seededRange(rng, 0.85, 1.25));
-        cypressGroup.add(t);
-      } else {
-        const t = createOliveTree();
-        t.position.set(p.x, 0, p.z);
-        t.rotation.y = seededRange(rng, 0, Math.PI * 2);
-        t.scale.setScalar(seededRange(rng, 0.85, 1.2));
-        oliveGroup.add(t);
+        return seededRandomPosInBounds();
       }
     });
-    natureExtraGroup.add(cypressGroup, oliveGroup);
-
-    root.add(archGroup, natureExtraGroup);
   } catch (e) {
     console.warn("Extra structures generation failed", e);
   }
+
+  // (structures were moved to src/environment/structures.js - handled above)
 
   // ----------------
   // Rain particle system (toggleable)
