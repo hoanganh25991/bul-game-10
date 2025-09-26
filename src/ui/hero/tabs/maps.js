@@ -45,7 +45,7 @@ export function renderMapsTab(panelEl, ctx = {}) {
   } catch (_) {}
   const loadBtn = document.createElement("button");
   loadBtn.className = "pill-btn pill-btn--yellow";
-  loadBtn.textContent = "Load more";
+  loadBtn.textContent = tt("maps.loadMore") || "Load more";
   footer.appendChild(loadBtn);
   wrap.appendChild(footer);
 
@@ -89,7 +89,7 @@ export function renderMapsTab(panelEl, ctx = {}) {
     const elite = ELITES[(depth - 1) % ELITES.length];
     const name = `${tt("maps.endless")} +${depth} — ${theme}`;
     const requiredLevel = Math.max(1, (lastBase.requiredLevel || 1) + depth * 5);
-    const desc = `Depth +${depth}. Each step strengthens foes: more HP, damage, speed and density.`;
+    const desc = tt("maps.depthDesc").replace("${depth}", depth) || `Depth +${depth}. Each step strengthens foes: more HP, damage, speed and density.`;
     return {
       index: idx,
       name,
@@ -162,7 +162,7 @@ export function renderMapsTab(panelEl, ctx = {}) {
       req.textContent = `${tt("maps.requires")} Lv ${m.requiredLevel}`;
       const elites = document.createElement("div");
       elites.className = "maps-elites";
-      elites.textContent = (m.strongEnemies && m.strongEnemies.length) ? `Elites: ${m.strongEnemies.join(", ")}` : "";
+      elites.textContent = (m.strongEnemies && m.strongEnemies.length) ? `${tt("maps.elites")} ${m.strongEnemies.join(", ")}` : "";
 
       info.appendChild(title);
       info.appendChild(d);

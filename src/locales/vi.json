@@ -15,7 +15,7 @@
     },
     "env": {
       "rain": "Mưa",
-      "density": "Mật độ môi trường",
+      "density": "Mật độ",
       "rainDensity": "Mật độ mưa"
     },
     "render": {
@@ -24,7 +24,7 @@
       "high": "Cao",
       "medium": "Trung bình",
       "low": "Thấp",
-      "reloadPrompt": "Thay đổi chất lượng đồ họa cần tải lại trò chơi. Tải lại ngay?",
+      "reloadPrompt": "Thay đổi chất lượng đồ họa cần tải lại. Tải lại ngay?",
       "reloadTitle": "Cần tải lại",
       "reloadDesc": "Thay đổi chất lượng đồ họa cần tải lại."
     }
@@ -32,7 +32,7 @@
   "instructions": {
     "title": "Hướng dẫn",
     "items": [
-      "Chuột+Bàn phím",
+      "Chuột + Bàn phím",
       "- Nhấp phải: di chuyển",
       "- Nhấp trái: tấn công kẻ địch",
       "- A: giữ để tự động tấn công cơ bản kẻ địch gần nhất",
@@ -41,10 +41,10 @@
       "- B: dịch chuyển",
       "- M: cắm cờ",
       "",
-      "Touch",
+      "Cảm ứng",
       "- Joystick: di chuyển",
-      "- Nút kĩ năng: tấn công",
-      "- Nút hỗ trợ: dịch chuyển, cắm cờ"
+      "- Nút kỹ năng: tấn công",
+      "- Nút phụ trợ: dịch chuyển, cắm cờ"
     ]
   },
   "hero": {
@@ -91,17 +91,17 @@
     "no": "Không"
   },
   "intro": {
-    "tagline": "Thần sấm sét thức tỉnh."
+    "tagline": "Thần sấm thức tỉnh."
   },
   "flash": {
-    "title": "Đang tải Thần Sấm Mãi Đỉnh",
+    "title": "Đang tải Thần Sấm — Mãi Đỉnh",
     "desc": "Chuẩn bị trải nghiệm sấm sét…",
     "note": "Đang tải mô-đun…",
     "motto": "Thần Sấm — Mãi Đỉnh"
   },
   "start": {
     "title": "Hành trình của Thần Sấm",
-    "story": "Thế giới chìm trong u ám. Những bóng đêm tỉnh dậy, và chỉ một vị thần có thể gọi sấm sét trở lại. Hãy dẫn GoT — vị thần sấm — qua rừng hoang, làng mạc đổ nát và chiến trường, tiêu diệt lũ quái và khôi phục trật tự."
+    "story": "Thế giới chìm trong u ám. Những bóng đêm thức tỉnh; chỉ một vị thần có thể gọi bão. Hãy dẫn GoT — vị thần sấm — qua rừng hoang, làng mạc đổ nát và chiến trường, tiêu diệt lũ quái và khôi phục trật tự."
   },
   "guide": {
     "button": "👋 Hướng dẫn",
@@ -133,11 +133,11 @@
     },
     "skills": {
       "title": "Kỹ năng",
-      "desc": "Chạm Basic hoặc Q/W/E/R để dùng kỹ năng. Thời gian hồi hiện ở vòng."
+      "desc": "Nhấn Basic hoặc Q/W/E/R để dùng kỹ năng. Thời gian hồi hiển thị ở vòng."
     },
     "hud": {
       "title": "HUD",
-      "desc": "Thanh HP/MP/XP hiển thị trạng thái. Cấp ở bên phải."
+      "desc": "Thanh HP/MP/XP hiển thị trạng thái. Cấp hiển thị ở bên phải."
     },
     "joystick": {
       "title": "Joystick",
@@ -148,14 +148,14 @@
     "msg": "Bạn đã chết. Đang hồi sinh..."
   },
   "uplift": {
-    "unlocked": "Cường hóa được mở",
+    "unlocked": "Cường hóa mở",
     "choose": "Chọn một cường hóa cho Đòn Đánh Cơ Bản:",
     "btn": {
       "aoe": "AOE",
       "chain": "Chuỗi",
       "impact": "Hiệu ứng"
     },
-    "decideLater": "Để sau",
+    "decideLater": "Quyết định sau",
     "applied": "Đã áp dụng cường hóa!",
     "none": "Chưa chọn cường hóa",
     "basic": "Cường hóa cơ bản",
@@ -165,83 +165,122 @@
     "assign": "Gán",
     "toKey": "vào phím:",
     "toSlot": "vào ô:",
-    "tip": "Mẹo: bấm Q, W, E hoặc R để chọn nhanh",
+    "tip": "Mẹo: nhấn Q, W, E hoặc R để chọn nhanh",
     "casted": "Đã thi triển!"
   },
   "skills": {
     "names": {
-      "chain_lightning": "Chain Lightning",
-      "lightning_bolt": "Lightning Bolt",
-      "static_field": "Static Field",
-      "thunderstorm": "Thunderstorm",
-      "got_bolt": "GoT Bolt",
-      "ion_nova": "Ion Nova",
-      "overcharge_aura": "Overcharge Aura",
-      "crackling_field": "Crackling Field",
-      "static_overload": "Static Overload",
-      "ball_lightning": "Ball Lightning",
-      "arc_spear": "Arc Spear",
-      "shockwave": "Shockwave",
-      "sky_wrath": "Sky Wrath",
-      "thunderdome": "Thunderdome",
-      "ion_storm": "Ion Storm",
-      "tempest_ring": "Tempest Ring",
-      "storm_pulse": "Storm Pulse",
-      "magneto_burst": "Magneto Burst",
-      "static_prison": "Static Prison",
-      "thundersurge": "Thundersurge",
-      "forked_lightning": "Forked Lightning",
-      "thunder_mend": "Thunder Mend",
-      "divine_mend": "Divine Mend",
-      "storm_sip": "Storm Sip",
-      "mana_well": "Mana Well",
-      "overload_buff": "Overload",
-      "surge_of_haste": "Surge of Haste",
-      "fortify": "Fortify",
-      "storm_barrier": "Storm Barrier",
-      "tempest_guard": "Tempest Guard",
-      "lightning_dash": "Lightning Dash",
-      "blink_strike": "Blink Strike",
-      "thunder_image": "Thunder Image",
-      "got_judgement": "GoT' Judgement",
-      "maelstrom": "Maelstrom"
+      "chain_lightning": "Sét Liên Hoàn",
+      "lightning_bolt": "Tia Sét",
+      "static_field": "Trường Tĩnh Điện",
+      "thunderstorm": "Bão Sét",
+      "got_bolt": "Tia GoT",
+      "ion_nova": "Nova Ion",
+      "overcharge_aura": "Hào Quang Quá Tải",
+      "crackling_field": "Trường Nổ Lách Tách",
+      "static_overload": "Quá Tải Tĩnh Điện",
+      "ball_lightning": "Cầu Sét",
+      "arc_spear": "Thương Sét",
+      "shockwave": "Sóng Xung Kích",
+      "sky_wrath": "Thịnh Nộ Trời",
+      "thunderdome": "Vòm Sét",
+      "ion_storm": "Bão Ion",
+      "tempest_ring": "Vòng Bão",
+      "storm_pulse": "Xung Bão",
+      "magneto_burst": "Vụ Nổ Từ Tính",
+      "static_prison": "Nhà Tù Tĩnh Điện",
+      "thundersurge": "Làn Sóng Sét",
+      "forked_lightning": "Sét Rẽ Nhánh",
+      "thunder_mend": "Chữa Trị Sấm Sét",
+      "divine_mend": "Chữa Trị Thần Thánh",
+      "storm_sip": "Nhấp Bão",
+      "mana_well": "Giếng Mana",
+      "overload_buff": "Tăng Cường Quá Tải",
+      "surge_of_haste": "Làn Sóng Tăng Tốc",
+      "fortify": "Tăng Cường",
+      "storm_barrier": "Rào Chắn Bão",
+      "tempest_guard": "Lính Canh Bão Tố",
+      "lightning_dash": "Lướt Sét",
+      "blink_strike": "Đòn Đánh Tức Thời",
+      "thunder_image": "Ảnh Sấm Sét",
+      "got_judgement": "Phán Quyết GoT",
+      "maelstrom": "Cột Bão"
     },
     "shorts": {
-      "chain_lightning": "Chain",
-      "lightning_bolt": "Bolt",
-      "static_field": "Static",
-      "thunderstorm": "Storm",
-      "got_bolt": "Bolt+",
+      "chain_lightning": "Liên Hoàn",
+      "lightning_bolt": "Tia",
+      "static_field": "Tĩnh",
+      "thunderstorm": "Bão",
+      "got_bolt": "Tia+",
       "ion_nova": "Nova",
-      "overcharge_aura": "O-Chg",
-      "crackling_field": "C-Field",
-      "static_overload": "Over",
-      "ball_lightning": "Ball",
-      "arc_spear": "Spear",
-      "shockwave": "Shock",
-      "sky_wrath": "Wrath",
-      "thunderdome": "Dome",
+      "overcharge_aura": "QuáTải",
+      "crackling_field": "TrườngNổ",
+      "static_overload": "QuáTải",
+      "ball_lightning": "Cầu",
+      "arc_spear": "Thương",
+      "shockwave": "Sóng",
+      "sky_wrath": "ThịnhNộ",
+      "thunderdome": "Vòm",
       "ion_storm": "Ion",
-      "tempest_ring": "Ring",
-      "storm_pulse": "Pulse",
-      "magneto_burst": "Burst",
-      "static_prison": "Prison",
-      "thundersurge": "Surge",
-      "forked_lightning": "Fork",
-      "thunder_mend": "Heal",
-      "divine_mend": "Mend+",
+      "tempest_ring": "Vòng",
+      "storm_pulse": "Xung",
+      "magneto_burst": "NổTừTính",
+      "static_prison": "TùTĩnh",
+      "thundersurge": "Sóng",
+      "forked_lightning": "RẽNhánh",
+      "thunder_mend": "HồiHP",
+      "divine_mend": "Hồi+",
       "storm_sip": "Mana",
-      "mana_well": "Well",
+      "mana_well": "Giếng",
       "overload_buff": "Buff",
-      "surge_of_haste": "Haste",
-      "fortify": "Fort",
-      "storm_barrier": "Barrier",
-      "tempest_guard": "Guard",
-      "lightning_dash": "Dash",
-      "blink_strike": "Blink",
-      "thunder_image": "Clone",
-      "got_judgement": "Judg",
-      "maelstrom": "Mael"
+      "surge_of_haste": "TăngTốc",
+      "fortify": "TăngCường",
+      "storm_barrier": "RàoChắn",
+      "tempest_guard": "Lính",
+      "lightning_dash": "Lướt",
+      "blink_strike": "DịchChuyển",
+      "thunder_image": "Ảnh",
+      "got_judgement": "Phán",
+      "maelstrom": "Cột"
+    },
+    "types": {
+      "chain": "Nhảy giữa kẻ địch gần đó, đánh nhiều mục tiêu.",
+      "aoe": "Khu vực mục tiêu trên mặt đất, gây sát thương trong bán kính.",
+      "aura": "Hào quang bật/tắt quanh tướng, gây sát thương định kỳ và tiêu tốn mana.",
+      "storm": "Nhiều cú đánh ngẫu nhiên trong bán kính theo thời gian.",
+      "beam": "Tia lập tức tới kẻ địch gần nhất trong tầm.",
+      "nova": "Nổ tỏa quanh tướng.",
+      "heal": "Hồi HP ngay lập tức.",
+      "mana": "Hồi MP ngay lập tức.",
+      "buff": "Tạm thời tăng sát thương và tốc độ.",
+      "dash": "Lướt nhanh về phía trước.",
+      "blink": "Dịch chuyển tới hướng/điểm.",
+      "clone": "Triệu hồi ảnh sấm zapping kẻ địch định kỳ.",
+      "shield": "Giảm sát thương nhận vào trong thời gian ngắn; có thể grant miễn nhiễm tạm thời."
+    },
+    "stats": {
+      "type": "Loại",
+      "cooldown": "Thời gian hồi",
+      "mana": "Mana",
+      "radius": "Bán kính",
+      "range": "Tầm",
+      "jumps": "Số lần nhảy",
+      "jumpRange": "Tầm nhảy",
+      "tick": "Tick",
+      "duration": "Thời lượng",
+      "slow": "Làm chậm",
+      "slowDuration": "Thời gian làm chậm",
+      "damage": "Sát thương",
+      "base": "cơ bản"
     }
+  },
+  "maps": {
+    "endless": "Vô hạn",
+    "current": "Hiện tại",
+    "locked": "Bị khoá",
+    "requires": "Yêu cầu",
+    "loadMore": "Tải thêm",
+    "depthDesc": "Độ sâu +${depth}. Mỗi bước làm kẻ địch mạnh hơn: HP, sát thương, tốc độ và mật độ tăng.",
+    "elites": "Kẻ tinh nhuệ:"
   }
 }

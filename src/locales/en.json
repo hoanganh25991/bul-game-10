@@ -242,12 +242,45 @@
       "thunder_image": "Clone",
       "got_judgement": "Judg",
       "maelstrom": "Mael"
+    },
+    "types": {
+      "chain": "Chains between nearby enemies, hitting multiple targets.",
+      "aoe": "Ground-targeted area. Damages enemies within its radius.",
+      "aura": "Toggle aura around hero. Ticks damage periodically while draining mana.",
+      "storm": "Multiple random strikes in a radius over time.",
+      "beam": "Instant zap to nearest enemy in range.",
+      "nova": "Radial burst around hero.",
+      "heal": "Restores hero HP instantly.",
+      "mana": "Restores hero MP instantly.",
+      "buff": "Temporarily increases damage and speed.",
+      "dash": "Quickly dash forward.",
+      "blink": "Teleport toward direction/point.",
+      "clone": "Summons a lightning image that periodically zaps nearby foes.",
+      "shield": "Reduces incoming damage for a short time; may grant brief invulnerability on cast."
+    },
+    "stats": {
+      "type": "Type",
+      "cooldown": "Cooldown",
+      "mana": "Mana",
+      "radius": "Radius",
+      "range": "Range",
+      "jumps": "Jumps",
+      "jumpRange": "Jump Range",
+      "tick": "Tick",
+      "duration": "Duration",
+      "slow": "Slow",
+      "slowDuration": "Slow Duration",
+      "damage": "Damage",
+      "base": "base"
     }
   },
   "maps": {
     "endless": "Endless",
     "current": "Current",
     "locked": "Locked",
-    "requires": "Requires"
+    "requires": "Requires",
+    "loadMore": "Load more",
+    "depthDesc": "Depth +${depth}. Each step strengthens foes: more HP, damage, speed and density.",
+    "elites": "Elites:"
   }
 }
