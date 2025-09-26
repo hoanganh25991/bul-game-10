@@ -183,67 +183,6 @@ export function initEnvironment(scene, options = {}) {
     return g;
   }
 
-  // Curved road helper — builds a flat ribbon along a Catmull–Rom spline (connected and curved)
-  function createCurvedRoad(points, width = 6, segments = 120, color = 0x2b2420) {
-    const curve = new THREE.CatmullRomCurve3(points, false, "catmullrom", 0.5);
-    const pos = new Float32Array((segments + 1) * 2 * 3);
-    const uv = new Float32Array((segments + 1) * 2 * 2);
-    const idx = new Uint32Array(segments * 6);
-
-    const up = new THREE.Vector3(0, 1, 0);
-    const p = new THREE.Vector3();
-    const t = new THREE.Vector3();
-    const left = new THREE.Vector3();
-
-    for (let i = 0; i <= segments; i++) {
-      const a = i / segments;
-      curve.getPointAt(a, p);
-      curve.getTangentAt(a, t).normalize();
-      left.crossVectors(up, t).normalize();
-      const hw = width * 0.5;
-      const l = new THREE.Vector3().copy(p).addScaledVector(left, hw);
-      const r = new THREE.Vector3().copy(p).addScaledVector(left, -hw);
-      // keep slightly above ground
-      l.y = (l.y || 0) + 0.015;
-      r.y = (r.y || 0) + 0.015;
-
-      const vi = i * 2 * 3;
-      pos[vi + 0] = l.x; pos[vi + 1] = l.y; pos[vi + 2] = l.z;
-      pos[vi + 3] = r.x; pos[vi + 4] = r.y; pos[vi + 5] = r.z;
-
-      const uvi = i * 2 * 2;
-      uv[uvi + 0] = 0; uv[uvi + 1] = a * 8;
-      uv[uvi + 2] = 1; uv[uvi + 3] = a * 8;
-    }
-
-    for (let i = 0; i < segments; i++) {
-      const i0 = i * 2;
-      const i1 = i0 + 1;
-      const i2 = i0 + 2;
-      const i3 = i0 + 3;
-      const ti = i * 6;
-      idx[ti + 0] = i0; idx[ti + 1] = i1; idx[ti + 2] = i2;
-      idx[ti + 3] = i1; idx[ti + 4] = i3; idx[ti + 5] = i2;
-    }
-
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-    geom.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
-    geom.setIndex(new THREE.BufferAttribute(idx, 1));
-    geom.computeVertexNormals();
-
-    const mat = new THREE.MeshStandardMaterial({
-      color,
-      roughness: 0.95,
-      metalness: 0.0,
-      side: THREE.DoubleSide
-    });
-
-    const mesh = new THREE.Mesh(geom, mat);
-    mesh.receiveShadow = false;
-    return mesh;
-  }
-
   // Forest cluster generator - denser cluster of trees
   function createForest(center = new THREE.Vector3(0,0,0), radius = 8, count = 30) {
     const fg = new THREE.Group();
