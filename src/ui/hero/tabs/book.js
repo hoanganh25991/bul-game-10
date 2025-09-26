@@ -6,7 +6,8 @@ import { getSkillIcon } from "../../skillbar.js";
  * Expects panelEl to be #heroTabBook (container is static in HTML).
  */
 export function renderBookTab(panelEl, ctx = {}) {
-  const { SKILL_POOL = [], player } = ctx;
+  const { SKILL_POOL = [], player, t } = ctx;
+  const tt = typeof t === "function" ? t : (x) => x;
   if (!panelEl) return;
 
   // Clear panel content
@@ -70,7 +71,9 @@ export function renderBookTab(panelEl, ctx = {}) {
 
   function renderDetail(s) {
     try {
-      title.textContent = `${s.name} (${s.short || ""})`;
+      const nameLocal = tt(`skills.names.${s.id}`) || s.name;
+      const shortLocal = tt(`skills.shorts.${s.id}`) || s.short || "";
+      title.textContent = `${nameLocal}${shortLocal ? " (" + shortLocal + ")" : ""}`;
       icon.textContent = getSkillIcon(s.short || s.name);
       const dmgLine = typeof s.dmg === "number" ? `Damage: ${computeDamage(s)} (base ${s.dmg})` : "";
       const lines = [
@@ -117,7 +120,9 @@ export function renderBookTab(panelEl, ctx = {}) {
     const info = document.createElement("div");
     const titleRow = document.createElement("div");
     titleRow.className = "maps-title";
-    titleRow.textContent = `${s.name}${s.short ? " • " + s.short : ""}`;
+    const nameLocal2 = tt(`skills.names.${s.id}`) || s.name;
+    const shortLocal2 = tt(`skills.shorts.${s.id}`) || s.short;
+    titleRow.textContent = `${nameLocal2}${shortLocal2 ? " • " + shortLocal2 : ""}`;
     const desc = document.createElement("div");
     desc.className = "maps-desc";
     desc.textContent = s.type || "";

@@ -139,15 +139,15 @@ export function renderInfoTab(panelEl, ctx = {}) {
     }
 
     // Rows
-    addRow("👤", tt("hero.info.title") || "Hero", `Level ${level} • Move ${moveSpd} • Base DMG ${baseDmg}`, `HP ${hp} • MP ${mp}`);
-    addRow("⚡", "Attack", `Attack Speed ${atkSpdMul.toFixed(2)}x (${atkSpdPct >= 0 ? "+" : ""}${atkSpdPct}%)`, "");
-    addRow("🛡️", "Defense", `Defense ${defPct}%${defActive ? ` (${defRem}s)` : ""}`, defActive ? "Active" : "Inactive");
+    addRow("👤", tt("hero.info.title") || "Hero", `${tt("hero.info.level")} ${level} • ${tt("hero.info.move")} ${moveSpd} • ${tt("hero.info.baseDmg")} ${baseDmg}`, `${tt("hero.info.hp")} ${hp} • ${tt("hero.info.mp")} ${mp}`);
+    addRow("⚡", tt("hero.info.attack"), `${tt("hero.info.attackSpeed")} ${atkSpdMul.toFixed(2)}x (${atkSpdPct >= 0 ? "+" : ""}${atkSpdPct}%)`, "");
+    addRow("🛡️", tt("hero.info.defense"), `${tt("hero.info.defense")} ${defPct}%${defActive ? ` (${defRem}s)` : ""}`, defActive ? tt("hero.info.active") : tt("hero.info.inactive"));
     if (mapName) {
-      addRow(mapEmoji, "Map", mapName, mapDepth ? `Depth +${mapDepth}` : "");
+      addRow(mapEmoji, tt("hero.info.map"), mapName, mapDepth ? `${tt("hero.info.depth")} +${mapDepth}` : "");
     }
-    addRow("🟢", "Buffs", (buffs.length ? buffs.join(", ") : "—"), "");
-    addRow("🔻", "Debuffs", (debuffs.length ? debuffs.join(", ") : "—"), "");
-    addRow("📈", "Uplifts", (upliftLines.length ? upliftLines.join(", ") : "No uplifts chosen yet"), "");
+    addRow("🟢", tt("hero.info.buffs"), (buffs.length ? buffs.join(", ") : "—"), "");
+    addRow("🔻", tt("hero.info.debuffs"), (debuffs.length ? debuffs.join(", ") : "—"), "");
+    addRow("📈", tt("hero.info.uplifts"), (upliftLines.length ? upliftLines.join(", ") : tt("uplift.none")), "");
   } catch (_) {
     const row = document.createElement("div");
     row.className = "maps-row";
