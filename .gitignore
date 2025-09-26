@@ -1,5 +1,7 @@
-.clinerules
 todo*.md
+.clinerules
+memory-bank/progress.md
+
 scripts
 favicon_io
 android-build
