@@ -1,5 +1,6 @@
 .clinerules
 todo*.md
 scripts
-android-build
 favicon_io
+android-build
+aab-output

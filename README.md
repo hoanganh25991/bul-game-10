@@ -31,6 +31,10 @@ A lightweight prototype featuring DOTA‑style controls, electric abilities, sim
 
 [demo.mp4](demo.mp4)
 
+## Google Play
+
+https://play.google.com/store/apps/details?id=io.github.hoanganh25991.got
+
 ## Documentation
 - Requirements (modular index): docs/requirements/index.md
 - Technical Architecture (modular index): docs/technical/index.md
