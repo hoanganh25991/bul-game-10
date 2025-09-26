@@ -29,6 +29,12 @@
 
 /* Action buttons (re-using icon-btn visual language) */
 #bottomMiddle .icon-btn {
+  /* keep buttons in normal flow inside the flex row (panels.css sets .icon-btn as absolute) */
+  position: static;
+  width: auto;
+  height: auto;
+  box-sizing: border-box;
+
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid rgba(255,255,255,0.06);
