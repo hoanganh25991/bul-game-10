@@ -58,6 +58,13 @@ export function initEnvironment(scene, options = {}) {
   const __houseLights = __q === "high" ? "full" : (__q === "medium" ? "dim" : "none");
   // Fireflies density factor
   const __fireflyMul = __q === "low" ? 0.25 : (__q === "medium" ? 0.5 : 1);
+  // Dynamic light budget to cap per-frame lighting cost
+  const __lightBudget = (__q === "low") ? 0 : (__q === "medium" ? 10 : 18);
+  let __lightBudgetLeft = __lightBudget;
+  function acquireLight(n = 1) {
+    if (__lightBudgetLeft >= n) { __lightBudgetLeft -= n; return true; }
+    return false;
+  }
 
   const root = new THREE.Group();
   root.name = "environment";
@@ -113,6 +120,9 @@ export function initEnvironment(scene, options = {}) {
     );
   }
 
+  // Cache of objects that sway to avoid traversing full scene graph every frame
+  const swayObjs = [];
+
   // ----------------
   // Primitive props
   // ----------------
@@ -143,6 +153,8 @@ export function initEnvironment(scene, options = {}) {
     // small sway params used by update() to animate subtle motion
     g.userData.swayPhase = Math.random() * Math.PI * 2;
     g.userData.swayAmp = 0.004 + Math.random() * 0.01;
+    // register for per-frame sway updates
+    swayObjs.push(g);
 
     g.scale.setScalar(0.9 + Math.random() * 0.8);
     return g;
@@ -301,7 +313,9 @@ export function initEnvironment(scene, options = {}) {
         house.scale.setScalar(sc);
 
         // Add a warm lantern and small emissive bulb near each house to match village ambiance
-        if (__houseLights !== "none") {
+        let __hasLanternLight = false;
+        if (__houseLights !== "none" && acquireLight(1)) {
+          __hasLanternLight = true;
           const intensity = __houseLights === "dim" ? 0.4 : 0.9;
           const dist = __houseLights === "dim" ? 4 : 6;
           const decay = 2;
@@ -317,6 +331,9 @@ export function initEnvironment(scene, options = {}) {
         );
         lanternBulb.position.set(0.6, 0.8, 0.6);
         house.add(lanternBulb);
+        if (typeof __hasLanternLight !== "undefined" && !__hasLanternLight) {
+          lanternBulb.material.emissiveIntensity = (__houseLights === "none" ? 1.2 : 1.4);
+        }
 
         // small ground decoration near house entrance
         const peb = new THREE.Mesh(
@@ -529,13 +546,13 @@ export function initEnvironment(scene, options = {}) {
           archGroup.add(t);
 
           // Accent lights at entrance if perf allows
-          if (__q !== "low") {
-            const torchL = new THREE.PointLight(0xffd8a8, __q === "medium" ? 0.5 : 0.8, 14, 2);
-            torchL.position.set(pos.x + 2.5, 1.2, pos.z - 4.5);
-            const torchR = torchL.clone();
-            torchR.position.set(pos.x - 2.5, 1.2, pos.z - 4.5);
-            root.add(torchL, torchR);
-          }
+      if (__q !== "low" && acquireLight(2)) {
+        const torchL = new THREE.PointLight(0xffd8a8, __q === "medium" ? 0.5 : 0.8, 14, 2);
+        torchL.position.set(pos.x + 2.5, 1.2, pos.z - 4.5);
+        const torchR = torchL.clone();
+        torchR.position.set(pos.x - 2.5, 1.2, pos.z - 4.5);
+        root.add(torchL, torchR);
+      }
         }
       },
       {
@@ -575,11 +592,11 @@ export function initEnvironment(scene, options = {}) {
           s.position.set(pos.x, 0, pos.z);
           s.rotation.y = seededRange(rng, -Math.PI, Math.PI);
           archGroup.add(s);
-          if (__q !== "low") {
-            const l = new THREE.PointLight(0xffe0b8, __q === "medium" ? 0.35 : 0.55, 10, 2);
-            l.position.set(pos.x, 1.0, pos.z);
-            root.add(l);
-          }
+      if (__q !== "low" && acquireLight(1)) {
+        const l = new THREE.PointLight(0xffe0b8, __q === "medium" ? 0.35 : 0.55, 10, 2);
+        l.position.set(pos.x, 1.0, pos.z);
+        root.add(l);
+      }
         }
       },
       {
@@ -598,10 +615,33 @@ export function initEnvironment(scene, options = {}) {
       structureTypes = structureTypes.filter(t => t.key !== "temple");
     }
 
-    for (let i = 0; i < structureSpotCount; i++) {
-      const idx = Math.floor(seededRange(rng, 0, structureTypes.length));
-      structureTypes[idx].place();
+    // Preserve per-type counts while randomizing order to avoid blowing up heavy types.
+    const typeByKey = Object.fromEntries(structureTypes.map(t => [t.key, t]));
+    const typePool = [];
+    const pushNTimes = (key, count) => { for (let i = 0; i < count; i++) typePool.push(key); };
+    pushNTimes("temple", __templeCountForDensity);
+    pushNTimes("villa", __villaCountForDensity);
+    pushNTimes("column", __columnCountForDensity);
+    pushNTimes("statue", __statueCountForDensity);
+    pushNTimes("obelisk", __obeliskCountForDensity);
+
+    // Safety on low: ensure no temples even if counts change in the future.
+    if (__q === "low") {
+      for (let i = typePool.length - 1; i >= 0; i--) {
+        if (typePool[i] === "temple") typePool.splice(i, 1);
+      }
     }
+
+    // Seeded Fisher–Yates shuffle
+    for (let i = typePool.length - 1; i > 0; i--) {
+      const j = Math.floor(seededRange(rng, 0, i + 1));
+      const tmp = typePool[i]; typePool[i] = typePool[j]; typePool[j] = tmp;
+    }
+
+    typePool.forEach((key) => {
+      const t = typeByKey[key];
+      if (t) t.place();
+    });
 
     // Nature extras unified density: same total budget, random type per spot
     const __cypressCountForDensity = (__q === "low") ? 24 : (__q === "medium" ? 40 : 60);
@@ -613,10 +653,18 @@ export function initEnvironment(scene, options = {}) {
     const oliveGroup = new THREE.Group();
     oliveGroup.name = "olive";
 
-    for (let i = 0; i < natureTreeSpotCount; i++) {
-      const pick = Math.floor(seededRange(rng, 0, 2));
+    // Preserve original ratio between cypress and olive, but randomize order
+    const naturePool = [];
+    for (let i = 0; i < __cypressCountForDensity; i++) naturePool.push("cypress");
+    for (let i = 0; i < __oliveCountForDensity; i++) naturePool.push("olive");
+    // Seeded shuffle
+    for (let i = naturePool.length - 1; i > 0; i--) {
+      const j = Math.floor(seededRange(rng, 0, i + 1));
+      const tmp = naturePool[i]; naturePool[i] = naturePool[j]; naturePool[j] = tmp;
+    }
+    naturePool.forEach((kind) => {
       const p = pickPos(4, 6, 2);
-      if (pick === 0) {
+      if (kind === "cypress") {
         const t = createCypressTree();
         t.position.set(p.x, 0, p.z);
         t.rotation.y = seededRange(rng, 0, Math.PI * 2);
@@ -629,7 +677,7 @@ export function initEnvironment(scene, options = {}) {
         t.scale.setScalar(seededRange(rng, 0.85, 1.2));
         oliveGroup.add(t);
       }
-    }
+    });
     natureExtraGroup.add(cypressGroup, oliveGroup);
 
     root.add(archGroup, natureExtraGroup);
@@ -687,17 +735,17 @@ export function initEnvironment(scene, options = {}) {
       }
     }
 
-    // subtle tree/foliage sway: animate any object with userData.swayPhase
+    // subtle tree/foliage sway: animate pre-collected swayers to avoid full graph traversal
     const doSway = (__q === "high") || (__q === "medium" && (t - __lastSwayT) > 0.12);
     if (doSway) {
       __lastSwayT = t;
-      root.traverse((obj) => {
-        if (obj.userData && typeof obj.userData.swayPhase !== "undefined") {
-          const phase = obj.userData.swayPhase || 0;
-          const amp = obj.userData.swayAmp || 0.006;
-          obj.rotation.z = Math.sin(t + phase) * amp;
-        }
-      });
+      for (let i = 0; i < swayObjs.length; i++) {
+        const obj = swayObjs[i];
+        if (!obj) continue;
+        const phase = (obj.userData && obj.userData.swayPhase) || 0;
+        const amp = (obj.userData && obj.userData.swayAmp) || 0.006;
+        obj.rotation.z = Math.sin(t + phase) * amp;
+      }
     }
 
     if (rain.enabled && rain.points) {
