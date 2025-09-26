@@ -33,7 +33,7 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 - Technical Docs: added docs/technical/ui-screens.md; updated utils-and-config with envPrefs/renderPrefs/audioPrefs.
 
 - Map thumbnails now use deterministic emoji icons for all maps; removed image URLs from src/maps.js; UI renders large emoji in 64x64 thumbs.
-- Unified list item style across tabs: Skills pool, Skillbook list, and Marks now use the shared maps-style rows (thumb • info • actions) for visual consistency; Marks panel now consumes remaining height and scrolls.
+- Unified list item style across tabs: Skills pool, Skillbook list, and Marks now use the shared items-style rows (thumb • info • actions) for visual consistency; Marks panel now consumes remaining height and scrolls.
 ### Removed
 - Removed 3D hero preview from Hero Screen: eliminated heroPreviewCanvas and related preview code in src/main.js.
 

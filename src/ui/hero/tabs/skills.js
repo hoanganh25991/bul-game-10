@@ -52,9 +52,9 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
   }
   rightCol.appendChild(slotsWrap);
 
-  // Skill Pool (maps-style list)
+  // Skill Pool (items-style list)
   const poolPanel = document.createElement("div");
-  poolPanel.className = "maps-panel";
+  poolPanel.className = "items-panel";
   try {
     poolPanel.style.display = "flex";
     poolPanel.style.flexDirection = "column";
@@ -62,7 +62,7 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
     poolPanel.style.minHeight = "0";
   } catch (_) {}
   const list = document.createElement("div");
-  list.className = "maps-list";
+  list.className = "items-list";
   try {
     list.style.flex = "1 1 auto";
     list.style.minHeight = "0";
@@ -72,13 +72,13 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
 
   SKILL_POOL.forEach((s) => {
     const row = document.createElement("div");
-    row.className = "maps-row";
+    row.className = "items-row";
     row.dataset.skillId = s.id;
 
     const thumb = document.createElement("div");
-    thumb.className = "maps-thumb";
+    thumb.className = "items-thumb";
     const em = document.createElement("div");
-    em.className = "maps-thumb-ph";
+    em.className = "items-thumb-ph";
     em.textContent = getSkillIcon(s.short);
     try {
       em.style.fontSize = "42px";
@@ -88,15 +88,15 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
 
     const info = document.createElement("div");
     const title = document.createElement("div");
-    title.className = "maps-title";
+    title.className = "items-title";
     const nameLocal = tt(`skills.names.${s.id}`) || s.name;
     const shortLocal = tt(`skills.shorts.${s.id}`) || s.short;
     title.textContent = `${nameLocal}${shortLocal ? " • " + shortLocal : ""}`;
     const desc = document.createElement("div");
-    desc.className = "maps-desc";
+    desc.className = "items-desc";
     desc.textContent = s.type ? s.type : "";
     const req = document.createElement("div");
-    req.className = "maps-req";
+    req.className = "items-req";
     const parts = [];
     if (s.cd != null) parts.push(`CD ${s.cd}s`);
     if (s.mana != null) parts.push(`MP ${s.mana}`);
@@ -107,7 +107,7 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
     if (req.textContent) info.appendChild(req);
 
     const actions = document.createElement("div");
-    actions.className = "maps-actions";
+    actions.className = "items-actions";
     const btn = document.createElement("button");
     btn.className = "pill-btn pill-btn--yellow";
     btn.textContent = "➕";
@@ -208,7 +208,7 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
   cancelBtn.addEventListener("click", () => {
     selectedSkillId = null;
     try {
-      list.querySelectorAll(".maps-row").forEach((it) => {
+      list.querySelectorAll(".items-row").forEach((it) => {
         it.classList.remove("selected");
       });
     } catch (_) {}
@@ -232,7 +232,7 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
     selectedSkillId = skillId;
     // highlight the selected item
     try {
-      list.querySelectorAll(".maps-row").forEach((it) => {
+      list.querySelectorAll(".items-row").forEach((it) => {
         if (it.dataset.skillId === skillId) {
           it.classList.add("selected");
         } else {
@@ -249,7 +249,7 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
   }
 
   // Pool item interactions
-  list.querySelectorAll(".maps-row").forEach((itemEl) => {
+  list.querySelectorAll(".items-row").forEach((itemEl) => {
     const skillId = itemEl.dataset.skillId;
     // Click on row = select and show assign bar (no instant assign)
     itemEl.addEventListener("click", () => {

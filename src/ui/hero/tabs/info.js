@@ -9,34 +9,10 @@ export function renderInfoTab(panelEl, ctx = {}) {
   if (!panelEl) return;
 
   // Prefer static DOM provided in index.html when available
-  let list = panelEl.querySelector(".maps-list");
+  let list = panelEl.querySelector(".items-list");
   if (list) {
     // Clear existing list content but keep the shell provided in the HTML
     try { list.innerHTML = ""; } catch (_) {}
-  } else {
-    // Create shell like before if not present (fallback)
-    try { panelEl.innerHTML = ""; } catch (_) {}
-
-    const wrap = document.createElement("div");
-    wrap.className = "maps-panel";
-    try {
-      wrap.style.display = "flex";
-      wrap.style.flexDirection = "column";
-      wrap.style.flex = "1 1 auto";
-      wrap.style.minHeight = "0";
-    } catch (_) {}
-
-    list = document.createElement("div");
-    list.className = "maps-list";
-    try {
-      list.style.flex = "1 1 auto";
-      list.style.minHeight = "0";
-      list.style.overflow = "auto";
-      list.style.maxHeight = "none";
-    } catch (_) {}
-
-    wrap.appendChild(list);
-    panelEl.appendChild(wrap);
   }
 
   try {
@@ -111,25 +87,25 @@ export function renderInfoTab(panelEl, ctx = {}) {
 
     function addRow(emoji, titleText, descText = "", reqText = "") {
       const row = document.createElement("div");
-      row.className = "maps-row";
+      row.className = "items-row";
 
       const thumb = document.createElement("div");
-      thumb.className = "maps-thumb";
+      thumb.className = "items-thumb";
       const em = document.createElement("div");
-      em.className = "maps-thumb-ph";
+      em.className = "items-thumb-ph";
       em.textContent = emoji;
       try { em.style.fontSize = "42px"; em.style.lineHeight = "1"; } catch (_) {}
       thumb.appendChild(em);
 
       const info = document.createElement("div");
       const title = document.createElement("div");
-      title.className = "maps-title";
+      title.className = "items-title";
       title.textContent = titleText || "";
       const desc = document.createElement("div");
-      desc.className = "maps-desc";
+      desc.className = "items-desc";
       desc.textContent = descText || "";
       const req = document.createElement("div");
-      req.className = "maps-req";
+      req.className = "items-req";
       req.textContent = reqText || "";
 
       info.appendChild(title);
@@ -137,7 +113,7 @@ export function renderInfoTab(panelEl, ctx = {}) {
       if (req.textContent) info.appendChild(req);
 
       const actions = document.createElement("div");
-      actions.className = "maps-actions";
+      actions.className = "items-actions";
 
       row.appendChild(thumb);
       row.appendChild(info);
@@ -153,29 +129,29 @@ export function renderInfoTab(panelEl, ctx = {}) {
       addRow(mapEmoji, tt("hero.info.map"), mapName, mapDepth ? `${tt("hero.info.depth")} +${mapDepth}` : "");
     }
     addRow("🟢", tt("hero.info.buffs"), (buffs.length ? buffs.join(", ") : "—"), "");
-    addRow("🔻", tt("hero.info.debuffs"), (debuffs.length ? debuffs.join(", ") : "—"), "");
+    addRow("🔴", tt("hero.info.debuffs"), (debuffs.length ? debuffs.join(", ") : "—"), "");
     addRow("📈", tt("hero.info.uplifts"), (upliftLines.length ? upliftLines.join(", ") : tt("uplift.none")), "");
   } catch (_) {
     const row = document.createElement("div");
-    row.className = "maps-row";
+    row.className = "items-row";
     const thumb = document.createElement("div");
-    thumb.className = "maps-thumb";
+    thumb.className = "items-thumb";
     const em = document.createElement("div");
-    em.className = "maps-thumb-ph";
+    em.className = "items-thumb-ph";
     em.textContent = "ℹ️";
     try { em.style.fontSize = "42px"; em.style.lineHeight = "1"; } catch (_) {}
     thumb.appendChild(em);
     const infoDiv = document.createElement("div");
     const title = document.createElement("div");
-    title.className = "maps-title";
+    title.className = "items-title";
     title.textContent = "Info";
     const desc = document.createElement("div");
-    desc.className = "maps-desc";
+    desc.className = "items-desc";
     desc.textContent = "—";
     infoDiv.appendChild(title);
     infoDiv.appendChild(desc);
     const actions = document.createElement("div");
-    actions.className = "maps-actions";
+    actions.className = "items-actions";
     row.appendChild(thumb);
     row.appendChild(infoDiv);
     row.appendChild(actions);

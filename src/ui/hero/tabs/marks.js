@@ -12,7 +12,7 @@ export function renderMarksTab(panelEl, ctx = {}) {
   } catch (_) {}
 
   const wrap = document.createElement("div");
-  wrap.className = "maps-panel";
+  wrap.className = "items-panel";
   try {
     wrap.style.display = "flex";
     wrap.style.flexDirection = "column";
@@ -27,7 +27,7 @@ export function renderMarksTab(panelEl, ctx = {}) {
   head.appendChild(cd);
 
   const list = document.createElement("div");
-  list.className = "maps-list";
+  list.className = "items-list";
   try {
     list.style.flex = "1 1 auto";
     list.style.minHeight = "0";
@@ -56,12 +56,12 @@ export function renderMarksTab(panelEl, ctx = {}) {
       } else {
         arr.forEach((m) => {
           const row = document.createElement("div");
-          row.className = "maps-row";
+          row.className = "items-row";
 
           const thumb = document.createElement("div");
-          thumb.className = "maps-thumb";
+          thumb.className = "items-thumb";
           const em = document.createElement("div");
-          em.className = "maps-thumb-ph";
+          em.className = "items-thumb-ph";
           em.textContent = "🚩";
           try {
             em.style.fontSize = "42px";
@@ -72,13 +72,13 @@ export function renderMarksTab(panelEl, ctx = {}) {
           const info = document.createElement("div");
           const nm = (m.name && String(m.name).trim()) ? m.name : `Mark ${m.index + 1}`;
           const title = document.createElement("div");
-          title.className = "maps-title";
+          title.className = "items-title";
           title.textContent = nm;
           const desc = document.createElement("div");
-          desc.className = "maps-desc";
+          desc.className = "items-desc";
           desc.textContent = `Created: ${fmtTime(m.createdAt)}`;
           const req = document.createElement("div");
-          req.className = "maps-req";
+          req.className = "items-req";
           req.textContent = `(${Math.round(m.x)}, ${Math.round(m.z)})`;
 
           info.appendChild(title);
@@ -86,7 +86,7 @@ export function renderMarksTab(panelEl, ctx = {}) {
           info.appendChild(req);
 
           const actions = document.createElement("div");
-          actions.className = "maps-actions";
+          actions.className = "items-actions";
 
           const rn = document.createElement("button");
           rn.className = "pill-btn";

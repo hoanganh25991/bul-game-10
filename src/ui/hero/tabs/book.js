@@ -100,16 +100,16 @@ export function renderBookTab(panelEl, ctx = {}) {
     } catch (_) {}
   }
 
-  // Build list (maps-style rows)
+  // Build list (items-style rows)
   SKILL_POOL.forEach((s) => {
     const row = document.createElement("div");
-    row.className = "maps-row";
+    row.className = "items-row";
     row.dataset.skillId = s.id;
 
     const thumb = document.createElement("div");
-    thumb.className = "maps-thumb";
+    thumb.className = "items-thumb";
     const em = document.createElement("div");
-    em.className = "maps-thumb-ph";
+    em.className = "items-thumb-ph";
     em.textContent = getSkillIcon(s.short || s.name);
     try {
       em.style.fontSize = "42px";
@@ -119,15 +119,15 @@ export function renderBookTab(panelEl, ctx = {}) {
 
     const info = document.createElement("div");
     const titleRow = document.createElement("div");
-    titleRow.className = "maps-title";
+    titleRow.className = "items-title";
     const nameLocal2 = tt(`skills.names.${s.id}`) || s.name;
     const shortLocal2 = tt(`skills.shorts.${s.id}`) || s.short;
     titleRow.textContent = `${nameLocal2}${shortLocal2 ? " • " + shortLocal2 : ""}`;
     const desc = document.createElement("div");
-    desc.className = "maps-desc";
+    desc.className = "items-desc";
     desc.textContent = s.type || "";
     const req = document.createElement("div");
-    req.className = "maps-req";
+    req.className = "items-req";
     const parts = [];
     if (s.cd != null) parts.push(`CD ${s.cd}s`);
     if (s.mana != null) parts.push(`MP ${s.mana}`);
@@ -138,7 +138,7 @@ export function renderBookTab(panelEl, ctx = {}) {
     if (req.textContent) info.appendChild(req);
 
     const actions = document.createElement("div");
-    actions.className = "maps-actions";
+    actions.className = "items-actions";
     const preview = document.createElement("button");
     preview.className = "pill-btn pill-btn--yellow";
     preview.textContent = "▶️";
@@ -156,7 +156,7 @@ export function renderBookTab(panelEl, ctx = {}) {
     row.addEventListener("click", () => {
       renderDetail(s);
       try {
-        ul.querySelectorAll(".maps-row").forEach((it) => it.classList.remove("selected"));
+        ul.querySelectorAll(".items-row").forEach((it) => it.classList.remove("selected"));
         row.classList.add("selected");
       } catch (_) {}
     });
@@ -167,7 +167,7 @@ export function renderBookTab(panelEl, ctx = {}) {
   try {
     if (SKILL_POOL.length) {
       renderDetail(SKILL_POOL[0]);
-      try { ul.querySelector(".maps-row")?.classList.add("selected"); } catch (_) {}
+      try { ul.querySelector(".items-row")?.classList.add("selected"); } catch (_) {}
     }
   } catch (_) {}
 

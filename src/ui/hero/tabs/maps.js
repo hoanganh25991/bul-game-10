@@ -1,6 +1,6 @@
 /**
  * Render the Maps tab: pagination/infinite-style list with "Load more".
- * - Creates #maps-panel container that consumes remaining height of heroTabMaps.
+ * - Creates #items-panel container that consumes remaining height of heroTabMaps.
  * - Renders initial 20 items (base maps first, then synthesized endless maps).
  * - "Load more" appends next 20 items deterministically; endless generation is stable.
  */
@@ -14,9 +14,9 @@ export function renderMapsTab(panelEl, ctx = {}) {
 
   // Root container
   const wrap = document.createElement("div");
-  wrap.className = "maps-panel";
-  wrap.id = "maps-panel";
-  // Make #maps-panel consume remaining height
+  wrap.className = "items-panel";
+  wrap.id = "items-panel";
+  // Make #items-panel consume remaining height
   try {
     wrap.style.display = "flex";
     wrap.style.flexDirection = "column";
@@ -26,7 +26,7 @@ export function renderMapsTab(panelEl, ctx = {}) {
 
   // List (scrolling area)
   const list = document.createElement("div");
-  list.className = "maps-list";
+  list.className = "items-list";
   try {
     list.style.flex = "1 1 auto";
     list.style.minHeight = "0";
@@ -37,7 +37,7 @@ export function renderMapsTab(panelEl, ctx = {}) {
 
   // Footer with Load More
   const footer = document.createElement("div");
-  footer.className = "maps-footer";
+  footer.className = "items-footer";
   try {
     footer.style.display = "flex";
     footer.style.justifyContent = "center";
@@ -122,14 +122,14 @@ export function renderMapsTab(panelEl, ctx = {}) {
       const current = m.index === currentIdx;
 
       const row = document.createElement("div");
-      row.className = "maps-row";
+      row.className = "items-row";
 
       const thumb = document.createElement("div");
-      thumb.className = "maps-thumb";
+      thumb.className = "items-thumb";
       const emoji = m.emoji || mapManager.emojiForIndex?.(m.index);
       if (emoji) {
         const em = document.createElement("div");
-        em.className = "maps-thumb-ph";
+        em.className = "items-thumb-ph";
         em.textContent = emoji;
         try {
           em.style.fontSize = "42px"; /* large to match 64x64 container */
@@ -145,23 +145,23 @@ export function renderMapsTab(panelEl, ctx = {}) {
         if (m.imgHint) thumb.title = m.imgHint;
       } else {
         const ph = document.createElement("div");
-        ph.className = "maps-thumb-ph";
+        ph.className = "items-thumb-ph";
         ph.textContent = (m.name || "").slice(0, 2).toUpperCase();
         thumb.appendChild(ph);
       }
 
       const info = document.createElement("div");
       const title = document.createElement("div");
-      title.className = "maps-title";
+      title.className = "items-title";
       title.textContent = `${m.name}${current ? ` • ${tt("maps.current")}` : ""}${(!unlocked ? ` • ${tt("maps.locked")}` : "")}`;
       const d = document.createElement("div");
-      d.className = "maps-desc";
+      d.className = "items-desc";
       d.textContent = m.desc || "";
       const req = document.createElement("div");
-      req.className = "maps-req";
+      req.className = "items-req";
       req.textContent = `${tt("maps.requires")} Lv ${m.requiredLevel}`;
       const elites = document.createElement("div");
-      elites.className = "maps-elites";
+      elites.className = "items-elites";
       elites.textContent = (m.strongEnemies && m.strongEnemies.length) ? `${tt("maps.elites")} ${m.strongEnemies.join(", ")}` : "";
 
       info.appendChild(title);
@@ -170,7 +170,7 @@ export function renderMapsTab(panelEl, ctx = {}) {
       if (elites.textContent) info.appendChild(elites);
 
       const act = document.createElement("div");
-      act.className = "maps-actions";
+      act.className = "items-actions";
       const btn = document.createElement("button");
       if (current) {
         btn.className = "pill-btn pill-btn--yellow";

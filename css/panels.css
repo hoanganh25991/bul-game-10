@@ -357,8 +357,6 @@
 
 .system-screen .tab-panel.active {
   display: block;
-  overflow: hidden !important;
-  /* Consume remaining height and scroll body, not header/tabs */
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
