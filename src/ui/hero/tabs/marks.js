@@ -89,7 +89,7 @@ export function renderMarksTab(panelEl, ctx = {}) {
           actions.className = "items-actions";
 
           const rn = document.createElement("button");
-          rn.className = "pill-btn";
+          rn.className = "pill-btn pill-btn--yellow";
           rn.textContent = "✏️";
           rn.title = "Rename";
           rn.addEventListener("click", (e) => {
@@ -115,7 +115,7 @@ export function renderMarksTab(panelEl, ctx = {}) {
           });
 
           const rm = document.createElement("button");
-          rm.className = "pill-btn";
+          rm.className = "pill-btn pill-btn--yellow";
           rm.textContent = "🗑️";
           rm.title = "Remove";
           rm.addEventListener("click", (e) => {

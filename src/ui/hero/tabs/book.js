@@ -27,24 +27,17 @@ export function renderBookTab(panelEl, ctx = {}) {
   const detail = document.createElement("div");
   detail.className = "skillbook-detail";
   const title = document.createElement("h3");
-  const icon = document.createElement("div");
-  icon.className = "sb-icon";
   const expl = document.createElement("div");
   expl.className = "sb-expl";
   const stats = document.createElement("div");
   stats.className = "sb-stats";
   const imgBox = document.createElement("div");
   imgBox.className = "sb-imgBox";
-  const previewBtn = document.createElement("button");
-  previewBtn.className = "pill-btn pill-btn--yellow sb-preview";
-  previewBtn.textContent = "▶️";
 
   detail.appendChild(title);
   detail.appendChild(expl);
-  detail.appendChild(icon);
   detail.appendChild(stats);
   detail.appendChild(imgBox);
-  detail.appendChild(previewBtn);
 
   const typeExplain = {
     chain: "Chains between nearby enemies, hitting multiple targets.",
@@ -74,12 +67,13 @@ export function renderBookTab(panelEl, ctx = {}) {
       const nameLocal = tt(`skills.names.${s.id}`) || s.name;
       const shortLocal = tt(`skills.shorts.${s.id}`) || s.short || "";
       title.textContent = `${nameLocal}${shortLocal ? " (" + shortLocal + ")" : ""}`;
-      icon.textContent = getSkillIcon(s.short || s.name);
       const dmgLine = typeof s.dmg === "number" ? `Damage: ${computeDamage(s)} (base ${s.dmg})` : "";
       const lines = [
+        "---"
         `Type: ${s.type}`,
         s.cd != null ? `Cooldown: ${s.cd}s` : "",
         s.mana != null ? `Mana: ${s.mana}` : "",
+        "---",
         s.radius != null ? `Radius: ${s.radius}` : "",
         s.range != null ? `Range: ${s.range}` : "",
         s.jumps != null ? `Jumps: ${s.jumps}` : "",
@@ -92,11 +86,6 @@ export function renderBookTab(panelEl, ctx = {}) {
       ].filter(Boolean);
       stats.innerHTML = lines.map((x) => `<div>${x}</div>`).join("");
       expl.textContent = typeExplain[s.type] || "No description.";
-      previewBtn.onclick = () => {
-        try {
-          window.__skillsRef && window.__skillsRef.previewSkill(s);
-        } catch (_) {}
-      };
     } catch (_) {}
   }
 
