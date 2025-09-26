@@ -187,15 +187,48 @@ export class SkillsSystem {
           el.textContent = remain < 3 ? remain.toFixed(1) : `${Math.ceil(remain)}`;
         }
       }
+
+      // Mirror to any duplicate cooldown displays (e.g. bottom-middle .cooldown[data-cd="cdQ"])
+      try {
+        const masterId = el.id;
+        if (masterId) {
+          const dups = document.querySelectorAll(`#bottomMiddle .cooldown[data-cd="${masterId}"]`);
+          dups.forEach((d) => {
+            d.style.background = el.style.background;
+            d.textContent = el.textContent;
+          });
+        }
+      } catch (_) {}
+
       // flash on ready transition
       const prev = this.cdState[key] || 0;
       if (prev > 0 && remain === 0) {
         el.classList.add("flash");
         el.dataset.flashUntil = String(t + 0.25);
+        try {
+          const masterId = el.id;
+          if (masterId) {
+            const dups = document.querySelectorAll(`#bottomMiddle .cooldown[data-cd="${masterId}"]`);
+            dups.forEach((d) => {
+              d.classList.add("flash");
+              d.dataset.flashUntil = el.dataset.flashUntil;
+            });
+          }
+        } catch (_) {}
       }
       if (el.dataset.flashUntil && t > parseFloat(el.dataset.flashUntil)) {
         el.classList.remove("flash");
         delete el.dataset.flashUntil;
+        try {
+          const masterId = el.id;
+          if (masterId) {
+            const dups = document.querySelectorAll(`#bottomMiddle .cooldown[data-cd="${masterId}"]`);
+            dups.forEach((d) => {
+              d.classList.remove("flash");
+              delete d.dataset.flashUntil;
+            });
+          }
+        } catch (_) {}
       }
       this.cdState[key] = remain;
     }

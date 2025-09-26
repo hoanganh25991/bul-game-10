@@ -328,12 +328,37 @@
       <button id="bmPortal" class="icon-btn" title="Portal">🌀</button>
       <button id="bmMark" class="icon-btn" title="Mark">🚩</button>
     </div>
-    <div class="bm-row bm-skills" role="toolbar" aria-label="Skills">
-      <button class="square-skill" data-key="basic" title="Basic">⚡</button>
-      <button class="square-skill" data-key="Q" title="Q">Q</button>
-      <button class="square-skill" data-key="W" title="W">W</button>
-      <button class="square-skill" data-key="E" title="E">E</button>
-      <button class="square-skill" data-key="R" title="R">R</button>
+    <div id="bmSkills" class="bm-row bm-skills" role="toolbar" aria-label="Skills">
+      <button class="square-skill skill" data-key="basic" title="Basic" aria-label="Basic">
+        <span class="icon">⚡</span>
+        <span class="key" aria-hidden="true"></span>
+        <span class="name" aria-hidden="true"></span>
+        <div class="cooldown" data-cd="cdBasic" aria-hidden="true"></div>
+      </button>
+      <button class="square-skill skill" data-key="Q" title="Q" aria-label="Q">
+        <span class="icon"></span>
+        <span class="key">Q</span>
+        <span class="name"></span>
+        <div class="cooldown" data-cd="cdQ" aria-hidden="true"></div>
+      </button>
+      <button class="square-skill skill" data-key="W" title="W" aria-label="W">
+        <span class="icon"></span>
+        <span class="key">W</span>
+        <span class="name"></span>
+        <div class="cooldown" data-cd="cdW" aria-hidden="true"></div>
+      </button>
+      <button class="square-skill skill" data-key="E" title="E" aria-label="E">
+        <span class="icon"></span>
+        <span class="key">E</span>
+        <span class="name"></span>
+        <div class="cooldown" data-cd="cdE" aria-hidden="true"></div>
+      </button>
+      <button class="square-skill skill" data-key="R" title="R" aria-label="R">
+        <span class="icon"></span>
+        <span class="key">R</span>
+        <span class="name"></span>
+        <div class="cooldown" data-cd="cdR" aria-hidden="true"></div>
+      </button>
     </div>
   </div>
 
