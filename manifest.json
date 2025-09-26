@@ -35,9 +35,13 @@
   ],
   "dir": "ltr",
   "scope": "./",
-  "scope_extensions": [
-    {
-      "origin": "https://hoanganh25991.github.io"
+  "enableNotifications": true,
+  "features": {
+    "playBilling": {
+      "enabled": true
     }
-  ]
+  },
+  "alphaDependencies": {
+    "enabled": true
+  }
 }

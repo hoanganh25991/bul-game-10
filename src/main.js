@@ -30,6 +30,7 @@ import { setupSettingsScreen } from "./ui/settings/index.js";
 import { renderHeroScreen as renderHeroScreenUI } from "./ui/hero/index.js";
 import { updateSkillBarLabels } from "./ui/skillbar.js";
 import { promptBasicUpliftIfNeeded } from "./uplift.js";
+import * as payments from './payments.js';
 
 
 // ------------------------------------------------------------
@@ -112,6 +113,58 @@ try {
 initSplash();
 // Initialize i18n (default Vietnamese)
 initI18n();
+
+// Payments (Digital Goods / Play Billing)
+// - Checks whether the user already owns the configured one-time product via Digital Goods
+// - Marks local entitlement in localStorage ('app.purchased') and exposes window.__appPurchased
+// - Replace 'YOUR_PRODUCT_ID' and 'com.example.app' with your Play Console product id and packageName
+// - For secure verification, call your backend and verify the purchaseToken with Google Play Developer API.
+//   See src/payments.js: verifyOnServer() and the Google Play purchases.products/get endpoint.
+(function initPayments() {
+  // Run async init without blocking boot
+  (async () => {
+    try {
+      await payments.initDigitalGoods(); // harmless if unsupported
+      // Replace this with your actual product id(s)
+      const PRODUCT_IDS = ['YOUR_PRODUCT_ID'];
+      const purchases = await payments.checkOwned(PRODUCT_IDS);
+      if (purchases && purchases.length > 0) {
+        try { localStorage.setItem('app.purchased', '1'); } catch (_) {}
+        window.__appPurchased = true;
+        console.info('[payments] detected owned product(s):', purchases.map(p => p.itemId));
+        // Optional: send tokens to your server for verification/acknowledgement:
+        // for (const p of purchases) await payments.verifyOnServer({ packageName: 'com.example.app', productId: p.itemId, purchaseToken: p.purchaseToken });
+      } else {
+        // fall back to previously-saved local state
+        window.__appPurchased = !!localStorage.getItem('app.purchased');
+      }
+    } catch (e) {
+      console.warn('[payments] initialization failed', e);
+      window.__appPurchased = !!localStorage.getItem('app.purchased');
+    }
+  })();
+
+  // Expose helper to restore purchases on demand (e.g., settings "Restore purchases" button)
+  window.restorePurchases = async function restorePurchases() {
+    try {
+      await payments.initDigitalGoods();
+      const all = await payments.listPurchases();
+      if (all && all.length) {
+        // if any matching product IDs exist, mark purchased
+        // Adjust the check as needed for your SKU list
+        const found = (all || []).some(p => p && ['YOUR_PRODUCT_ID'].includes(p.itemId));
+        if (found) {
+          try { localStorage.setItem('app.purchased', '1'); } catch (_) {}
+          window.__appPurchased = true;
+        }
+      }
+      return all;
+    } catch (err) {
+      console.warn('[payments] restorePurchases failed', err);
+      throw err;
+    }
+  };
+})();
 
 /* Audio: preferences + initialize on first user gesture. Do not auto-start music if disabled. */
 const _audioPrefs = JSON.parse(localStorage.getItem("audioPrefs") || "{}");
