@@ -1,6 +1,7 @@
 todo*.md
 .clinerules
-memory-bank/progress.md
+.clineignore
+memory_bank/progress.md
 
 scripts
 favicon_io
