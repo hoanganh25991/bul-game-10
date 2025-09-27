@@ -117,29 +117,92 @@ initI18n();
 // Bottom Middle = Desktop Controls
 setupDesktopControls();
 
-// Payments (Digital Goods / Play Billing)
-// - Checks whether the user already owns the configured one-time product via Digital Goods
-// - Marks local entitlement in localStorage ('app.purchased') and exposes window.__appPurchased
-// - Replace 'YOUR_PRODUCT_ID' and 'com.example.app' with your Play Console product id and packageName
-// - For secure verification, call your backend and verify the purchaseToken with Google Play Developer API.
-//   See src/payments.js: verifyOnServer() and the Google Play purchases.products/get endpoint.
+/* Payments (Digital Goods / Play Billing + App-priced TWA support)
+   - Supports two modes:
+     1) In-app SKUs (PRODUCT_IDS non-empty): use Digital Goods API as before.
+     2) App-priced (no SKUs): trust license status provided by TWA wrapper (preferred)
+        or verify a Play Licensing/Play Integrity token on the server.
+   - For app-priced TWA: implement license check in the Android wrapper and post a message
+     to the web page with { type: 'TWA_LICENSE_STATUS', entitled: boolean, licenseToken?: string }.
+     The web page will store entitlement in localStorage and (optionally) verify licenseToken on your server.
+*/
 (function initPayments() {
   // Run async init without blocking boot
   (async () => {
     try {
       await payments.initDigitalGoods(); // harmless if unsupported
-      // Replace this with your actual product id(s)
-      const PRODUCT_IDS = ['YOUR_PRODUCT_ID'];
-      const purchases = await payments.checkOwned(PRODUCT_IDS);
-      if (purchases && purchases.length > 0) {
-        try { localStorage.setItem('app.purchased', '1'); } catch (_) {}
-        window.__appPurchased = true;
-        console.info('[payments] detected owned product(s):', purchases.map(p => p.itemId));
-        // Optional: send tokens to your server for verification/acknowledgement:
-        // for (const p of purchases) await payments.verifyOnServer({ packageName: 'com.example.app', productId: p.itemId, purchaseToken: p.purchaseToken });
+      // Configure product SKUs here if you're using in-app products.
+      // For an app-priced distribution (one-time paid app with no SKUs), leave PRODUCT_IDS empty.
+      const PRODUCT_IDS = []; // Example: ['com.example.app.productId'] for in-app SKU mode.
+
+      if (Array.isArray(PRODUCT_IDS) && PRODUCT_IDS.length > 0) {
+        // In-app SKU flow (unchanged)
+        const purchases = await payments.checkOwned(PRODUCT_IDS);
+        if (purchases && purchases.length > 0) {
+          try { localStorage.setItem('app.purchased', '1'); } catch (_) {}
+          window.__appPurchased = true;
+          console.info('[payments] detected owned product(s):', purchases.map(p => p.itemId));
+          // Optionally verify purchase tokens on server:
+          // for (const p of purchases) await payments.verifyOnServer({ packageName: 'com.example.app', productId: p.itemId, purchaseToken: p.purchaseToken });
+        } else {
+          // fall back to previously-saved local state
+          window.__appPurchased = !!localStorage.getItem('app.purchased');
+        }
       } else {
-        // fall back to previously-saved local state
+        // App-priced flow (no SKUs)
+        // 1) Use any previously persisted local flag while we attempt to get a definitive license status.
         window.__appPurchased = !!localStorage.getItem('app.purchased');
+
+        // 2) Listen for license messages from the Android TWA wrapper.
+        //    The wrapper should post a message to the page with:
+        //      { type: 'TWA_LICENSE_STATUS', entitled: true|false, licenseToken?: '<token-for-server-verification>' }
+        window.addEventListener('message', async (ev) => {
+          try {
+            const data = ev.data;
+            if (!data || typeof data !== 'object') return;
+            if (data.type === 'TWA_LICENSE_STATUS') {
+              const entitled = !!data.entitled;
+              window.__appPurchased = entitled;
+              try { localStorage.setItem('app.purchased', entitled ? '1' : '0'); } catch (_) {}
+              console.info('[payments] received TWA_LICENSE_STATUS', { entitled });
+
+              // If the wrapper provides a token suitable for server-side verification (Play Integrity or LVL),
+              // verify it on your server for stronger security.
+              if (data.licenseToken) {
+                try {
+                  const resp = await payments.verifyLicenseOnServer({ licenseData: data.licenseToken });
+                  if (resp && resp.ok && resp.entitled) {
+                    window.__appPurchased = true;
+                    try { localStorage.setItem('app.purchased', '1'); } catch (_) {}
+                    console.info('[payments] server verified license token OK');
+                  } else {
+                    console.warn('[payments] server license verification returned not-entitled', resp);
+                  }
+                } catch (e) {
+                  console.warn('[payments] license verify on server failed', e);
+                }
+              }
+            }
+          } catch (e) {
+            // ignore message handler failures
+            console.warn('[payments] message handler error', e);
+          }
+        }, false);
+
+        // 3) Helper to request the wrapper to perform a license check (the wrapper must listen for this message).
+        //    The Android wrapper should respond by posting TWA_LICENSE_STATUS back to the page.
+        window.requestLicenseStatus = function requestLicenseStatus() {
+          try {
+            // This will send a message to the embedding context (the Android TWA wrapper).
+            // The wrapper must listen for this and respond with a TWA_LICENSE_STATUS message.
+            window.postMessage({ type: 'REQUEST_TWA_LICENSE_STATUS' }, '*');
+          } catch (e) {
+            console.warn('[payments] requestLicenseStatus failed', e);
+          }
+        };
+
+        // Ask wrapper for current license state (non-blocking)
+        try { window.requestLicenseStatus(); } catch (_) {}
       }
     } catch (e) {
       console.warn('[payments] initialization failed', e);
@@ -147,21 +210,32 @@ setupDesktopControls();
     }
   })();
 
-  // Expose helper to restore purchases on demand (e.g., settings "Restore purchases" button)
+  // Expose helper to restore purchases / re-check license on demand (e.g., settings "Restore purchases" button)
   window.restorePurchases = async function restorePurchases() {
     try {
       await payments.initDigitalGoods();
-      const all = await payments.listPurchases();
-      if (all && all.length) {
-        // if any matching product IDs exist, mark purchased
-        // Adjust the check as needed for your SKU list
-        const found = (all || []).some(p => p && ['YOUR_PRODUCT_ID'].includes(p.itemId));
-        if (found) {
-          try { localStorage.setItem('app.purchased', '1'); } catch (_) {}
-          window.__appPurchased = true;
+      const PRODUCT_IDS = []; // same configuration as above; fill if using SKUs
+
+      if (Array.isArray(PRODUCT_IDS) && PRODUCT_IDS.length > 0) {
+        const all = await payments.listPurchases();
+        if (all && all.length) {
+          const found = (all || []).some(p => p && PRODUCT_IDS.includes(p.itemId));
+          if (found) {
+            try { localStorage.setItem('app.purchased', '1'); } catch (_) {}
+            window.__appPurchased = true;
+          }
+        }
+        return all;
+      } else {
+        // App-priced flow: request the wrapper to re-check license and return immediately.
+        try {
+          window.requestLicenseStatus && window.requestLicenseStatus();
+          return { ok: true, note: 'Requested wrapper license status' };
+        } catch (err) {
+          console.warn('[payments] restorePurchases (app priced) failed', err);
+          throw err;
         }
       }
-      return all;
     } catch (err) {
       console.warn('[payments] restorePurchases failed', err);
       throw err;
@@ -295,6 +369,48 @@ setupSettingsScreen({
   render: renderCtx,
   audioCtl,
 });
+
+// Wire "Restore purchases" button in Settings to the restorePurchases() helper.
+// Provides lightweight UI feedback (center message) while the request is processed.
+(function wireRestoreButton() {
+  const btn = document.getElementById('btnRestorePurchases');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    try {
+      btn.disabled = true;
+      setCenterMsg && setCenterMsg('Checking purchases...');
+      const res = await window.restorePurchases();
+      // Handling possible responses:
+      // - SKU flow: array of purchases returned
+      // - App-priced flow: { ok: true, note: 'Requested wrapper license status' } and wrapper will post TWA_LICENSE_STATUS
+      if (Array.isArray(res)) {
+        if (res.length > 0 || window.__appPurchased) {
+          setCenterMsg && setCenterMsg('Purchase restored.');
+        } else {
+          setCenterMsg && setCenterMsg('No purchases found.');
+        }
+      } else if (res && res.ok && res.note) {
+        // Requested wrapper/license re-check — final state will be delivered via TWA_LICENSE_STATUS message.
+        setCenterMsg && setCenterMsg('Requested license status; awaiting response...');
+      } else {
+        // Fallback: rely on window.__appPurchased
+        if (window.__appPurchased) {
+          setCenterMsg && setCenterMsg('Purchase restored.');
+        } else {
+          setCenterMsg && setCenterMsg('No purchase found.');
+        }
+      }
+      // Clear the message shortly after
+      setTimeout(() => { try { clearCenterMsg && clearCenterMsg(); } catch (_) {} }, 1400);
+    } catch (err) {
+      console.warn('[UI] restorePurchases click failed', err);
+      try { setCenterMsg && setCenterMsg('Restore failed'); } catch (_) {}
+      setTimeout(() => { try { clearCenterMsg && clearCenterMsg(); } catch (_) {} }, 1400);
+    } finally {
+      try { btn.disabled = false; } catch (_) {}
+    }
+  });
+})();
 
 // Hero open/close
 // Thin wrapper to render hero screen using modular UI

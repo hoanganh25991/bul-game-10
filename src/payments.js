@@ -186,6 +186,34 @@ export async function consumePurchase(purchaseToken) {
   return svc.consume(purchaseToken);
 }
 
+/**
+ * Verify a Play Licensing (LVL) response or other license object on server.
+ * The backend should implement '/api/verify-license' (or configured endpoint) that:
+ *  - verifies the signed LVL response or Play Integrity token
+ *  - returns { ok: true, entitled: true } on success
+ *
+ * This helper sends whatever object is provided as 'licenseData' to the server.
+ */
+export async function verifyLicenseOnServer({ licenseData, endpoint = '/api/verify-license' } = {}) {
+  if (!licenseData) throw new Error('licenseData is required for license verification');
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ licenseData })
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error(`Server license verification failed: ${res.status} ${txt}`);
+    }
+    const json = await res.json();
+    return json;
+  } catch (e) {
+    console.warn('[payments] verifyLicenseOnServer error', e);
+    throw e;
+  }
+}
+
 export default {
   initDigitalGoods,
   getService,
@@ -193,5 +221,6 @@ export default {
   checkOwned,
   purchaseItem,
   verifyOnServer,
+  verifyLicenseOnServer,
   consumePurchase
 };
