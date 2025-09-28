@@ -4,7 +4,7 @@
 // - Runtime cache: cache-first for same-origin GET, network-first for navigations
 // - Cleans up old versions on activate
 
-const VERSION = "v1.0.0-20250926";
+const VERSION = "v1.0.0-20250927";
 const CACHE_NAME = `got-rpg-${VERSION}`;
 
 // Keep this list small to avoid heavy installs. Runtime caching will cover the rest.
