@@ -27,6 +27,10 @@ import { getBasicUplift } from "./uplift.js";
  *  // per-frame:
  *  skills.update(t, dt);
  */
+const __vA = new THREE.Vector3();
+const __vB = new THREE.Vector3();
+const __vC = new THREE.Vector3();
+
 export class SkillsSystem {
   /**
    * @param {import("./entities.js").Player} player
@@ -106,11 +110,11 @@ export class SkillsSystem {
   _burstArcs(center, radius, def, count = 3) {
     try {
       const fx = this._fx(def);
-      const base = center.clone().add(new THREE.Vector3(0, 0.8, 0));
+      const base = __vA.copy(center).add(__vB.set(0, 0.8, 0)).clone();
       for (let i = 0; i < Math.max(1, count); i++) {
         const ang = Math.random() * Math.PI * 2;
         const r = Math.random() * Math.max(4, radius);
-        const to = center.clone().add(new THREE.Vector3(Math.cos(ang) * r, 0.4 + Math.random() * 0.8, Math.sin(ang) * r));
+        const to = __vA.copy(center).add(__vC.set(Math.cos(ang) * r, 0.4 + Math.random() * 0.8, Math.sin(ang) * r)).clone();
         this.effects.spawnArcNoisePath(base, to, fx.arc, 0.08, 2);
       }
     } catch (_) {}
@@ -119,7 +123,7 @@ export class SkillsSystem {
   // Prefer enemies in front of player within a small aim cone
   _pickTargetInAim(range = 36, halfAngleDeg = 12) {
     try {
-      const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(this.player.mesh.quaternion).setY(0).normalize();
+      const fwd = __vA.set(0, 0, 1).applyQuaternion(this.player.mesh.quaternion).setY(0).normalize();
       const cosT = Math.cos((Math.max(1, halfAngleDeg) * Math.PI) / 180);
       const pos = this.player.pos();
       let best = null;
@@ -128,9 +132,9 @@ export class SkillsSystem {
         if (!e.alive) continue;
         const d = distance2D(pos, e.pos());
         if (d > range) continue;
-        const v = e.pos().clone().sub(pos).setY(0);
+        const v = __vB.copy(e.pos()).sub(pos).setY(0);
         const len = v.length() || 1;
-        const dir = v.clone().multiplyScalar(1 / len);
+        const dir = __vC.copy(v).multiplyScalar(1 / len);
         const dot = dir.dot(fwd);
         if (dot <= cosT || dot <= 0) continue;
         // score: prefer higher alignment and closer distance along forward
@@ -284,8 +288,8 @@ export class SkillsSystem {
     const from =
       attacker === this.player && this.player.mesh.userData.handAnchor
         ? handWorldPos(this.player)
-        : attacker.pos().clone().add(new THREE.Vector3(0, 1.6, 0));
-    const to = target.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
+        : __vA.copy(attacker.pos()).add(__vB.set(0, 1.6, 0)).clone();
+    const to = __vC.copy(target.pos()).add(__vB.set(0, 1.2, 0)).clone();
     this.effects.spawnElectricBeamAuto(from, to, COLOR.blue, 0.12);
     audio.sfx("basic");
     // FP hand VFX for basic attack
@@ -330,8 +334,8 @@ export class SkillsSystem {
         const nxt = candidates[0];
         if (!nxt) break;
         hitSet.add(nxt);
-        const from = current.pos().clone().add(new THREE.Vector3(0,1.2,0));
-        const to = nxt.pos().clone().add(new THREE.Vector3(0,1.2,0));
+        const from = __vA.copy(current.pos()).add(__vB.set(0,1.2,0)).clone();
+        const to = __vC.copy(nxt.pos()).add(__vB.set(0,1.2,0)).clone();
         try { this.effects.spawnElectricBeamAuto(from, to, 0xffee88, 0.08); } catch(_) {}
         nxt.takeDamage(Math.max(1, Math.floor(dmg * 0.85)));
         current = nxt;
@@ -421,12 +425,12 @@ export class SkillsSystem {
       const from =
         this.player === this.player && this.player.mesh.userData.handAnchor
           ? handWorldPos(this.player)
-          : this.player.pos().clone().add(new THREE.Vector3(0, 1.6, 0));
-      const dir = new THREE.Vector3(0,0,1).applyQuaternion(this.player.mesh.quaternion).normalize();
-      const to = from.clone().add(dir.multiplyScalar(effRange));
+          : __vA.copy(this.player.pos()).add(__vB.set(0, 1.6, 0)).clone();
+      const dir = __vB.set(0,0,1).applyQuaternion(this.player.mesh.quaternion).normalize();
+      const to = __vC.copy(from).add(dir.multiplyScalar(effRange));
       try {
         this.effects.spawnElectricBeamAuto(from, to, fx.beam, 0.1);
-        this.effects.spawnStrike(to.clone().setY(0), 1.0, fx.impact);
+        this.effects.spawnStrike(__vA.copy(to).setY(0), 1.0, fx.impact);
         this._requestShake(fx.shake || 0);
         audio.sfx("beam");
       } catch (_) {}
@@ -447,7 +451,7 @@ export class SkillsSystem {
     let jumps = (SK.jumps || 0) + 1;
     let first = true;
     while (current && jumps-- > 0) {
-      const hitPoint = current.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
+      const hitPoint = __vA.copy(current.pos()).add(__vB.set(0, 1.2, 0)).clone();
     this.effects.spawnElectricBeamAuto(lastPoint, hitPoint, this._fx(SK).beam, 0.12);
     this.effects.spawnArcNoisePath(lastPoint, hitPoint, this._fx(SK).arc, 0.08);
     if (first) { this._requestShake(this._fx(SK).shake || 0); first = false; }
@@ -492,7 +496,7 @@ export class SkillsSystem {
       candidates.sort(
         (a, b) => distance2D(this.player.pos(), a.pos()) - distance2D(this.player.pos(), b.pos())
       );
-      point = candidates[0].pos().clone();
+      point = __vA.copy(candidates[0].pos()).clone();
     }
 
     if (!this.player.canSpend(SK.mana)) return;
@@ -532,8 +536,8 @@ export class SkillsSystem {
         } catch (_) {}
         // Visual arcs from the center to each enemy hit
         try {
-          const cfrom = point.clone().add(new THREE.Vector3(0, 0.8, 0));
-          const cto = en.pos().clone().add(new THREE.Vector3(0, 1.0, 0));
+          const cfrom = __vA.copy(point).add(__vB.set(0, 0.8, 0)).clone();
+          const cto = __vC.copy(en.pos()).add(__vB.set(0, 1.0, 0)).clone();
           this.effects.spawnArcNoisePath(cfrom, cto, this._fx(SK).arc, 0.08, 2);
         } catch (_) {}
         if (SK.slowFactor) {
@@ -622,7 +626,7 @@ export class SkillsSystem {
         this.player === this.player && this.player.mesh.userData.handAnchor
           ? handWorldPos(this.player)
           : this.player.pos().clone().add(new THREE.Vector3(0, 1.6, 0));
-      const dir = new THREE.Vector3(0,0,1).applyQuaternion(this.player.mesh.quaternion).normalize();
+      const dir = __vB.set(0,0,1).applyQuaternion(this.player.mesh.quaternion).normalize();
       const to = from.clone().add(dir.multiplyScalar(effRange));
       try {
         this.effects.spawnElectricBeamAuto(from, to, fx.beam, 0.1);
@@ -643,11 +647,11 @@ export class SkillsSystem {
         distance2D(this.player.pos(), a.pos()) - distance2D(this.player.pos(), b.pos())
     )[0];
 
-    const from =
-      this.player === this.player && this.player.mesh.userData.handAnchor
-        ? handWorldPos(this.player)
-        : this.player.pos().clone().add(new THREE.Vector3(0, 1.6, 0));
-    const to = target.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
+      const from =
+        this.player === this.player && this.player.mesh.userData.handAnchor
+          ? handWorldPos(this.player)
+          : __vA.copy(this.player.pos()).add(__vB.set(0, 1.6, 0)).clone();
+    const to = __vC.copy(target.pos()).add(__vB.set(0, 1.2, 0)).clone();
     this.effects.spawnElectricBeamAuto(from, to, this._fx(SK).beam, 0.12); this._requestShake(this._fx(SK).shake);
     this.effects.spawnArcNoisePath(from, to, this._fx(SK).arc, 0.08, 2);
     audio.sfx("beam");
@@ -697,8 +701,8 @@ export class SkillsSystem {
         } catch (e2) {}
         // Visual arcs from caster to each enemy hit
         try {
-          const cfrom = this.player.pos().clone().add(new THREE.Vector3(0, 0.8, 0));
-          const cto = en.pos().clone().add(new THREE.Vector3(0, 1.0, 0));
+          const cfrom = __vA.copy(this.player.pos()).add(__vB.set(0, 0.8, 0)).clone();
+          const cto = __vC.copy(en.pos()).add(__vB.set(0, 1.0, 0)).clone();
           this.effects.spawnArcNoisePath(cfrom, cto, this._fx(SK).arc, 0.08, 2);
         } catch (_) {}
       }
@@ -717,7 +721,7 @@ export class SkillsSystem {
 
     const startT = now();
     const endT = startT + (SK.duration || 7);
-    const center = this.player.pos().clone();
+    const center = __vA.copy(this.player.pos()).clone();
     const fx = this._fx(SK);
 
     // Mark the storm area with a brief ground ring
@@ -855,7 +859,7 @@ export class SkillsSystem {
     this._vfxCastFlash(SK);
     this.player.spend(SK.mana);
     this.startCooldown(key, SK.cd);
-    const pos = this.player.pos().clone();
+    const pos = __vA.copy(this.player.pos()).clone();
     const duration = Math.max(3, SK.duration || 8);
     const tick = Math.max(0.4, SK.tick || 0.8);
     const radius = Math.max(6, SK.radius || 18);
@@ -1090,11 +1094,11 @@ export class SkillsSystem {
         const inArea = this.enemies.filter(en => en.alive && distance2D(en.pos(), s.center) <= (s.radius || 0));
         if (inArea.length > 0) {
           const target = inArea[Math.floor(Math.random() * inArea.length)];
-          impact = target.pos().clone();
+          impact = __vA.copy(target.pos()).clone();
         } else {
           const ang = Math.random() * Math.PI * 2;
           const r = Math.random() * (s.radius || 12);
-          impact = s.center.clone().add(new THREE.Vector3(Math.cos(ang) * r, 0, Math.sin(ang) * r));
+          impact = __vA.copy(s.center).add(__vB.set(Math.cos(ang) * r, 0, Math.sin(ang) * r)).clone();
         }
 
         try {
