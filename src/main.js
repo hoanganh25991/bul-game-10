@@ -48,6 +48,7 @@ let renderQuality = (typeof _renderPrefs.quality === "string" && ["low", "medium
 const effects = new EffectsManager(scene, { quality: renderQuality });
 const mapManager = createMapManager();
 
+
 // Perf collector: smoothed FPS, 1% low, frame ms, and renderer.info snapshot
 const __perf = {
   prevMs: performance.now(),
@@ -57,6 +58,19 @@ const __perf = {
   ms: 0,
   avgMs: 0
 };
+
+// Throttle values for UI updates (ms)
+const HUD_UPDATE_MS = 150;
+const MINIMAP_UPDATE_MS = 150;
+try {
+  // expose for runtime tuning/debug if needed
+  window.__HUD_UPDATE_MS = HUD_UPDATE_MS;
+  window.__MINIMAP_UPDATE_MS = MINIMAP_UPDATE_MS;
+} catch (_) {}
+
+// last-update timestamps (initialized lazily in the loop)
+if (!window.__lastHudT) window.__lastHudT = 0;
+if (!window.__lastMinimapT) window.__lastMinimapT = 0;
 function __computePerf(nowMs) {
   const dtMs = Math.max(0.1, Math.min(1000, nowMs - (__perf.prevMs || nowMs)));
   __perf.prevMs = nowMs;
@@ -64,17 +78,27 @@ function __computePerf(nowMs) {
   __perf.hist.push(dtMs);
   if (__perf.hist.length > 600) __perf.hist.shift(); // ~10s at 60fps
 
-  // Smooth FPS over recent 30 frames
+  // Smooth FPS over recent 30 frames (lightweight)
   const recent = __perf.hist.slice(-30);
   const avgMs = recent.reduce((a, b) => a + b, 0) / Math.max(1, recent.length);
   __perf.avgMs = avgMs;
   __perf.fps = 1000 / avgMs;
 
-  // 1% low based on worst 1% of recent frames
-  const sorted = __perf.hist.slice().sort((a, b) => a - b);
-  const p99Idx = Math.min(sorted.length - 1, Math.floor(sorted.length * 0.99));
-  const ms99 = sorted[p99Idx] || avgMs;
-  __perf.fpsLow1 = 1000 / ms99;
+  // Compute 1% low (p99) less frequently to avoid sorting every frame.
+  // Throttle window (ms) can be tuned at runtime via window.__PERF_P99_THROTTLE_MS.
+  const PERF_P99_THROTTLE_MS = (window.__PERF_P99_THROTTLE_MS || 1000);
+  if (!window.__lastPerfP99T) window.__lastPerfP99T = 0;
+  if ((performance.now() - window.__lastPerfP99T) >= PERF_P99_THROTTLE_MS) {
+    window.__lastPerfP99T = performance.now();
+    try {
+      const sorted = __perf.hist.slice().sort((a, b) => a - b);
+      const p99Idx = Math.min(sorted.length - 1, Math.floor(sorted.length * 0.99));
+      const ms99 = sorted[p99Idx] || avgMs;
+      __perf.fpsLow1 = 1000 / ms99;
+    } catch (e) {
+      // keep previous fpsLow1 on error
+    }
+  }
 }
 function getPerf() {
   const ri = renderer.info;
@@ -1403,9 +1427,34 @@ function animate() {
   }
   updateGridFollow(ground, player);
   if (env) updateEnvironmentFollow(env, player);
-  ui.updateHUD(player);
+
+  // Throttle HUD and minimap updates to reduce main-thread DOM work on low-end devices.
+  // HUD_UPDATE_MS / MINIMAP_UPDATE_MS are configured near the top of this file and exposed for tuning.
+  try {
+    const nowMs = performance.now();
+    // HUD
+    try {
+      if (!window.__lastHudT) window.__lastHudT = 0;
+      if ((nowMs - window.__lastHudT) >= (window.__HUD_UPDATE_MS || HUD_UPDATE_MS)) {
+        window.__lastHudT = nowMs;
+        try { ui.updateHUD(player); } catch (_) {}
+      }
+    } catch (_) {}
+    // MINIMAP
+    try {
+      if (!window.__lastMinimapT) window.__lastMinimapT = 0;
+      if ((nowMs - window.__lastMinimapT) >= (window.__MINIMAP_UPDATE_MS || MINIMAP_UPDATE_MS)) {
+        window.__lastMinimapT = nowMs;
+        try { ui.updateMinimap(player, enemies, portals, villages); } catch (_) {}
+      }
+    } catch (_) {}
+  } catch (_) {
+    // Fallback: if anything goes wrong, keep original per-frame updates to preserve behavior.
+    try { ui.updateHUD(player); } catch (_) {}
+    try { ui.updateMinimap(player, enemies, portals, villages); } catch (_) {}
+  }
+
   skills.update(t, dt, cameraShake);
-  ui.updateMinimap(player, enemies, portals, villages);
   effects.update(t, dt);
   if (env && typeof env.update === "function") env.update(t, dt);
 
