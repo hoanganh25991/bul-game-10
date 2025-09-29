@@ -65,6 +65,7 @@ const __tempVecA = new THREE.Vector3();
 const __tempVecB = new THREE.Vector3();
 const __tempVecC = new THREE.Vector3();
 const __tempQuat = new THREE.Quaternion();
+let __tempVecQuatOrVec;
 
 // Global VFX gating / quality helper. Tunable at runtime:
 //   window.__vfxQuality = 'high' | 'medium' | 'low' (default derived from renderQuality)
