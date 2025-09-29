@@ -100,8 +100,28 @@ export function initSplash() {
           }
 
           if (startBtn) {
-            // Wait for explicit player action
+            // Wait for explicit player action, but coordinate with renderer readiness to avoid white flash.
+            let clicked = false;
+            let rendererReady = false;
+            const RENDERER_READY_FALLBACK_MS = 3000; // if renderer doesn't become ready, don't block forever
+
+            function maybeClose() {
+              if (clicked && rendererReady) {
+                cleanupAndCloseSplash();
+              }
+            }
+
+            // Listen for renderer-ready event (dispatched by main.js once the first frame is produced)
+            try {
+              window.addEventListener("game-render-ready", () => {
+                rendererReady = true;
+                maybeClose();
+              }, { once: true });
+            } catch (e) {}
+
             startBtn.addEventListener("click", () => {
+              clicked = true;
+
               // Respect UI preference for fullscreen (default true if unset)
               let allowFs = true;
               try {
@@ -109,8 +129,8 @@ export function initSplash() {
                 if (typeof prefs.fullscreen === "boolean") allowFs = prefs.fullscreen;
               } catch (_) {}
 
+              // Request fullscreen immediately on the user gesture so browsers accept it.
               if (allowFs) {
-                // Best-effort fullscreen request (desktop browsers)
                 try {
                   const el = document.documentElement;
                   if (el.requestFullscreen) {
@@ -124,7 +144,16 @@ export function initSplash() {
                   }
                 } catch (e) {}
               }
-              cleanupAndCloseSplash();
+
+              // Try to close immediately if renderer already signalled ready; otherwise wait.
+              maybeClose();
+
+              // Safety fallback: if renderer never becomes ready within fallback, proceed anyway.
+              setTimeout(() => {
+                if (!rendererReady) {
+                  cleanupAndCloseSplash();
+                }
+              }, RENDERER_READY_FALLBACK_MS);
             }, { once: true });
           } else {
             // Fallback: auto-close after a short delay

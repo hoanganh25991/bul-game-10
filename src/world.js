@@ -75,6 +75,21 @@ export function initWorld() {
     c.style.height = "100%";
     c.style.zIndex = "0";        // overlays like .guide-overlay use a much higher z-index (e.g., 9999)
     c.style.pointerEvents = "auto";
+
+    // Start the canvas hidden with a dark background to avoid a white flash on slow devices.
+    // It will be revealed when the renderer produces its first frame (main.js will dispatch 'game-render-ready').
+    try {
+      c.style.opacity = "0";
+      c.style.transition = "opacity 220ms linear";
+      c.style.background = "#000";
+    } catch (e) {}
+
+    // Ensure renderer clear color is dark as a fallback.
+    try {
+      if (typeof renderer.setClearColor === "function") {
+        renderer.setClearColor(0x000000, 1);
+      }
+    } catch (e) {}
   } catch (_) {}
 
   const scene = new THREE.Scene();

@@ -1436,6 +1436,19 @@ function animate() {
 
   renderer.render(scene, camera);
 
+  try {
+    if (!window.__gameRenderReadyDispatched) {
+      window.__gameRenderReadyDispatched = true;
+      try {
+        const c = renderer && renderer.domElement;
+        if (c) {
+          try { c.style.opacity = "1"; } catch (_) {}
+        }
+      } catch (_) {}
+      try { window.dispatchEvent(new Event("game-render-ready")); } catch (_) {}
+    }
+  } catch (_) {}
+
   // Update perf metrics
   try {
     __computePerf(performance.now());
