@@ -1864,23 +1864,23 @@ function updateEnemies(dt) {
           __tempVecC.copy(player.pos()).add(__tempVecB.set(0, 1.2, 0)); // to
 
           try {
-            // VFX gating: skip heavy VFX on low vfxQuality or very low FPS
-            const vfxQuality = window.__vfxQuality || (renderQuality === "low" ? "low" : "high");
-            const fpsNow = __perf.fps || 60;
-            const allowHeavyVfx = (vfxQuality !== "low") && fpsNow >= 20;
-
+            // Centralized VFX gating: use shouldSpawnVfx(kind, pos) to decide whether to spawn heavy effects.
             if (en.attackEffect === "melee") {
               // impact strike at player (light-weight)
               try { effects.spawnStrike(player.pos(), 0.9, 0xff9955); } catch (_) {}
             } else if (en.attackEffect === "electric") {
-              if (allowHeavyVfx) {
-                try { effects.spawnElectricBeamAuto(__tempVecA, __tempVecC, en.beamColor || 0x9fd8ff, 0.1); } catch (_) {}
-              }
+              try {
+                if (shouldSpawnVfx("electric", __tempVecA)) {
+                  effects.spawnElectricBeamAuto(__tempVecA, __tempVecC, en.beamColor || 0x9fd8ff, 0.1);
+                }
+              } catch (_) {}
             } else {
               // default beam (archer/others)
-              if (allowHeavyVfx) {
-                try { effects.spawnBeam(__tempVecA, __tempVecC, en.beamColor || 0xff8080, 0.09); } catch (_) {}
-              }
+              try {
+                if (shouldSpawnVfx("largeBeam", __tempVecA)) {
+                  effects.spawnBeam(__tempVecA, __tempVecC, en.beamColor || 0xff8080, 0.09);
+                }
+              } catch (_) {}
             }
           } catch (e) {}
           // Damage
