@@ -50,6 +50,14 @@ export class EffectsManager {
     this.indicators = new THREE.Group();
     scene.add(this.indicators);
 
+    // Small pool of temporaries used by hot VFX paths to avoid per-frame allocations.
+    // These are reused within each EffectsManager instance (safe as VFX creation is synchronous).
+    this._tmpVecA = new THREE.Vector3();
+    this._tmpVecB = new THREE.Vector3();
+    this._tmpVecC = new THREE.Vector3();
+    this._tmpVecD = new THREE.Vector3();
+    this._tmpVecE = new THREE.Vector3();
+
     // Internal timed queue for cleanup and animations
     this.queue = []; // items: { obj, until, fade?, mat?, scaleRate? }
   }
@@ -83,7 +91,10 @@ export class EffectsManager {
 
   // ----- Beam helpers -----
   spawnBeam(from, to, color = COLOR.blue, life = 0.12) {
-    const geometry = new THREE.BufferGeometry().setFromPoints([from.clone(), to.clone()]);
+    // Avoid allocating temporary vectors for simple two-point lines by reusing instance temps.
+    const p0 = this._tmpVecA.copy(from);
+    const p1 = this._tmpVecB.copy(to);
+    const geometry = new THREE.BufferGeometry().setFromPoints([p0, p1]);
     const material = new THREE.LineBasicMaterial({ color: normalizeColor(color), linewidth: 2 });
     const line = new THREE.Line(geometry, material);
     this.transient.add(line);
@@ -93,20 +104,24 @@ export class EffectsManager {
 
   // Jagged electric beam with small fork
   spawnElectricBeam(from, to, color = COLOR.blue, life = 0.12, segments = 10, amplitude = 0.6) {
-    const dir = to.clone().sub(from);
-    const normal = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
-    const up = new THREE.Vector3(0, 1, 0);
+    // Use temporaries to compute dir/normal/up without allocations.
+    const dir = this._tmpVecA.copy(to).sub(this._tmpVecB.copy(from));
+    const normal = this._tmpVecC.set(-dir.z, 0, dir.x).normalize();
+    const up = this._tmpVecD.set(0, 1, 0);
 
     const points = [];
     const seg = Math.max(4, Math.round(segments * (this.quality === "low" ? 0.5 : (this.quality === "medium" ? 0.75 : 1))));
     for (let i = 0; i <= seg; i++) {
       const t = i / segments;
-      const p = from.clone().lerp(to, t);
+      // build point into a temp vector to avoid intermediate clones of normal/up per op
+      const pTmp = this._tmpVecE.copy(from).lerp(this._tmpVecB.copy(to), t);
       const amp = Math.sin(Math.PI * t) * amplitude;
-      const jitter = normal.clone().multiplyScalar((Math.random() * 2 - 1) * amp)
-        .add(up.clone().multiplyScalar((Math.random() * 2 - 1) * amp * 0.4));
-      p.add(jitter);
-      points.push(p);
+      // jitter components into temp vectors
+      const j1 = this._tmpVecA.copy(normal).multiplyScalar((Math.random() * 2 - 1) * amp);
+      const j2 = this._tmpVecC.copy(up).multiplyScalar((Math.random() * 2 - 1) * amp * 0.4);
+      pTmp.add(j1).add(j2);
+      // push a cloned vector because pTmp is reused
+      points.push(pTmp.clone());
     }
 
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
@@ -149,12 +164,12 @@ export class EffectsManager {
       const pts = [];
       for (let i = 0; i <= seg; i++) {
         const t = i / segments;
-        const p = from.clone().lerp(to, t);
+        const pTmp = this._tmpVecE.copy(from).lerp(this._tmpVecB.copy(to), t);
         const amp = Math.sin(Math.PI * t) * amplitude;
-        const jitter = normal.clone().multiplyScalar((Math.random() * 2 - 1) * amp * (0.8 + n * 0.15))
-          .add(up.clone().multiplyScalar((Math.random() * 2 - 1) * amp * 0.35));
-        p.add(jitter);
-        pts.push(p);
+        const j1 = this._tmpVecA.copy(normal).multiplyScalar((Math.random() * 2 - 1) * amp * (0.8 + n * 0.15));
+        const j2 = this._tmpVecC.copy(up).multiplyScalar((Math.random() * 2 - 1) * amp * 0.35);
+        pTmp.add(j1).add(j2);
+        pts.push(pTmp.clone());
       }
       const g = new THREE.BufferGeometry().setFromPoints(pts);
       const opacity = Math.max(0.35, (0.7 + Math.min(0.3, length * 0.01) - n * 0.15));

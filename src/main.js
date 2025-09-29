@@ -66,6 +66,40 @@ const __tempVecB = new THREE.Vector3();
 const __tempVecC = new THREE.Vector3();
 const __tempQuat = new THREE.Quaternion();
 
+// Global VFX gating / quality helper. Tunable at runtime:
+//   window.__vfxQuality = 'high' | 'medium' | 'low' (default derived from renderQuality)
+//   window.__vfxDistanceCull = 120  // meters for distance-based culling (optional)
+//
+// Use shouldSpawnVfx(type, position) before spawning expensive effects.
+if (!window.__vfxQuality) {
+  window.__vfxQuality = (renderQuality === "low") ? "low" : "high";
+}
+if (!window.__vfxDistanceCull) {
+  window.__vfxDistanceCull = 140;
+}
+function shouldSpawnVfx(kind, pos) {
+  try {
+    const q = window.__vfxQuality || "high";
+    const fpsNow = (__perf && __perf.fps) ? __perf.fps : 60;
+    // Disallow heavy effects at low quality or very low FPS
+    if (q === "low" || fpsNow < 18) return false;
+    // Distance cull if position provided (use camera position)
+    if (pos && camera && camera.position) {
+      const dx = pos.x - camera.position.x;
+      const dz = pos.z - camera.position.z;
+      const d = Math.hypot(dx, dz);
+      if (d > (window.__vfxDistanceCull || 140)) return false;
+    }
+    // Allow for 'medium' quality but still disallow some heavy kinds
+    if (q === "medium") {
+      if (kind === "handSpark" || kind === "largeBeam") return false;
+    }
+    return true;
+  } catch (e) {
+    return true;
+  }
+}
+
 // Throttle values for UI updates (ms)
 const HUD_UPDATE_MS = 150;
 const MINIMAP_UPDATE_MS = 150;
@@ -935,9 +969,12 @@ for (let i = 0; i < FENCE_POSTS; i++) {
   postPositions.push({ x: px, z: pz });
 }
 
-// connecting rails (three horizontal lines)
+ // connecting rails (three horizontal lines)
 const railMat = new THREE.MeshStandardMaterial({ color: 0x4b3620 });
 const railHeights = [0.45, 0.9, 1.35]; // y positions for rails
+// Reuse a single unit geometry to avoid creating many geometries of different lengths.
+// We'll scale the mesh.x to match desired length so we only allocate one geometry.
+const _unitRailGeo = new THREE.BoxGeometry(1, 0.06, 0.06);
 for (let i = 0; i < FENCE_POSTS; i++) {
   const a = postPositions[i];
   const b = postPositions[(i + 1) % FENCE_POSTS];
@@ -946,8 +983,9 @@ for (let i = 0; i < FENCE_POSTS; i++) {
   const len = Math.hypot(dx, dz);
   const angle = Math.atan2(dz, dx);
   for (const h of railHeights) {
-    const railGeo = new THREE.BoxGeometry(len, 0.06, 0.06);
-    const rail = new THREE.Mesh(railGeo, railMat);
+    const rail = new THREE.Mesh(_unitRailGeo, railMat);
+    // Scale the unit mesh to the required length. BoxGeometry is centered, so scaling keeps it centered.
+    rail.scale.set(len, 1, 1);
     rail.position.set((a.x + b.x) / 2, h, (a.z + b.z) / 2);
     rail.rotation.y = -angle;
     rail.receiveShadow = true;
@@ -1247,7 +1285,8 @@ window.addEventListener("keydown", (e) => {
         const speed = 10;
         const px = base.x + dir.x * speed;
         const pz = base.z + dir.y * speed;
-        effects.spawnMovePing(new THREE.Vector3(px, 0, pz));
+        __tempVecA.set(px, 0, pz);
+        effects.spawnMovePing(__tempVecA);
         __arrowContPingT = now() + __MOVE_PING_INTERVAL;
       } else {
         __arrowContPingT = 0;
@@ -1306,7 +1345,8 @@ function animate() {
         try {
           const tnow = now();
           if (!__joyContPingT || tnow >= __joyContPingT) {
-            effects.spawnMovePing(new THREE.Vector3(px, 0, pz));
+            __tempVecA.set(px, 0, pz);
+            effects.spawnMovePing(__tempVecA);
             __joyContPingT = tnow + __MOVE_PING_INTERVAL;
           }
         } catch (e) {}
@@ -1340,10 +1380,12 @@ function animate() {
 
       // Fire immediately on initial press, then cadence
       if (!__arrowWasActive) {
-        effects.spawnMovePing(new THREE.Vector3(px, 0, pz));
+        __tempVecA.set(px, 0, pz);
+        effects.spawnMovePing(__tempVecA);
         __arrowContPingT = t + __MOVE_PING_INTERVAL;
       } else if (!__arrowContPingT || t >= __arrowContPingT) {
-        effects.spawnMovePing(new THREE.Vector3(px, 0, pz));
+        __tempVecA.set(px, 0, pz);
+        effects.spawnMovePing(__tempVecA);
         __arrowContPingT = t + __MOVE_PING_INTERVAL;
       }
       __arrowWasActive = true;
@@ -1356,26 +1398,28 @@ function animate() {
   updatePlayer(dt);
   updateEnemies(dt);
   if (firstPerson && typeof player !== "undefined") {
-    // Compute world positions for left/right hand anchors (fall back to approximations)
+    // Reuse temp vectors to avoid per-frame allocations in the FP hand code.
+    // left/right are aliases into the shared pool (copied into mid when needed).
     const ud = player.mesh.userData || {};
-    const left = new THREE.Vector3();
-    const right = new THREE.Vector3();
+    const left = __tempVecA;
+    const right = __tempVecB;
+    left.set(0, 0, 0);
+    right.set(0, 0, 0);
     if (ud.leftHandAnchor && ud.handAnchor) {
+      // getWorldPosition writes into the provided vector
       ud.leftHandAnchor.getWorldPosition(left);
       ud.handAnchor.getWorldPosition(right);
-    } else if (player.mesh.userData && player.mesh.userData.handAnchor) {
-      const p = player.pos();
-      left.set(p.x - 0.4, p.y + 1.15, p.z + 0.25);
-      right.set(p.x + 0.4, p.y + 1.15, p.z + 0.25);
     } else {
       const p = player.pos();
-      left.set(p.x - 0.4, p.y + 1.15, p.z);
-      right.set(p.x + 0.4, p.y + 1.15, p.z);
+      // single branch covers both handAnchor variants with identical offsets
+      left.set(p.x - 0.4, p.y + 1.15, p.z + 0.25);
+      right.set(p.x + 0.4, p.y + 1.15, p.z + 0.25);
     }
 
     // Midpoint between hands, and forward vector from player orientation
-    const mid = left.clone().add(right).multiplyScalar(0.5);
-    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(player.mesh.quaternion).normalize();
+    // mid stored in __tempVecC (copied from left/right), forward reuses __tempVecA
+    const mid = __tempVecC.copy(left).add(right).multiplyScalar(0.5);
+    const forward = __tempVecA.set(0, 0, 1).applyQuaternion(player.mesh.quaternion).normalize();
 
     // FP hand VFX and gestures (two hands, thunder-in-hand, move/attack animations)
     try {
@@ -1435,16 +1479,14 @@ function animate() {
     const fpLookAhead = 3.0;  // look further ahead so enemies occupy the center
     const fpLookUp = 1.1;     // tilt camera upward more so hands/model sit lower in the frame
 
-    const desiredPos = mid.clone()
-      .add(forward.clone().multiplyScalar(-fpBack))
-      .add(new THREE.Vector3(0, fpUp, 0));
-    camera.position.lerp(desiredPos, 1 - Math.pow(0.001, dt));
+    // Compute desired camera position and look target using reusable temporaries.
+    // desiredPos -> __tempVecB, mid already in __tempVecC, forward in __tempVecA
+    __tempVecB.copy(mid).addScaledVector(forward, -fpBack).add(__tempVecQuatOrVec = __tempVecQuatOrVec || __tempVecC.set(0, fpUp, 0));
+    camera.position.lerp(__tempVecB, 1 - Math.pow(0.001, dt));
 
-    // Look ahead and slightly upward to push the hands/model toward bottom-center of the view
-    const lookTarget = mid.clone()
-      .add(forward.clone().multiplyScalar(fpLookAhead))
-      .add(new THREE.Vector3(0, fpLookUp, 0));
-    camera.lookAt(lookTarget);
+    // lookTarget -> reuse __tempVecC (it's safe to overwrite after lerp)
+    __tempVecC.copy(mid).addScaledVector(forward, fpLookAhead).add(__tempVecB.set(0, fpLookUp, 0));
+    camera.lookAt(__tempVecC);
   } else {
     updateCamera(camera, player, lastMoveDir, dt, cameraOffset, cameraShake);
   }
@@ -1854,7 +1896,8 @@ function updateEnemies(dt) {
       if (!en.moveTarget || Math.random() < 0.005) {
         const ang = Math.random() * Math.PI * 2;
         const r = Math.random() * WORLD.aiWanderRadius;
-        en.moveTarget = en.pos().clone().add(new THREE.Vector3(Math.cos(ang) * r, 0, Math.sin(ang) * r));
+        __tempVecA.copy(en.pos()).add(__tempVecB.set(Math.cos(ang) * r, 0, Math.sin(ang) * r));
+        en.moveTarget = __tempVecA.clone();
       }
       const d = distance2D(en.pos(), en.moveTarget);
       if (d > 0.8) {
@@ -1924,9 +1967,12 @@ function updateIndicators(dt) {
   // Hand charged micro-sparks when any skill is ready
   const anyReady = !(skills.isOnCooldown("Q") && skills.isOnCooldown("W") && skills.isOnCooldown("E") && skills.isOnCooldown("R"));
   if (anyReady && (window.__nextHandSparkT ?? 0) <= t) {
+    // Use temp vectors to avoid allocating from/to per spark
     const from = handWorldPos(player);
-    const to = from.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.6, 0.2 + Math.random() * 0.3, (Math.random() - 0.5) * 0.6));
-    effects.spawnElectricBeam(from, to, 0x9fd8ff, 0.06, 5, 0.2);
+    __tempVecA.copy(from);
+    __tempVecB.set((Math.random() - 0.5) * 0.6, 0.2 + Math.random() * 0.3, (Math.random() - 0.5) * 0.6);
+    __tempVecC.copy(from).add(__tempVecB);
+    effects.spawnElectricBeam(__tempVecA, __tempVecC, 0x9fd8ff, 0.06, 5, 0.2);
     window.__nextHandSparkT = t + 0.5 + Math.random() * 0.5;
   }
 }
