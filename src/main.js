@@ -59,6 +59,13 @@ const __perf = {
   avgMs: 0
 };
 
+// Tiny reusable object pool to avoid allocations in hot loops.
+// Temp vectors/quaternions used across update loops to reduce GC pressure.
+const __tempVecA = new THREE.Vector3();
+const __tempVecB = new THREE.Vector3();
+const __tempVecC = new THREE.Vector3();
+const __tempQuat = new THREE.Quaternion();
+
 // Throttle values for UI updates (ms)
 const HUD_UPDATE_MS = 150;
 const MINIMAP_UPDATE_MS = 150;
@@ -1005,11 +1012,27 @@ const touch = initTouchControls({ player, skills, effects, aimPreview, attackPre
 // ------------------------------------------------------------
 // Raycasting
 // ------------------------------------------------------------
+/* Maintain a cached list of alive enemy meshes and refresh periodically to avoid
+   allocating/filtering every frame when raycasting. This reduces GC and CPU work.
+*/
+const __aliveEnemyMeshes = [];
+function __refreshAliveEnemyMeshes() {
+  __aliveEnemyMeshes.length = 0;
+  for (let i = 0; i < enemies.length; i++) {
+    const en = enemies[i];
+    if (en && en.alive && en.mesh) __aliveEnemyMeshes.push(en.mesh);
+  }
+}
+// Refresh every 250ms (tunable)
+try { clearInterval(window.__aliveMeshesRefreshInt); } catch (_) {}
+window.__aliveMeshesRefreshInt = setInterval(__refreshAliveEnemyMeshes, 250);
+__refreshAliveEnemyMeshes();
+
 const raycast = createRaycast({
   renderer,
   camera,
   ground,
-  enemiesMeshesProvider: () => enemies.filter((en) => en.alive).map((en) => en.mesh),
+  enemiesMeshesProvider: () => __aliveEnemyMeshes,
   playerMesh: player.mesh,
 });
 
@@ -1498,10 +1521,18 @@ function animate() {
     }
   } catch (_) {}
 
-  // Update perf metrics
+  // Update perf metrics (throttled)
   try {
     __computePerf(performance.now());
-    window.__perfMetrics = getPerf();
+    // Throttle heavy renderer.info snapshotting / perf exposure to reduce cost.
+    // Tunable at runtime via window.__PERF_INFO_THROTTLE_MS (default 1000ms).
+    const PERF_INFO_THROTTLE_MS = window.__PERF_INFO_THROTTLE_MS || 1000;
+    if (!window.__lastPerfInfoT) window.__lastPerfInfoT = 0;
+    const nowPerfT = performance.now();
+    if ((nowPerfT - window.__lastPerfInfoT) >= PERF_INFO_THROTTLE_MS) {
+      window.__lastPerfInfoT = nowPerfT;
+      try { window.__perfMetrics = getPerf(); } catch (_) {}
+    }
   } catch (_) {}
 
   // Adaptive performance: adjust AI stride and enemy count based on FPS
@@ -1786,17 +1817,28 @@ function updateEnemies(dt) {
           const cd = en.attackCooldown || WORLD.aiAttackCooldown;
           en.nextAttackReady = t + cd;
           // Visual / Effect per enemy kind
-          const from = en.pos().clone().add(new THREE.Vector3(0, 1.4, 0));
-          const to = player.pos().clone().add(new THREE.Vector3(0, 1.2, 0));
+          // Reuse temp vectors to avoid allocations in hot attack path
+          __tempVecA.copy(en.pos()).add(__tempVecB.set(0, 1.4, 0)); // from
+          __tempVecC.copy(player.pos()).add(__tempVecB.set(0, 1.2, 0)); // to
+
           try {
+            // VFX gating: skip heavy VFX on low vfxQuality or very low FPS
+            const vfxQuality = window.__vfxQuality || (renderQuality === "low" ? "low" : "high");
+            const fpsNow = __perf.fps || 60;
+            const allowHeavyVfx = (vfxQuality !== "low") && fpsNow >= 20;
+
             if (en.attackEffect === "melee") {
-              // impact strike at player
-              effects.spawnStrike(player.pos(), 0.9, 0xff9955);
+              // impact strike at player (light-weight)
+              try { effects.spawnStrike(player.pos(), 0.9, 0xff9955); } catch (_) {}
             } else if (en.attackEffect === "electric") {
-              effects.spawnElectricBeamAuto(from, to, en.beamColor || 0x9fd8ff, 0.1);
+              if (allowHeavyVfx) {
+                try { effects.spawnElectricBeamAuto(__tempVecA, __tempVecC, en.beamColor || 0x9fd8ff, 0.1); } catch (_) {}
+              }
             } else {
               // default beam (archer/others)
-              effects.spawnBeam(from, to, en.beamColor || 0xff8080, 0.09);
+              if (allowHeavyVfx) {
+                try { effects.spawnBeam(__tempVecA, __tempVecC, en.beamColor || 0xff8080, 0.09); } catch (_) {}
+              }
             }
           } catch (e) {}
           // Damage
