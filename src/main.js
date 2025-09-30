@@ -1,4 +1,4 @@
-// Zeus RPG — Modular Orchestrator
+// GoT RPG — Modular Orchestrator
 // This refactor splits the original monolithic file into modules per system.
 // Behavior is preserved; tuning values unchanged.
 
@@ -31,6 +31,8 @@ import { renderHeroScreen as renderHeroScreenUI } from "./ui/hero/index.js";
 import { updateSkillBarLabels } from "./ui/skillbar.js";
 import { promptBasicUpliftIfNeeded } from "./uplift.js";
 import { setupDesktopControls } from "./ui/deskop-controls.js"
+import * as payments from './payments.js';
+
 
 // ------------------------------------------------------------
 // Bootstrapping world, UI, effects
@@ -45,6 +47,113 @@ let renderQuality = (typeof _renderPrefs.quality === "string" && ["low", "medium
   : "high";
 const effects = new EffectsManager(scene, { quality: renderQuality });
 const mapManager = createMapManager();
+
+
+// Perf collector: smoothed FPS, 1% low, frame ms, and renderer.info snapshot
+const __perf = {
+  prevMs: performance.now(),
+  hist: [],
+  fps: 0,
+  fpsLow1: 0,
+  ms: 0,
+  avgMs: 0
+};
+
+// Tiny reusable object pool to avoid allocations in hot loops.
+// Temp vectors/quaternions used across update loops to reduce GC pressure.
+const __tempVecA = new THREE.Vector3();
+const __tempVecB = new THREE.Vector3();
+const __tempVecC = new THREE.Vector3();
+const __tempQuat = new THREE.Quaternion();
+let __tempVecQuatOrVec;
+
+// Global VFX gating / quality helper. Tunable at runtime:
+//   window.__vfxQuality = 'high' | 'medium' | 'low' (default derived from renderQuality)
+//   window.__vfxDistanceCull = 120  // meters for distance-based culling (optional)
+//
+// Use shouldSpawnVfx(type, position) before spawning expensive effects.
+if (!window.__vfxQuality) {
+  window.__vfxQuality = (renderQuality === "low") ? "low" : "high";
+}
+if (!window.__vfxDistanceCull) {
+  window.__vfxDistanceCull = 140;
+}
+function shouldSpawnVfx(kind, pos) {
+  try {
+    const q = window.__vfxQuality || "high";
+    const fpsNow = (__perf && __perf.fps) ? __perf.fps : 60;
+    // Disallow heavy effects at low quality or very low FPS
+    if (q === "low" || fpsNow < 18) return false;
+    // Distance cull if position provided (use camera position)
+    if (pos && camera && camera.position) {
+      const dx = pos.x - camera.position.x;
+      const dz = pos.z - camera.position.z;
+      const d = Math.hypot(dx, dz);
+      if (d > (window.__vfxDistanceCull || 140)) return false;
+    }
+    // Allow for 'medium' quality but still disallow some heavy kinds
+    if (q === "medium") {
+      if (kind === "handSpark" || kind === "largeBeam") return false;
+    }
+    return true;
+  } catch (e) {
+    return true;
+  }
+}
+
+// Throttle values for UI updates (ms)
+const HUD_UPDATE_MS = 150;
+const MINIMAP_UPDATE_MS = 150;
+try {
+  // expose for runtime tuning/debug if needed
+  window.__HUD_UPDATE_MS = HUD_UPDATE_MS;
+  window.__MINIMAP_UPDATE_MS = MINIMAP_UPDATE_MS;
+} catch (_) {}
+
+// last-update timestamps (initialized lazily in the loop)
+if (!window.__lastHudT) window.__lastHudT = 0;
+if (!window.__lastMinimapT) window.__lastMinimapT = 0;
+function __computePerf(nowMs) {
+  const dtMs = Math.max(0.1, Math.min(1000, nowMs - (__perf.prevMs || nowMs)));
+  __perf.prevMs = nowMs;
+  __perf.ms = dtMs;
+  __perf.hist.push(dtMs);
+  if (__perf.hist.length > 600) __perf.hist.shift(); // ~10s at 60fps
+
+  // Smooth FPS over recent 30 frames (lightweight)
+  const recent = __perf.hist.slice(-30);
+  const avgMs = recent.reduce((a, b) => a + b, 0) / Math.max(1, recent.length);
+  __perf.avgMs = avgMs;
+  __perf.fps = 1000 / avgMs;
+
+  // Compute 1% low (p99) less frequently to avoid sorting every frame.
+  // Throttle window (ms) can be tuned at runtime via window.__PERF_P99_THROTTLE_MS.
+  const PERF_P99_THROTTLE_MS = (window.__PERF_P99_THROTTLE_MS || 1000);
+  if (!window.__lastPerfP99T) window.__lastPerfP99T = 0;
+  if ((performance.now() - window.__lastPerfP99T) >= PERF_P99_THROTTLE_MS) {
+    window.__lastPerfP99T = performance.now();
+    try {
+      const sorted = __perf.hist.slice().sort((a, b) => a - b);
+      const p99Idx = Math.min(sorted.length - 1, Math.floor(sorted.length * 0.99));
+      const ms99 = sorted[p99Idx] || avgMs;
+      __perf.fpsLow1 = 1000 / ms99;
+    } catch (e) {
+      // keep previous fpsLow1 on error
+    }
+  }
+}
+function getPerf() {
+  const ri = renderer.info;
+  const r = {
+    calls: ri.render.calls,
+    triangles: ri.render.triangles,
+    lines: ri.render.lines,
+    points: ri.render.points,
+    geometries: ri.memory.geometries,
+    textures: ri.memory.textures
+  };
+  return { fps: __perf.fps, fpsLow1: __perf.fpsLow1, ms: __perf.ms, avgMs: __perf.avgMs, renderer: r };
+}
 
 // Load environment preferences from localStorage (persist rain + density)
 const _envPrefs = JSON.parse(localStorage.getItem("envPrefs") || "{}");
@@ -71,7 +180,134 @@ try {
 initSplash();
 // Initialize i18n (default Vietnamese)
 initI18n();
+// Bottom Middle = Desktop Controls
 setupDesktopControls();
+
+/* Payments (Digital Goods / Play Billing + App-priced TWA support)
+   - Supports two modes:
+     1) In-app SKUs (PRODUCT_IDS non-empty): use Digital Goods API as before.
+     2) App-priced (no SKUs): trust license status provided by TWA wrapper (preferred)
+        or verify a Play Licensing/Play Integrity token on the server.
+   - For app-priced TWA: implement license check in the Android wrapper and post a message
+     to the web page with { type: 'TWA_LICENSE_STATUS', entitled: boolean, licenseToken?: string }.
+     The web page will store entitlement in localStorage and (optionally) verify licenseToken on your server.
+*/
+(function initPayments() {
+  // Run async init without blocking boot
+  (async () => {
+    try {
+      await payments.initDigitalGoods(); // harmless if unsupported
+      // Configure product SKUs here if you're using in-app products.
+      // For an app-priced distribution (one-time paid app with no SKUs), leave PRODUCT_IDS empty.
+      const PRODUCT_IDS = []; // Example: ['com.example.app.productId'] for in-app SKU mode.
+
+      if (Array.isArray(PRODUCT_IDS) && PRODUCT_IDS.length > 0) {
+        // In-app SKU flow (unchanged)
+        const purchases = await payments.checkOwned(PRODUCT_IDS);
+        if (purchases && purchases.length > 0) {
+          try { localStorage.setItem('app.purchased', '1'); } catch (_) {}
+          window.__appPurchased = true;
+          console.info('[payments] detected owned product(s):', purchases.map(p => p.itemId));
+          // Optionally verify purchase tokens on server:
+          // for (const p of purchases) await payments.verifyOnServer({ packageName: 'com.example.app', productId: p.itemId, purchaseToken: p.purchaseToken });
+        } else {
+          // fall back to previously-saved local state
+          window.__appPurchased = !!localStorage.getItem('app.purchased');
+        }
+      } else {
+        // App-priced flow (no SKUs)
+        // 1) Use any previously persisted local flag while we attempt to get a definitive license status.
+        window.__appPurchased = !!localStorage.getItem('app.purchased');
+
+        // 2) Listen for license messages from the Android TWA wrapper.
+        //    The wrapper should post a message to the page with:
+        //      { type: 'TWA_LICENSE_STATUS', entitled: true|false, licenseToken?: '<token-for-server-verification>' }
+        window.addEventListener('message', async (ev) => {
+          try {
+            const data = ev.data;
+            if (!data || typeof data !== 'object') return;
+            if (data.type === 'TWA_LICENSE_STATUS') {
+              const entitled = !!data.entitled;
+              window.__appPurchased = entitled;
+              try { localStorage.setItem('app.purchased', entitled ? '1' : '0'); } catch (_) {}
+              console.info('[payments] received TWA_LICENSE_STATUS', { entitled });
+
+              // If the wrapper provides a token suitable for server-side verification (Play Integrity or LVL),
+              // verify it on your server for stronger security.
+              if (data.licenseToken) {
+                try {
+                  const resp = await payments.verifyLicenseOnServer({ licenseData: data.licenseToken });
+                  if (resp && resp.ok && resp.entitled) {
+                    window.__appPurchased = true;
+                    try { localStorage.setItem('app.purchased', '1'); } catch (_) {}
+                    console.info('[payments] server verified license token OK');
+                  } else {
+                    console.warn('[payments] server license verification returned not-entitled', resp);
+                  }
+                } catch (e) {
+                  console.warn('[payments] license verify on server failed', e);
+                }
+              }
+            }
+          } catch (e) {
+            // ignore message handler failures
+            console.warn('[payments] message handler error', e);
+          }
+        }, false);
+
+        // 3) Helper to request the wrapper to perform a license check (the wrapper must listen for this message).
+        //    The Android wrapper should respond by posting TWA_LICENSE_STATUS back to the page.
+        window.requestLicenseStatus = function requestLicenseStatus() {
+          try {
+            // This will send a message to the embedding context (the Android TWA wrapper).
+            // The wrapper must listen for this and respond with a TWA_LICENSE_STATUS message.
+            window.postMessage({ type: 'REQUEST_TWA_LICENSE_STATUS' }, '*');
+          } catch (e) {
+            console.warn('[payments] requestLicenseStatus failed', e);
+          }
+        };
+
+        // Ask wrapper for current license state (non-blocking)
+        try { window.requestLicenseStatus(); } catch (_) {}
+      }
+    } catch (e) {
+      console.warn('[payments] initialization failed', e);
+      window.__appPurchased = !!localStorage.getItem('app.purchased');
+    }
+  })();
+
+  // Expose helper to restore purchases / re-check license on demand (e.g., settings "Restore purchases" button)
+  window.restorePurchases = async function restorePurchases() {
+    try {
+      await payments.initDigitalGoods();
+      const PRODUCT_IDS = []; // same configuration as above; fill if using SKUs
+
+      if (Array.isArray(PRODUCT_IDS) && PRODUCT_IDS.length > 0) {
+        const all = await payments.listPurchases();
+        if (all && all.length) {
+          const found = (all || []).some(p => p && PRODUCT_IDS.includes(p.itemId));
+          if (found) {
+            try { localStorage.setItem('app.purchased', '1'); } catch (_) {}
+            window.__appPurchased = true;
+          }
+        }
+        return all;
+      } else {
+        // App-priced flow: request the wrapper to re-check license and return immediately.
+        try {
+          window.requestLicenseStatus && window.requestLicenseStatus();
+          return { ok: true, note: 'Requested wrapper license status' };
+        } catch (err) {
+          console.warn('[payments] restorePurchases (app priced) failed', err);
+          throw err;
+        }
+      }
+    } catch (err) {
+      console.warn('[payments] restorePurchases failed', err);
+      throw err;
+    }
+  };
+})();
 
 /* Audio: preferences + initialize on first user gesture. Do not auto-start music if disabled. */
 const _audioPrefs = JSON.parse(localStorage.getItem("audioPrefs") || "{}");
@@ -189,6 +425,7 @@ const renderCtx = {
   getQuality: () => renderQuality,
   setQuality: (q) => { renderQuality = q; },
   getTargetPixelRatio: () => getTargetPixelRatio(),
+  getPerf,
 };
 setupSettingsScreen({
   t,
@@ -198,6 +435,48 @@ setupSettingsScreen({
   render: renderCtx,
   audioCtl,
 });
+
+// Wire "Restore purchases" button in Settings to the restorePurchases() helper.
+// Provides lightweight UI feedback (center message) while the request is processed.
+(function wireRestoreButton() {
+  const btn = document.getElementById('btnRestorePurchases');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    try {
+      btn.disabled = true;
+      setCenterMsg && setCenterMsg('Checking purchases...');
+      const res = await window.restorePurchases();
+      // Handling possible responses:
+      // - SKU flow: array of purchases returned
+      // - App-priced flow: { ok: true, note: 'Requested wrapper license status' } and wrapper will post TWA_LICENSE_STATUS
+      if (Array.isArray(res)) {
+        if (res.length > 0 || window.__appPurchased) {
+          setCenterMsg && setCenterMsg('Purchase restored.');
+        } else {
+          setCenterMsg && setCenterMsg('No purchases found.');
+        }
+      } else if (res && res.ok && res.note) {
+        // Requested wrapper/license re-check — final state will be delivered via TWA_LICENSE_STATUS message.
+        setCenterMsg && setCenterMsg('Requested license status; awaiting response...');
+      } else {
+        // Fallback: rely on window.__appPurchased
+        if (window.__appPurchased) {
+          setCenterMsg && setCenterMsg('Purchase restored.');
+        } else {
+          setCenterMsg && setCenterMsg('No purchase found.');
+        }
+      }
+      // Clear the message shortly after
+      setTimeout(() => { try { clearCenterMsg && clearCenterMsg(); } catch (_) {} }, 1400);
+    } catch (err) {
+      console.warn('[UI] restorePurchases click failed', err);
+      try { setCenterMsg && setCenterMsg('Restore failed'); } catch (_) {}
+      setTimeout(() => { try { clearCenterMsg && clearCenterMsg(); } catch (_) {} }, 1400);
+    } finally {
+      try { btn.disabled = false; } catch (_) {}
+    }
+  });
+})();
 
 // Hero open/close
 // Thin wrapper to render hero screen using modular UI
