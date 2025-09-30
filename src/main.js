@@ -42,9 +42,10 @@ const _baseCameraOffset = cameraOffset.clone();
 const ui = new UIManager();
 // Render quality preference (persisted). Default to "high".
 const _renderPrefs = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
+const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test((navigator && navigator.userAgent) || "");
 let renderQuality = (typeof _renderPrefs.quality === "string" && ["low", "medium", "high"].includes(_renderPrefs.quality))
   ? _renderPrefs.quality
-  : "high";
+  : (isMobile ? "medium" : "high");
 const effects = new EffectsManager(scene, { quality: renderQuality });
 const mapManager = createMapManager();
 
@@ -108,6 +109,17 @@ try {
   // expose for runtime tuning/debug if needed
   window.__HUD_UPDATE_MS = HUD_UPDATE_MS;
   window.__MINIMAP_UPDATE_MS = MINIMAP_UPDATE_MS;
+} catch (_) {}
+
+// HP bar tuning (change-driven updates)
+const HPBAR_MIN_UPDATE_MS = 120;      // minimum time between updates for a single enemy
+const HPBAR_HEARTBEAT_MS = 500;       // periodic fallback update when no changes
+try {
+  window.__HPBAR_MIN_UPDATE_MS = HPBAR_MIN_UPDATE_MS;
+  // Backward-compatible alias: keep __HPBAR_UPDATE_MS semantics as the per-enemy min update interval
+  if (window.__HPBAR_UPDATE_MS == null) window.__HPBAR_UPDATE_MS = HPBAR_MIN_UPDATE_MS;
+  window.__HPBAR_HEARTBEAT_MS = HPBAR_HEARTBEAT_MS;
+  if (window.__HPBAR_MAX_DIST == null) window.__HPBAR_MAX_DIST = 220;
 } catch (_) {}
 
 // last-update timestamps (initialized lazily in the loop)
@@ -885,6 +897,8 @@ function applyMapModifiersToEnemy(en) {
         });
       } catch (_) {}
     }
+    // Ensure HP bar reflects any HP/maxHP changes from map modifiers
+    try { en.markHpDirty && en.markHpDirty(); } catch (_) {}
   } catch (_) {}
 }
 // Enemies
@@ -956,26 +970,36 @@ const fenceRadius = REST_RADIUS - 0.2;
 // create posts
 const postGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.6, 8);
 const postMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2a });
+// Precompute post positions and angles, then use InstancedMesh for lower draw calls
 const postPositions = [];
 for (let i = 0; i < FENCE_POSTS; i++) {
   const ang = (i / FENCE_POSTS) * Math.PI * 2;
   const px = VILLAGE_POS.x + Math.cos(ang) * fenceRadius;
   const pz = VILLAGE_POS.z + Math.sin(ang) * fenceRadius;
-  const post = new THREE.Mesh(postGeo, postMat);
-  post.position.set(px, 0.8, pz);
-  post.rotation.y = -ang;
-  post.receiveShadow = true;
-  post.castShadow = true;
-  fenceGroup.add(post);
-  postPositions.push({ x: px, z: pz });
+  postPositions.push({ x: px, z: pz, ang });
 }
+const postsIM = new THREE.InstancedMesh(postGeo, postMat, FENCE_POSTS);
+const _imHelper = new THREE.Object3D();
+for (let i = 0; i < FENCE_POSTS; i++) {
+  const { x, z, ang } = postPositions[i];
+  _imHelper.position.set(x, 0.8, z);
+  _imHelper.rotation.set(0, -ang, 0);
+  _imHelper.scale.set(1, 1, 1);
+  _imHelper.updateMatrix();
+  postsIM.setMatrixAt(i, _imHelper.matrix);
+}
+postsIM.receiveShadow = true;
+postsIM.castShadow = true;
+fenceGroup.add(postsIM);
 
  // connecting rails (three horizontal lines)
 const railMat = new THREE.MeshStandardMaterial({ color: 0x4b3620 });
 const railHeights = [0.45, 0.9, 1.35]; // y positions for rails
-// Reuse a single unit geometry to avoid creating many geometries of different lengths.
-// We'll scale the mesh.x to match desired length so we only allocate one geometry.
+// Instanced rails: one unit geometry, per-instance transform for length/orientation
 const _unitRailGeo = new THREE.BoxGeometry(1, 0.06, 0.06);
+const railCount = FENCE_POSTS * railHeights.length;
+const railsIM = new THREE.InstancedMesh(_unitRailGeo, railMat, railCount);
+let rIdx = 0;
 for (let i = 0; i < FENCE_POSTS; i++) {
   const a = postPositions[i];
   const b = postPositions[(i + 1) % FENCE_POSTS];
@@ -983,17 +1007,19 @@ for (let i = 0; i < FENCE_POSTS; i++) {
   const dz = b.z - a.z;
   const len = Math.hypot(dx, dz);
   const angle = Math.atan2(dz, dx);
+  const cx = (a.x + b.x) / 2;
+  const cz = (a.z + b.z) / 2;
   for (const h of railHeights) {
-    const rail = new THREE.Mesh(_unitRailGeo, railMat);
-    // Scale the unit mesh to the required length. BoxGeometry is centered, so scaling keeps it centered.
-    rail.scale.set(len, 1, 1);
-    rail.position.set((a.x + b.x) / 2, h, (a.z + b.z) / 2);
-    rail.rotation.y = -angle;
-    rail.receiveShadow = true;
-    rail.castShadow = false;
-    fenceGroup.add(rail);
+    _imHelper.position.set(cx, h, cz);
+    _imHelper.rotation.set(0, -angle, 0);
+    _imHelper.scale.set(len, 1, 1);
+    _imHelper.updateMatrix();
+    railsIM.setMatrixAt(rIdx++, _imHelper.matrix);
   }
 }
+railsIM.receiveShadow = true;
+railsIM.castShadow = false;
+fenceGroup.add(railsIM);
 
 // Low translucent ground ring for visual guidance (subtle)
 const fenceRing = new THREE.Mesh(
@@ -1005,6 +1031,15 @@ fenceRing.position.copy(VILLAGE_POS);
 fenceGroup.add(fenceRing);
 
 scene.add(fenceGroup);
+// Freeze static fence transforms to avoid per-frame matrix updates
+try {
+  fenceGroup.traverse?.((o) => {
+    if (!o) return;
+    if (o === fenceGroup) return;
+    o.matrixAutoUpdate = false;
+    try { o.updateMatrix?.(); } catch (_) {}
+  });
+} catch (_) {}
 
 // Portals/Recall
 const portals = initPortals(scene);
@@ -1136,6 +1171,15 @@ function getKeyMoveDir() {
 
 let lastMouseGroundPoint = new THREE.Vector3();
 renderer.domElement.addEventListener("mousemove", (e) => {
+  // Throttle mouse-move raycasts to reduce CPU on low-end devices
+  try {
+    const nowMs = performance.now();
+    if (!window.__nextMouseRayT) window.__nextMouseRayT = 0;
+    const interval = window.__MOUSE_RAYCAST_MS || 30; // ~33Hz by default
+    if (nowMs < window.__nextMouseRayT) return;
+    window.__nextMouseRayT = nowMs + interval;
+  } catch (_) {}
+
   raycast.updateMouseNDC(e);
   const p = raycast.raycastGround();
   if (p) {
@@ -1535,32 +1579,61 @@ function animate() {
   effects.update(t, dt);
   if (env && typeof env.update === "function") env.update(t, dt);
 
-  // Stream world features: ensure far village(s) exist as player travels
-  villages.ensureFarVillage(player.pos());
-  // When entering a village, connect it to previous visited village with a road
-  villages.updateVisitedVillage(player.pos());
+  // Stream world features (throttled): ensure far village(s) exist and connect roads
+  try {
+    const nowMsV = performance.now();
+    if (!window.__nextVillageT) window.__nextVillageT = 0;
+    const vInt = window.__VILLAGE_UPDATE_MS || 350; // update ~3x/s
+    if (nowMsV >= window.__nextVillageT) {
+      villages.ensureFarVillage(player.pos());
+      villages.updateVisitedVillage(player.pos());
+      window.__nextVillageT = nowMsV + vInt;
+    }
+  } catch (_) {
+    // Fallback to previous behavior if throttle fails
+    villages.ensureFarVillage(player.pos());
+    villages.updateVisitedVillage(player.pos());
+  }
 
   updateIndicators(dt);
   portals.update(dt);
   villages.updateRest(player, dt);
   updateDeathRespawn();
 
-  // Billboard enemy hp bars to face camera (throttled to reduce per-frame math)
+  // Billboard enemy hp bars to face camera (throttled and distance-capped)
   try {
     const nowMs2 = performance.now();
     if (!window.__lastBillboardT) window.__lastBillboardT = 0;
     if ((nowMs2 - window.__lastBillboardT) >= (window.__BILLBOARD_UPDATE_MS || 100)) {
       window.__lastBillboardT = nowMs2;
+      const maxDist = window.__BILLBOARD_MAX_DIST || 200; // meters
+      const maxD2 = maxDist * maxDist;
       enemies.forEach((en) => {
         if (!en.alive) return;
-        if (en.hpBar && en.hpBar.container) en.hpBar.container.lookAt(camera.position);
+        if (!en.hpBar || !en.hpBar.container) return;
+        try {
+          const p = en.pos();
+          const dx = p.x - camera.position.x;
+          const dz = p.z - camera.position.z;
+          if ((dx * dx + dz * dz) > maxD2) return;
+        } catch (_) {}
+        en.hpBar.container.quaternion.copy(camera.quaternion);
       });
     }
   } catch (_) {
-    // Fallback: if throttle fails, keep behavior
+    // Fallback: if throttle fails, keep behavior with distance cap
+    const maxDist = window.__BILLBOARD_MAX_DIST || 200;
+    const maxD2 = maxDist * maxDist;
     enemies.forEach((en) => {
       if (!en.alive) return;
-      if (en.hpBar && en.hpBar.container) en.hpBar.container.lookAt(camera.position);
+      if (!en.hpBar || !en.hpBar.container) return;
+      try {
+        const p = en.pos();
+        const dx = p.x - camera.position.x;
+        const dz = p.z - camera.position.z;
+        if ((dx * dx + dz * dz) > maxD2) return;
+      } catch (_) {}
+      en.hpBar.container.quaternion.copy(camera.quaternion);
     });
   }
 
@@ -1574,10 +1647,10 @@ function animate() {
       const nowMs2 = performance.now();
       if (!window.__lastBillboardT) window.__lastBillboardT = 0;
       if ((nowMs2 - window.__lastBillboardT) >= (window.__BILLBOARD_UPDATE_MS || 100)) {
-        heroBars.container.lookAt(camera.position);
+        heroBars.container.quaternion.copy(camera.quaternion);
       }
     } catch (_) {
-      heroBars.container.lookAt(camera.position);
+      heroBars.container.quaternion.copy(camera.quaternion);
     }
   }
 
@@ -1967,8 +2040,45 @@ function updateEnemies(dt) {
     // keep y
     en.mesh.position.y = 1.0;
 
-    // Update HP bar
-    en.updateHPBar();
+    // Update HP bar (change-driven with heartbeat fallback; distance-gated)
+    try {
+      const nowMs3 = performance.now();
+      if (en._nextHpMinUpdateT == null) en._nextHpMinUpdateT = 0;
+      if (en._nextHpHeartbeatT == null) en._nextHpHeartbeatT = 0;
+
+      const maxDist = (window.__HPBAR_MAX_DIST || 220);
+      const maxD2 = maxDist * maxDist;
+      let withinDist = true;
+      try {
+        const pp = en.pos();
+        const dx2 = pp.x - camera.position.x;
+        const dz2 = pp.z - camera.position.z;
+        withinDist = (dx2 * dx2 + dz2 * dz2) <= maxD2;
+      } catch (_) {
+        withinDist = true; // if position calc fails, allow update
+      }
+
+      if (withinDist) {
+        const minMs = window.__HPBAR_MIN_UPDATE_MS || window.__HPBAR_UPDATE_MS || 120;
+        const heartbeatMs = window.__HPBAR_HEARTBEAT_MS || 500;
+        let should = false;
+
+        if (en._needsHpUpdate && nowMs3 >= en._nextHpMinUpdateT) {
+          should = true;
+          en._needsHpUpdate = false;
+        } else if (nowMs3 >= en._nextHpHeartbeatT) {
+          should = true;
+        }
+
+        if (should) {
+          en.updateHPBar();
+          en._nextHpMinUpdateT = nowMs3 + minMs;
+          en._nextHpHeartbeatT = nowMs3 + heartbeatMs;
+        }
+      }
+    } catch (_) {
+      try { en.updateHPBar(); } catch (_) {}
+    }
 
     // Death cleanup, SFX, and XP grant + schedule respawn
     if (!en.alive && !en._xpGranted) {

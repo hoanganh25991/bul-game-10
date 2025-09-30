@@ -25,7 +25,7 @@ export function createGroundRing(innerR, outerR, color, opacity = 0.6) {
       color: normalizeColor(color),
       transparent: true,
       opacity,
-      side: THREE.DoubleSide,
+      side: THREE.FrontSide,
       depthWrite: false,
     })
   );

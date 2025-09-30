@@ -11,9 +11,21 @@ export class Entity {
     this.maxHP = 100;
     this.hp = 100;
     this.team = "neutral";
+    // HP bar change-driven update flags
+    this.lastHp = this.hp;
+    this._needsHpUpdate = true;
+    this._nextHpHeartbeatT = 0;
+    this._nextHpMinUpdateT = 0;
   }
   pos() {
     return this.mesh.position;
+  }
+
+  markHpDirty() {
+    try {
+      this._needsHpUpdate = true;
+      this.lastHp = this.hp;
+    } catch (_) {}
   }
   takeDamage(amount) {
     if (!this.alive) return;
@@ -40,6 +52,7 @@ export class Entity {
       this.onDeath && this.onDeath();
       this.mesh.visible = false;
     }
+    this.markHpDirty && this.markHpDirty();
   }
 }
 
@@ -337,6 +350,7 @@ export class Enemy extends Entity {
     if (this.hpBar && this.hpBar.fill) {
       this.hpBar.fill.scale.x = 1;
     }
+    this.markHpDirty && this.markHpDirty();
   }
 
   updateHPBar() {

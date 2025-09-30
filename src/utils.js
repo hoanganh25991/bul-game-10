@@ -38,20 +38,37 @@ export function now() {
 
 // Subtle dark noise texture for ground
 export function makeNoiseTexture(size = 256) {
+  // Reduce texture size and anisotropy on mobile to save bandwidth/fillrate
+  const ua = (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : "";
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+  const effSize = isMobile ? Math.max(64, Math.min(192, size)) : size;
+
   const c = document.createElement("canvas");
-  c.width = c.height = size;
+  c.width = c.height = effSize;
   const ctx = c.getContext("2d");
-  const img = ctx.createImageData(size, size);
+  const img = ctx.createImageData(effSize, effSize);
+
   for (let i = 0; i < img.data.length; i += 4) {
-    const v = 20 + Math.floor(Math.random() * 30);
+    // Neutral grayscale noise (revert from blue tint)
+    const v = 24 + Math.floor(Math.random() * 26);
     img.data[i] = v;
-    img.data[i + 1] = v + 10;
-    img.data[i + 2] = v + 25;
+    img.data[i + 1] = v;
+    img.data[i + 2] = v;
     img.data[i + 3] = 255;
   }
   ctx.putImageData(img, 0, 0);
+
   const tex = new THREE.CanvasTexture(c);
-  tex.anisotropy = 4;
+  // Explicit filtering to ensure good minification with repeat; keep mipmaps on to reduce shimmer.
+  tex.generateMipmaps = true;
+  try {
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+  } catch (_) {}
+  // Lower anisotropy on mobile; higher on desktop is fine
+  try { tex.anisotropy = isMobile ? 1 : 4; } catch (_) {}
+  try { tex.colorSpace = THREE.SRGBColorSpace; } catch (_) {}
+  tex.needsUpdate = true;
   return tex;
 }
 
