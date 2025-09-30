@@ -30,7 +30,7 @@ import { setupSettingsScreen } from "./ui/settings/index.js";
 import { renderHeroScreen as renderHeroScreenUI } from "./ui/hero/index.js";
 import { updateSkillBarLabels } from "./ui/skillbar.js";
 import { promptBasicUpliftIfNeeded } from "./uplift.js";
-
+import { setupDesktopControls } from "./ui/deskop-controls.js"
 
 // ------------------------------------------------------------
 // Bootstrapping world, UI, effects
@@ -71,6 +71,7 @@ try {
 initSplash();
 // Initialize i18n (default Vietnamese)
 initI18n();
+setupDesktopControls();
 
 /* Audio: preferences + initialize on first user gesture. Do not auto-start music if disabled. */
 const _audioPrefs = JSON.parse(localStorage.getItem("audioPrefs") || "{}");

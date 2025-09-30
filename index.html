@@ -2,16 +2,23 @@
 <html lang="en" class="splash-active">
 
 <head>
-  <meta charset="utf-8" />
   <title>GoT RPG</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <script src="lock-zoom.js"></script>
   <link rel="preconnect" href="https://unpkg.com" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/landscape.css" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.png" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <meta charset="utf-8" />
   <meta name="theme-color" content="#0b1a2b" />
-  <link rel="icon"
-    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' ry='12' fill='%230b1a2b'/%3E%3Cpath d='M36 4 L12 40 h16 l-4 20 28-40 H36 Z' fill='%23ffffff'/%3E%3C/svg%3E" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+  <meta property="og:title" content="GoT RPG" />
+  <meta property="og:type" content="website" />
+  <meta property="og:description" content="Top-down action game with GoT and electric abilities." />
+  <meta property="og:url" content="https://hoanganh25991.github.io/bul-game-10" />
+  <meta property="og:image" content="https://hoanganh25991.github.io/bul-game-10/og.jpeg" />
 </head>
 
 <body>
@@ -66,7 +73,7 @@
     <div>- B: Recall to village (opens portal back)</div>
   </div>
 
-  <div id="deathMsg" class="center-msg" style="display:none;">You died. Respawning...</div>
+  <div id="deathMsg" class="center-msg" style="display:none;" data-i18n="death.msg">You died. Respawning...</div>
 
   <!-- Settings Panel (now full-screen system screen) -->
   <div id="settingsPanel" class="screen hidden system-screen" role="dialog" aria-modal="true"
@@ -80,6 +87,7 @@
         <div class="tab-bar">
           <button class="tab-btn active" data-i18n="settings.tabs.general" aria-controls="tabGeneral">General</button>
           <button class="tab-btn" data-i18n="settings.tabs.environment" aria-controls="tabEnvironment">Environment</button>
+          <button class="tab-btn" data-i18n="settings.tabs.info" aria-controls="tabInfo">Info</button>
         </div>
 
         <div id="tabGeneral" class="tab-panel active">
@@ -114,6 +122,53 @@
               </label>
             </div>
           </div>
+
+          <div class="row">
+            <span class="row-label">Purchases</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button id="btnRestorePurchases" class="primary">Restore purchases</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="tabInfo" class="tab-panel">
+          <div class="row">
+            <span class="row-label">Performance</span>
+            <div class="perf-block" style="display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;gap:16px;flex-wrap:wrap;">
+                <div><b>FPS:</b> <span id="perfFps">--</span></div>
+                <div><b>1% low:</b> <span id="perfFpsLow">--</span></div>
+                <div><b>Avg ms:</b> <span id="perfAvgMs">--</span></div>
+                <div><b>Last ms:</b> <span id="perfMs">--</span></div>
+              </div>
+              <div style="display:flex;gap:16px;flex-wrap:wrap;">
+                <div><b>Draw calls:</b> <span id="perfCalls">--</span></div>
+                <div><b>Triangles:</b> <span id="perfTriangles">--</span></div>
+                <div><b>Lines:</b> <span id="perfLines">--</span></div>
+                <div><b>Points:</b> <span id="perfPoints">--</span></div>
+                <div><b>Geometries:</b> <span id="perfGeoms">--</span></div>
+                <div><b>Textures:</b> <span id="perfTex">--</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <span class="row-label">WebGL</span>
+            <div class="gl-block" style="display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;gap:16px;flex-wrap:wrap;">
+                <div><b>API:</b> <span id="glApi">--</span></div>
+                <div><b>Antialias:</b> <span id="glAA">--</span></div>
+                <div><b>Power:</b> <span id="glPower">--</span></div>
+              </div>
+              <div style="display:flex;gap:16px;flex-wrap:wrap;">
+                <div><b>Vendor:</b> <span id="glVendor">--</span></div>
+                <div><b>Renderer:</b> <span id="glRenderer">--</span></div>
+              </div>
+              <div style="font-size:12px;opacity:0.8;">
+                Tip: On macOS Safari/Chrome, ensure “Use hardware acceleration” is enabled in browser settings.
+              </div>
+            </div>
+          </div>
         </div>
 
         <div id="tabEnvironment" class="tab-panel">
@@ -124,22 +179,22 @@
                 <input type="checkbox" id="envRainToggle" /> <span data-i18n="settings.env.rain">Rain</span>
               </label>
               <label style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.env.density">Density</span>
+                <span style="font-size:12px;margin-right:8px;" data-i18n="settings.env.density">Density</span>
                 <input type="range" id="envDensity" min="1" max="10" step="1" value="5" />
                 <span class="slider-value" aria-hidden="true"></span>
               </label>
               <label style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.env.rainDensity">Rain Density</span>
+                <span style="font-size:12px;margin-right:8px;" data-i18n="settings.env.rainDensity">Rain Density</span>
                 <input type="range" id="rainDensity" min="1" max="10" step="1" value="5" />
                 <span class="slider-value" aria-hidden="true"></span>
               </label>
               <label style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.render.zoom">Zoom</span>
+                <span style="font-size:12px;margin-right:8px;" data-i18n="settings.render.zoom">Zoom</span>
                 <input type="range" id="zoomSlider" min="1" max="10" step="1" value="5" />
                 <span class="slider-value" aria-hidden="true"></span>
               </label>
               <label style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:12px;color:#bfe5ff;margin-right:8px;" data-i18n="settings.render.quality">Quality</span>
+                <span style="font-size:12px;margin-right:8px;" data-i18n="settings.render.quality">Quality</span>
                 <select id="qualitySelect" aria-label="Quality">
                   <option value="low" data-i18n="settings.render.low">Low</option>
                   <option value="medium" data-i18n="settings.render.medium">Medium</option>
@@ -178,7 +233,11 @@
             </div>
           </div>
         </div>
-        <div id="heroTabInfo" class="tab-panel"></div>
+        <div id="heroTabInfo" class="tab-panel">
+          <div class="items-panel">
+            <div class="items-list"></div>
+          </div>
+        </div>
         <div id="heroTabBook" class="tab-panel"></div>
         <div id="heroTabMaps" class="tab-panel"></div>
         <div id="heroTabMarks" class="tab-panel"></div>
@@ -191,8 +250,6 @@
   <div id="flashOverlay" class="flash" style="display: grid;">
     <div class="flash-card" role="status" aria-live="polite" aria-busy="true">
       <h2 class="flash-title" data-i18n="flash.title">Đang tải Thần Sấm Mãi Đỉnh</h2>
-      <div class="flash-subtitle" aria-hidden="true" style="font-size:12px;opacity:0.8;margin-top:2px;">Thunder God —
-        Always Peak</div>
       <p class="flash-desc" data-i18n="flash.desc">Chuẩn bị trải nghiệm sấm sét…</p>
       <div class="progress" aria-hidden="false">
         <div class="bar" id="flashProgressBar" style="width: 0%" role="progressbar" aria-valuemin="0"
@@ -205,7 +262,7 @@
       <div id="startScreen" class="start-screen" style="display:none; margin-top:12px;">
         <h2 id="startTitle" data-i18n="start.title">Hành trình của Thần Sấm</h2>
         <p id="startStory" data-i18n="start.story">Thế giới chìm trong u ám. Những bóng đêm tỉnh dậy, và chỉ một vị thần
-          có thể gọi sấm sét trở lại. Hãy dẫn Zeus — vị thần sấm — qua rừng hoang, làng mạc đổ nát và chiến trường, tiêu
+          có thể gọi sấm sét trở lại. Hãy dẫn GoT — vị thần sấm — qua rừng hoang, làng mạc đổ nát và chiến trường, tiêu
           diệt lũ quái và khôi phục trật tự.</p>
         <button id="btnStartGame" class="primary" data-i18n="btn.start">Bắt đầu</button>
       </div>
@@ -271,6 +328,47 @@
     </div>
   </div>
 
+  <!-- Bottom-middle desktop controls (shown on desktop; mobile uses joystick + skill wheel) -->
+  <div id="bottomMiddle" aria-hidden="true" role="group" aria-label="Desktop controls">
+    <div class="bm-row bm-actions" role="toolbar" aria-label="Actions">
+      <button id="bmCamera" class="icon-btn" title="Camera">🎥</button>
+      <button id="bmPortal" class="icon-btn" title="Portal">🌀</button>
+      <button id="bmMark" class="icon-btn" title="Mark">🚩</button>
+    </div>
+    <div id="bmSkills" class="bm-row bm-skills" role="toolbar" aria-label="Skills">
+      <button class="square-skill skill" data-key="basic" title="Basic" aria-label="Basic">
+        <span class="icon">⚡</span>
+        <span class="key" aria-hidden="true"></span>
+        <span class="name" aria-hidden="true"></span>
+        <div class="cooldown" data-cd="cdBasic" aria-hidden="true"></div>
+      </button>
+      <button class="square-skill skill" data-key="Q" title="Q" aria-label="Q">
+        <span class="icon"></span>
+        <span class="key">Q</span>
+        <span class="name"></span>
+        <div class="cooldown" data-cd="cdQ" aria-hidden="true"></div>
+      </button>
+      <button class="square-skill skill" data-key="W" title="W" aria-label="W">
+        <span class="icon"></span>
+        <span class="key">W</span>
+        <span class="name"></span>
+        <div class="cooldown" data-cd="cdW" aria-hidden="true"></div>
+      </button>
+      <button class="square-skill skill" data-key="E" title="E" aria-label="E">
+        <span class="icon"></span>
+        <span class="key">E</span>
+        <span class="name"></span>
+        <div class="cooldown" data-cd="cdE" aria-hidden="true"></div>
+      </button>
+      <button class="square-skill skill" data-key="R" title="R" aria-label="R">
+        <span class="icon"></span>
+        <span class="key">R</span>
+        <span class="name"></span>
+        <div class="cooldown" data-cd="cdR" aria-hidden="true"></div>
+      </button>
+    </div>
+  </div>
+
   <!-- Guide overlay (static, JS-managed) -->
   <div id="guideOverlayRoot" class="guide-overlay hidden" role="dialog" aria-modal="true">
     <div class="guide-blocker"></div>
@@ -301,6 +399,44 @@
     </div>
   </div>
 
+  <!-- Uplift popup (DOM placed here so JS can just show/hide and populate) -->
+  <div id="upliftPopup" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="uplift-card">
+      <div class="uplift-title"></div>
+      <div class="uplift-desc"></div>
+
+      <div class="uplift-btn-row" role="list">
+        <button class="uplift-btn" data-kind="basic-aoe" role="listitem"></button>
+        <button class="uplift-btn" data-kind="basic-chain" role="listitem"></button>
+        <button class="uplift-btn" data-kind="basic-impact" role="listitem"></button>
+      </div>
+
+      <div class="uplift-footer">
+        <button class="uplift-skip" data-action="skip"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="upliftToast" role="status" aria-live="polite"></div>
+
+  <!-- Preview overlays (static shells used by src/ui/hero/preview.js) -->
+  <div id="__previewKeySelect" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="preview-box">
+      <div class="__preview-title"></div>
+      <div class="__preview-grid"></div>
+      <div class="__preview-tip"></div>
+      <div class="__preview-actions"><button class="preview-cancel"></button></div>
+    </div>
+  </div>
+
+  <div id="__previewCasting" aria-hidden="true" role="status" aria-live="polite">
+    <div class="__preview-card">
+      <div class="__preview-number"></div>
+    </div>
+  </div>
+
+  <script src="lock-zoom.js"></script>
+
   <!-- Module game code -->
   <script type="importmap">
     {
@@ -308,8 +444,47 @@
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
       }
     }
-    </script>
+  </script>
   <script type="module" src="src/main.js"></script>
+
+  <!-- PWA Register service worker -->
+  <script>
+    try {
+      if (window.location.hostname == "localhost") {
+        console.log("Ignore serviceworker on localhost");
+      } else if ("serviceWorker" in navigator) {
+        // Reload the page when a new controller takes over (ensures fresh assets)
+        navigator.serviceWorker.addEventListener?.("controllerchange", () => {
+          try {
+            // Optional UX hint:
+            // setCenterMsg && setCenterMsg("Updating…");
+            // setTimeout(() => clearCenterMsg && clearCenterMsg(), 800);
+          } catch (_) {}
+          // Full refresh to ensure updated shell/assets are applied
+          window.location.reload();
+        });
+
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("serviceworker.js").then((reg) => {
+            // If an updated worker is already waiting, activate it immediately
+            if (reg.waiting) {
+              try { reg.waiting.postMessage("skipWaiting"); } catch (_) {}
+            }
+            // When a new SW is found, request it to activate ASAP after install
+            reg.addEventListener("updatefound", () => {
+              const nw = reg.installing;
+              if (!nw) return;
+              nw.addEventListener("statechange", () => {
+                if (nw.state === "installed" && navigator.serviceWorker.controller) {
+                  try { reg.waiting && reg.waiting.postMessage("skipWaiting"); } catch (_) {}
+                }
+              });
+            });
+          }).catch(() => { /* ignore registration failures in non-secure contexts */ });
+        });
+      }
+    } catch (_) {}
+  </script>
 </body>
 
 </html>

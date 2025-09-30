@@ -1,0 +1,101 @@
+/* css/uplift.css
+   Styles for the Uplift popup and toast
+*/
+
+#upliftPopup {
+  display: none;
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+
+#upliftPopup[aria-hidden="false"] {
+  display: flex;
+}
+
+#upliftPopup .uplift-card {
+  min-width: 280px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  background: rgba(12,28,52,0.95);
+  border: 1px solid rgba(124,196,255,0.35);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.6);
+  border-radius: 10px;
+  padding: 16px;
+  color: #fff;
+  text-align: center;
+}
+
+#upliftPopup .uplift-title {
+  font-size: 18px;
+  margin-bottom: 8px;
+  color: #ffd86a;
+}
+
+#upliftPopup .uplift-desc {
+  opacity: 0.9;
+  margin-bottom: 12px;
+}
+
+#upliftPopup .uplift-btn-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+#upliftPopup .uplift-btn {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(124,196,255,0.35);
+  background: linear-gradient(180deg, #1b3c6b, #0f294a);
+  color: #fff;
+  cursor: pointer;
+  min-width: 110px;
+  text-align: center;
+  user-select: none;
+}
+
+#upliftPopup .uplift-btn:focus {
+  outline: 2px solid rgba(124,196,255,0.6);
+  outline-offset: 2px;
+}
+
+#upliftPopup .uplift-footer {
+  margin-top: 10px;
+}
+
+#upliftPopup .uplift-skip {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(124,196,255,0.25);
+  background: rgba(12,28,52,0.85);
+  color: #ddd;
+  cursor: pointer;
+}
+
+#upliftToast {
+  position: fixed;
+  left: 50%;
+  top: 12%;
+  transform: translateX(-50%);
+  background: rgba(20,40,70,0.95);
+  border: 1px solid rgba(124,196,255,0.35);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #fff;
+  z-index: 9999;
+  display: none;
+  pointer-events: none;
+}
+
+#upliftToast.show {
+  display: block;
+}

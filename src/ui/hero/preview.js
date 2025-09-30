@@ -2,6 +2,8 @@ import { SKILLS } from "../../constants.js";
 import { saveLoadout, loadOrDefault } from "../../loadout.js";
 import { SKILL_POOL, DEFAULT_LOADOUT } from "../../skills_pool.js";
 import { now } from "../../utils.js";
+import { t } from "../../i18n.js";
+const tt = typeof t === "function" ? t : (x) => x;
 
 /**
  * Enhanced Skillbook preview flow:
@@ -51,120 +53,67 @@ export function initHeroPreview(skills, opts = {}) {
 
 function showKeySelectOverlay(def) {
   return new Promise((resolve) => {
-    const root = document.createElement("div");
-    root.id = "__previewKeySelect";
-    Object.assign(root.style, {
-      position: "fixed",
-      inset: "0",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "rgba(0,0,0,0.35)",
-      zIndex: "9999",
-      backdropFilter: "blur(2px)",
-    });
+    if (typeof document === "undefined") { resolve(null); return; }
 
-    const box = document.createElement("div");
-    Object.assign(box.style, {
-      minWidth: "300px",
-      maxWidth: "90vw",
-      background: "rgba(10,20,30,0.9)",
-      border: "1px solid rgba(255,255,255,0.15)",
-      borderRadius: "10px",
-      padding: "14px",
-      color: "#dfefff",
-      boxShadow: "0 6px 18px rgba(0,0,0,0.4)",
-      textAlign: "center",
-      fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif",
-    });
+    // Prefer static DOM in index.html; create only if missing
+    let root = document.getElementById("__previewKeySelect");
+    let created = false;
+    if (!root) {
+      root = document.createElement("div");
+      root.id = "__previewKeySelect";
+      root.setAttribute("aria-hidden", "true");
+      const box = document.createElement("div");
+      box.className = "preview-box";
+      box.innerHTML = `
+        <div class="__preview-title"></div>
+        <div class="__preview-grid"></div>
+        <div class="__preview-tip"></div>
+        <div class="__preview-actions"><button class="preview-cancel"></button></div>
+      `;
+      root.appendChild(box);
+      document.body.appendChild(root);
+      created = true;
+    }
 
-    const title = document.createElement("div");
-    title.textContent = `Assign "${def?.name || "Skill"}" to key:`;
-    Object.assign(title.style, { fontWeight: "600", marginBottom: "10px", fontSize: "16px" });
+    const title = root.querySelector(".__preview-title");
+    const grid = root.querySelector(".__preview-grid");
+    const tip = root.querySelector(".__preview-tip");
+    const cancel = root.querySelector(".preview-cancel");
 
-    const grid = document.createElement("div");
-    Object.assign(grid.style, {
-      display: "grid",
-      gridTemplateColumns: "repeat(4, 1fr)",
-      gap: "10px",
-      marginTop: "6px",
-      marginBottom: "10px",
-    });
+    const nameLocal = def?.id ? (tt(`skills.names.${def.id}`) || def?.name || "Skill") : (def?.name || "Skill");
+    title.textContent = `${tt("assign.assign")} "${nameLocal}" ${tt("assign.toKey")}`;
 
+    // Populate keys
+    grid.innerHTML = "";
     const keys = ["Q", "W", "E", "R"];
-    const btns = [];
     keys.forEach((k) => {
+      const nm = SKILLS[k]?.id ? (tt(`skills.names.${SKILLS[k].id}`) || SKILLS[k]?.name) : SKILLS[k]?.name;
+      const infoText = nm ? `(${nm})` : `(${tt("hero.slot.empty") || "Empty"})`;
+      const cell = document.createElement("div");
+      cell.className = "__preview-cell";
+
       const btn = document.createElement("button");
-      btn.setAttribute("type", "button");
+      btn.type = "button";
+      btn.className = "preview-key-btn";
       btn.textContent = k;
       btn.title = (SKILLS[k]?.name || k);
-      Object.assign(btn.style, {
-        padding: "12px 6px",
-        borderRadius: "8px",
-        border: "1px solid rgba(255,255,255,0.2)",
-        background: "rgba(40,60,90,0.85)",
-        color: "#eaf6ff",
-        fontSize: "18px",
-        fontWeight: "700",
-        cursor: "pointer",
-      });
-      btn.addEventListener("mouseenter", () => (btn.style.background = "rgba(60,90,140,0.9)"));
-      btn.addEventListener("mouseleave", () => (btn.style.background = "rgba(40,60,90,0.85)"));
       btn.addEventListener("click", () => {
         cleanup();
         resolve(k);
       });
 
-      // Key info below the button
-      const wrap = document.createElement("div");
-      Object.assign(wrap.style, { display: "flex", flexDirection: "column", gap: "6px" });
-
-      wrap.appendChild(btn);
       const info = document.createElement("div");
-      info.textContent = SKILLS[k]?.name ? `(${SKILLS[k].name})` : "(empty)";
-      Object.assign(info.style, { fontSize: "11px", opacity: "0.8" });
-      wrap.appendChild(info);
+      info.className = "preview-key-info";
+      info.textContent = infoText;
 
-      const cell = document.createElement("div");
-      cell.appendChild(wrap);
+      cell.appendChild(btn);
+      cell.appendChild(info);
       grid.appendChild(cell);
-      btns.push(btn);
     });
 
-    const tip = document.createElement("div");
-    tip.textContent = "Tip: press Q, W, E or R to choose quickly";
-    Object.assign(tip.style, { fontSize: "12px", opacity: "0.8", marginTop: "6px" });
+    tip.textContent = tt("assign.tip");
+    cancel.textContent = tt("btn.cancel");
 
-    const actions = document.createElement("div");
-    Object.assign(actions.style, { marginTop: "10px", display: "flex", gap: "8px", justifyContent: "center" });
-
-    const cancel = document.createElement("button");
-    cancel.textContent = "Cancel";
-    Object.assign(cancel.style, {
-      padding: "8px 12px",
-      borderRadius: "6px",
-      border: "1px solid rgba(255,255,255,0.2)",
-      background: "rgba(120,40,40,0.85)",
-      color: "#fff",
-      cursor: "pointer",
-      fontWeight: "600",
-    });
-    cancel.addEventListener("mouseenter", () => (cancel.style.background = "rgba(160,60,60,0.9)"));
-    cancel.addEventListener("mouseleave", () => (cancel.style.background = "rgba(120,40,40,0.85)"));
-    cancel.addEventListener("click", () => {
-      cleanup();
-      resolve(null);
-    });
-
-    actions.appendChild(cancel);
-
-    box.appendChild(title);
-    box.appendChild(grid);
-    box.appendChild(tip);
-    box.appendChild(actions);
-    root.appendChild(box);
-
-    // Keyboard access
     const onKey = (ev) => {
       const k = String(ev.key || "").toUpperCase();
       if (["Q", "W", "E", "R"].includes(k)) {
@@ -179,68 +128,49 @@ function showKeySelectOverlay(def) {
     };
     document.addEventListener("keydown", onKey, true);
 
-    document.body.appendChild(root);
+    // Show overlay (use aria-hidden so static DOM persists)
+    try { root.setAttribute("aria-hidden", "false"); } catch (_) {}
+
+    cancel.onclick = () => {
+      cleanup();
+      resolve(null);
+    };
 
     function cleanup() {
       document.removeEventListener("keydown", onKey, true);
-      try {
-        root.remove();
-      } catch (_) {
-        if (root && root.parentNode) root.parentNode.removeChild(root);
+      try { root.setAttribute("aria-hidden", "true"); } catch (_) {}
+      if (created) {
+        try { root.remove(); } catch (_) {}
       }
     }
   });
 }
 
 async function showCastingOverlayAndCast(skills, def, key) {
-  // Root overlay
-  const root = document.createElement("div");
-  root.id = "__previewCasting";
-  Object.assign(root.style, {
-    position: "fixed",
-    left: "50%",
-    top: "18%",
-    transform: "translate(-50%, -50%)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: "9999",
-    pointerEvents: "none"
-  });
+  if (typeof document === "undefined") return;
+  // Prefer static DOM in index.html; create only if missing
+  let root = document.getElementById("__previewCasting");
+  let created = false;
+  if (!root) {
+    root = document.createElement("div");
+    root.id = "__previewCasting";
+    root.setAttribute("aria-hidden", "true");
+    const card = document.createElement("div");
+    card.className = "__preview-card";
+    card.innerHTML = `<div class="__preview-number"></div>`;
+    root.appendChild(card);
+    document.body.appendChild(root);
+    created = true;
+  }
 
-  // Card
-  const card = document.createElement("div");
-  Object.assign(card.style, {
-    minWidth: "0",
-    background: "transparent",
-    border: "none",
-    borderRadius: "0",
-    padding: "0",
-    color: "#e8f6ff",
-    textAlign: "center",
-    boxShadow: "none",
-  });
-
-  const number = document.createElement("div");
-  Object.assign(number.style, {
-    fontSize: "42px",
-    fontWeight: "800",
-    color: "#bfe9ff",
-    textShadow: "0 0 12px rgba(100,180,255,0.6)",
-    minHeight: "1.2em",
-  });
-
-  card.appendChild(number);
-  root.appendChild(card);
-  document.body.appendChild(root);
-
+  const number = root.querySelector(".__preview-number");
   try {
     // Countdown over total wait = remaining cooldown + 2s; show ceiling seconds down to 1
     const rem = Math.max(0, (skills.cooldowns?.[key] || 0) - now());
     const total = rem + 2;
     const steps = Math.max(1, Math.ceil(total));
     const frac = total - Math.floor(total);
-    number.style.fontSize = "126px";
+    number.classList.add("__preview-number--large");
     if (steps > 0) {
       const firstMs = Math.round((frac > 0 ? frac : 1) * 1000);
       await setNumber(number, String(steps), firstMs);
@@ -260,15 +190,17 @@ async function showCastingOverlayAndCast(skills, def, key) {
     } catch (_) {}
 
     // Show brief confirmation (keep small); mapping remains assigned and persisted
-    number.style.fontSize = "42px";
-    await setNumber(number, "⚡ Casted!", 1500);
+    number.classList.remove("__preview-number--large");
+    await setNumber(number, `⚡ ${tt("assign.casted")}`, 1500);
   } finally {
-    // Cleanup overlay
     try {
-      root.remove();
-    } catch (_) {
-      if (root && root.parentNode) root.parentNode.removeChild(root);
-    }
+      // Hide or remove according to whether we created it
+      if (created) {
+        try { root.remove(); } catch (_) {}
+      } else {
+        try { root.setAttribute("aria-hidden", "true"); } catch (_) {}
+      }
+    } catch (_) {}
   }
 }
 

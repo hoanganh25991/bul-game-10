@@ -1,15 +1,6 @@
 /* css/style.css — entry point that imports modular component styles.
    This file is intentionally lightweight and pulls in component CSS files
    that correspond roughly to src/ modules.
-
-   Planned component files to create next:
-     - base.css       (variables, resets, html/body, utilities)
-     - hud.css        (HUD, bars, minimap, selection)
-     - skills.css     (skill buttons, cooldown visuals, skill wheel)
-     - panels.css     (panels, screens, system-screen, icon buttons)
-     - hero.css       (hero / loadout / skill pool styles)
-     - mobile.css     (mobile controls / joystick)
-     - splash.css     (flash / splash overlay)
 */
 
 @import "base.css";
@@ -19,6 +10,9 @@
 @import "hero.css";
 @import "mobile.css";
 @import "splash.css";
+@import "uplift.css";
+@import "preview.css";
+@import "bottom-middle.css";
 
 /* NOTE:
    - The component files will live alongside this file in the css/ directory.

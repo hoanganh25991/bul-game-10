@@ -15,6 +15,8 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
     updateSkillBarLabels,
   } = ctx;
 
+  const tt = typeof t === "function" ? t : (x) => x;
+
   // Maintain a live copy of loadout to avoid full screen re-rendering
   let activeLoadout = currentLoadout.slice();
 
@@ -43,30 +45,90 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
     slot.innerHTML = `
       <div class="slot-key">${keys[i]}</div>
       <div class="skill-icon">${getSkillIcon(skillDef ? skillDef.short : null)}</div>
-      <div class="slot-short">${skillDef ? (skillDef.short || "—") : "—"}</div>
-      <div class="slot-name">${skillDef ? (skillDef.name || "—") : (t ? (t("hero.slot.empty") || "Empty") : "Empty")}</div>
+      <div class="slot-short">${skillDef ? (tt(`skills.shorts.${skillDef.id}`) || skillDef.short || "—") : "—"}</div>
+      <div class="slot-name">${skillDef ? (tt(`skills.names.${skillDef.id}`) || skillDef.name || "—") : (t ? (t("hero.slot.empty") || "Empty") : "Empty")}</div>
     `;
     slotsWrap.appendChild(slot);
   }
   rightCol.appendChild(slotsWrap);
 
-  // Skill Pool (list)
-  const poolWrap = document.createElement("div");
-  poolWrap.className = "skill-pool skill-pool--list";
+  // Skill Pool (items-style list)
+  const poolPanel = document.createElement("div");
+  poolPanel.className = "items-panel";
+  try {
+    poolPanel.style.display = "flex";
+    poolPanel.style.flexDirection = "column";
+    poolPanel.style.flex = "1 1 auto";
+    poolPanel.style.minHeight = "0";
+  } catch (_) {}
+  const list = document.createElement("div");
+  list.className = "items-list";
+  try {
+    list.style.flex = "1 1 auto";
+    list.style.minHeight = "0";
+    list.style.overflow = "auto";
+    list.style.maxHeight = "none";
+  } catch (_) {}
+
   SKILL_POOL.forEach((s) => {
-    const el = document.createElement("div");
-    el.className = "skill-pool-item";
-    el.dataset.skillId = s.id;
-    el.innerHTML = `
-      <div class="skill-icon">${getSkillIcon(s.short)}</div>
-      <div class="skill-text">
-        <div class="skill-name">${s.name}</div>
-        <div class="skill-short">${s.short || ""}</div>
-      </div>
-    `;
-    poolWrap.appendChild(el);
+    const row = document.createElement("div");
+    row.className = "items-row";
+    row.dataset.skillId = s.id;
+
+    const thumb = document.createElement("div");
+    thumb.className = "items-thumb";
+    const em = document.createElement("div");
+    em.className = "items-thumb-ph";
+    em.textContent = getSkillIcon(s.short);
+    try {
+      em.style.fontSize = "42px";
+      em.style.lineHeight = "1";
+    } catch (_) {}
+    thumb.appendChild(em);
+
+    const info = document.createElement("div");
+    const title = document.createElement("div");
+    title.className = "items-title";
+    const nameLocal = tt(`skills.names.${s.id}`) || s.name;
+    const shortLocal = tt(`skills.shorts.${s.id}`) || s.short;
+    title.textContent = `${nameLocal}${shortLocal ? " • " + shortLocal : ""}`;
+    const desc = document.createElement("div");
+    desc.className = "items-desc";
+    desc.textContent = s.type ? s.type : "";
+    const req = document.createElement("div");
+    req.className = "items-req";
+    const parts = [];
+    if (s.cd != null) parts.push(`CD ${s.cd}s`);
+    if (s.mana != null) parts.push(`MP ${s.mana}`);
+    if (parts.length) req.textContent = parts.join(" • ");
+
+    info.appendChild(title);
+    if (desc.textContent) info.appendChild(desc);
+    if (req.textContent) info.appendChild(req);
+
+    const actions = document.createElement("div");
+    actions.className = "items-actions";
+    const btn = document.createElement("button");
+    btn.className = "pill-btn pill-btn--yellow";
+    btn.textContent = "➕";
+    btn.title = tt("hero.assign");
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      showAssignBar(s.id);
+    });
+    actions.appendChild(btn);
+
+    row.appendChild(thumb);
+    row.appendChild(info);
+    row.appendChild(actions);
+
+    row.addEventListener("click", () => showAssignBar(s.id));
+
+    list.appendChild(row);
   });
-  leftCol.appendChild(poolWrap);
+
+  poolPanel.appendChild(list);
+  leftCol.appendChild(poolPanel);
 
   // Actions row (Reset)
   const actions = document.createElement("div");
@@ -100,8 +162,8 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
         slotEl.innerHTML = `
       <div class="slot-key">${keys[i]}</div>
       <div class="skill-icon">${getSkillIcon(skillDef ? skillDef.short : null)}</div>
-      <div class="slot-short">${skillDef ? (skillDef.short || "—") : "—"}</div>
-      <div class="slot-name">${skillDef ? (skillDef.name || "—") : (t ? (t("hero.slot.empty") || "Empty") : "Empty")}</div>
+      <div class="slot-short">${skillDef ? (tt(`skills.shorts.${skillDef.id}`) || skillDef.short || "—") : "—"}</div>
+      <div class="slot-name">${skillDef ? (tt(`skills.names.${skillDef.id}`) || skillDef.name || "—") : (t ? (t("hero.slot.empty") || "Empty") : "Empty")}</div>
     `;
       });
     } catch (_) {}
@@ -142,10 +204,11 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
   const cancelBtn = document.createElement("button");
   cancelBtn.className = "pill-btn";
   cancelBtn.textContent = "❌";
+  cancelBtn.title = tt("btn.cancel");
   cancelBtn.addEventListener("click", () => {
     selectedSkillId = null;
     try {
-      poolWrap.querySelectorAll(".skill-pool-item").forEach((it) => {
+      list.querySelectorAll(".items-row").forEach((it) => {
         it.classList.remove("selected");
       });
     } catch (_) {}
@@ -169,7 +232,7 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
     selectedSkillId = skillId;
     // highlight the selected item
     try {
-      poolWrap.querySelectorAll(".skill-pool-item").forEach((it) => {
+      list.querySelectorAll(".items-row").forEach((it) => {
         if (it.dataset.skillId === skillId) {
           it.classList.add("selected");
         } else {
@@ -179,12 +242,14 @@ export function renderSkillsTab(panelEl, ctx = {}, rerender) {
     } catch (_) {}
     const sd = SKILL_POOL.find((s) => s.id === skillId);
     const icon = getSkillIcon(sd ? sd.short : null);
-    assignLabel.textContent = `Assign ${sd ? sd.name : ""} (${sd && sd.short ? sd.short : ""}) ${icon} to slot:`;
+    const nameLocal2 = sd ? (tt(`skills.names.${sd.id}`) || sd.name || "") : "";
+    const shortLocal2 = sd ? (tt(`skills.shorts.${sd.id}`) || sd.short || "") : "";
+    assignLabel.textContent = `${tt("assign.assign")} ${nameLocal2} (${shortLocal2}) ${icon} ${tt("assign.toSlot")}`;
     assignBar.classList.add("active");
   }
 
   // Pool item interactions
-  poolWrap.querySelectorAll(".skill-pool-item").forEach((itemEl) => {
+  list.querySelectorAll(".items-row").forEach((itemEl) => {
     const skillId = itemEl.dataset.skillId;
     // Click on row = select and show assign bar (no instant assign)
     itemEl.addEventListener("click", () => {

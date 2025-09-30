@@ -27,7 +27,7 @@ export function startInstructionGuide() {
     {
       key: "camera",
       get el() {
-        return document.getElementById("btnCamera");
+        return document.getElementById(isTouchDevice() ? "btnCamera" : "bmCamera");
       },
       title: "Camera Toggle",
       desc: "Tap to toggle first-person camera.",
@@ -35,7 +35,7 @@ export function startInstructionGuide() {
     {
       key: "portal",
       get el() {
-        return document.getElementById("btnPortal");
+        return document.getElementById(isTouchDevice() ? "btnPortal" : "bmPortal");
       },
       title: "Portal",
       desc: "Tap to open a teleport portal.",
@@ -43,7 +43,7 @@ export function startInstructionGuide() {
     {
       key: "mark",
       get el() {
-        return document.getElementById("btnMark");
+        return document.getElementById(isTouchDevice() ? "btnMark" : "bmMark");
       },
       title: "Mark Location",
       desc: "Tap to drop a flag to mark this place on the map.",
@@ -51,7 +51,9 @@ export function startInstructionGuide() {
     {
       key: "skills",
       get el() {
-        return document.getElementById("skillWheel") || document.getElementById("btnBasic");
+        return isTouchDevice() //
+          ? document.getElementById("skillWheel") || document.getElementById("btnBasic")
+          : document.getElementById("bmSkills");
       },
       title: "Skills",
       desc: "Tap Basic or Q/W/E/R to use skills. Cooldown shows in the ring.",
@@ -64,21 +66,25 @@ export function startInstructionGuide() {
       title: "HUD",
       desc: "HP/MP/XP bars show your status. Level is at the right.",
     },
-    {
-      key: "joystick",
-      get el() {
-        return document.getElementById("joystick") || document.getElementById("joyKnob");
+    isTouchDevice() //
+      ? {
+        key: "joystick",
+        get el() {
+          return document.getElementById("joystick") || document.getElementById("joyKnob");
+        },
+        title: "Joystick",
+        desc: "Drag to move your hero. On desktop, right-click to move.",
+      }
+      : {
+        el: null
       },
-      title: "Joystick",
-      desc: "Drag to move your hero. On desktop, right-click to move.",
-    },
   ].filter((s) => !!s.el);
 
   if (!steps.length) return;
 
   const overlay = document.getElementById("guideOverlayRoot");
   if (!overlay) return;
-  try { overlay.classList.remove("hidden"); } catch (_) {}
+  try { overlay.classList.remove("hidden"); } catch (_) { }
 
   const blocker = overlay.querySelector(".guide-blocker");
   const focus = overlay.querySelector(".guide-focus");
@@ -95,7 +101,7 @@ export function startInstructionGuide() {
     tipClose?.setAttribute("aria-label", t("guide.nav.close") || "Close guide");
     if (btnPrev) btnPrev.textContent = t("guide.nav.previous") || "Previous";
     if (btnNext) btnNext.textContent = t("guide.nav.next") || "Next";
-  } catch (_) {}
+  } catch (_) { }
 
   function clamp(v, min, max) {
     return Math.max(min, Math.min(max, v));
@@ -160,7 +166,7 @@ export function startInstructionGuide() {
     if (!s || !s.el) return;
     try {
       s.el.scrollIntoView?.({ block: "nearest", inline: "nearest" });
-    } catch (_) {}
+    } catch (_) { }
     const rect = positionFor(s.el, 10);
     placeFocus(rect);
     placeHand(rect);
@@ -214,20 +220,28 @@ export function startInstructionGuide() {
     window.removeEventListener("orientationchange", onResize);
     try {
       overlay.classList.add("hidden");
-    } catch (_) {}
+    } catch (_) { }
     window.__guideState = null;
     // If we started from Settings, restore it
     try {
       const fn = window.__guideAfterCloseAction;
       window.__guideAfterCloseAction = null;
       typeof fn === "function" && fn();
-    } catch (_) {}
+    } catch (_) { }
+  }
+
+  function isTouchDevice() {
+    return (
+      'ontouchstart' in window ||
+      navigator.maxTouchPoints > 0 ||
+      navigator.msMaxTouchPoints > 0
+    );
   }
 
   btnPrev.addEventListener("click", onPrev);
   btnNext.addEventListener("click", onNext);
   tipClose.addEventListener("click", close);
-  blocker.addEventListener("click", () => {});
+  blocker.addEventListener("click", () => { });
   window.addEventListener("resize", onResize);
   window.addEventListener("orientationchange", onResize);
 
@@ -240,20 +254,20 @@ export function startInstructionGuide() {
         setStep(window.__guideState.index);
         try {
           tipClose.setAttribute("aria-label", t("guide.nav.close") || "Close guide");
-        } catch (_) {}
+        } catch (_) { }
       }
     });
-  } catch (_) {}
+  } catch (_) { }
 
   try {
     window.__guideClose = close;
-  } catch (_) {}
+  } catch (_) { }
 }
 
 // Optional global fallback binding so legacy callers still work
 try {
   window.startInstructionGuide = startInstructionGuide;
-} catch (_) {}
+} catch (_) { }
 
 // Convenience: enable delegated click on Guide button if present
 document.addEventListener("click", (ev) => {
@@ -271,14 +285,14 @@ document.addEventListener("click", (ev) => {
         window.__guideAfterCloseAction = () => {
           try {
             settingsPanel.classList.remove("hidden");
-          } catch (_) {}
+          } catch (_) { }
         };
       } else {
         try {
           window.__guideAfterCloseAction = null;
-        } catch (_) {}
+        } catch (_) { }
       }
       startInstructionGuide();
-    } catch (_) {}
+    } catch (_) { }
   }
 });

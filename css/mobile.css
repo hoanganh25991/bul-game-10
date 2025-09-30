@@ -88,7 +88,7 @@
   }
 
   #bottomLeftGroup {
-    transform: scale(0.7);
+    transform: scale(0.8);
     transform-origin: bottom left;
   }
 
@@ -101,5 +101,20 @@
 @media (max-height: 420px) {
   #minimap {
     max-height: 160px;
+  }
+}
+
+@media (pointer: coarse) {
+  /* Mobile: ensure bottom-middle hidden and original mobile UI visible */
+  #bottomMiddle {
+    display: none !important;
+  }
+
+  #bottomLeftGroup {
+    display: block;
+  }
+
+  #bottomRightGroup {
+    display: block;
   }
 }

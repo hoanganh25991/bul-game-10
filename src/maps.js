@@ -16,6 +16,13 @@ export function createMapManager() {
     countGrowthPerDepth: 1.04,
   };
 
+  // Deterministic icon set for maps (emoji). Order matters for stable mapping.
+  const MAP_EMOJIS = [
+    "🌩️","🌾","⛰️","🏰","⚒️","🌪️","🗺️","🔥","🌊","❄️",
+    "🌿","🌀","⚡","☄️","🌋","🏜️","🏞️","🛡️","🧭","🔮",
+    "🌫️","⛏️","🌧️","🌥️","🌠"
+  ];
+
   // Definitions: tune per-map enemy tint and multipliers
   const maps = [
     {
@@ -29,7 +36,6 @@ export function createMapManager() {
       enemyCountMul: 1.0,
       desc: "A storm-stained grove outside the origin village. Fallen scouts and skittering beasts swarm the woods.",
       strongEnemies: ["Ravagers (fast melee)", "Wispcasters (ranged shock)"],
-      img: "images/maps/1.png",
       imgHint: "Square art: dark forest clearing under a thundercloud sky; faint ruins; red-tinted foes.",
     },
     {
@@ -43,7 +49,6 @@ export function createMapManager() {
       enemyCountMul: 1.1,
       desc: "Open grasslands where thunder never fades. Raiding packs and lightning-touched archers roam freely.",
       strongEnemies: ["Storm Hounds (pack hunters)", "Ballistarii (armored archers)"],
-      img: "images/maps/2.png",
       imgHint: "Square art: windswept plains with distant thunderheads; orange-tinted foes.",
     },
     {
@@ -57,7 +62,6 @@ export function createMapManager() {
       enemyCountMul: 1.25,
       desc: "Knife-edged ridgelines where the wind howls like a beast. Altitude and storm converge to test your mettle.",
       strongEnemies: ["Harpy Matrons (dive assaults)", "Thunder Shamans (support casters)"],
-      img: "images/maps/3.png",
       imgHint: "Square art: lightning-struck mountain ridge; golden-tinted foes, dark sky.",
     },
     {
@@ -71,7 +75,6 @@ export function createMapManager() {
       enemyCountMul: 1.45,
       desc: "A floating bastion crackling with bound sigils. Only the resolute can breach its shining walls.",
       strongEnemies: ["Sentinel Constructs (shielded)", "Zealous Templars (coordinated strikes)"],
-      img: "images/maps/4.png",
       imgHint: "Square art: floating fortress with crackling runes; teal-tinted foes.",
     },
     {
@@ -85,7 +88,6 @@ export function createMapManager() {
       enemyCountMul: 1.7,
       desc: "An eldritch foundry where power is hammered into being. Sparks of divinity burn those who trespass.",
       strongEnemies: ["Forge Colossus (heavy slam)", "Aether Smiths (channeling blasts)"],
-      img: "images/maps/5.png",
       imgHint: "Square art: colossal heavenly forge, molten channels, pale-blue aura; azure-tinted foes.",
     },
   ];
@@ -94,6 +96,11 @@ export function createMapManager() {
   function clampIndex(i) {
     const idx = Math.max(1, Math.floor(i || 1));
     return idx;
+  }
+
+  function emojiForIndex(i) {
+    const idx = clampIndex(i);
+    return MAP_EMOJIS[(idx - 1) % MAP_EMOJIS.length];
   }
 
   function depthForIndex(i) {
@@ -132,6 +139,7 @@ export function createMapManager() {
       ...m,
       unlocked: m.index <= unlockedMax,
       current: m.index === currentIndex,
+      emoji: emojiForIndex(m.index),
     }));
   }
 
@@ -150,7 +158,7 @@ export function createMapManager() {
       enemyDmgMul: base.enemyDmgMul,
       desc: `Endless Depth ${depth}. Enemies grow stronger with each depth.`,
       strongEnemies: base.strongEnemies,
-      img: base.img,
+      emoji: emojiForIndex(currentIndex),
       imgHint: base.imgHint,
       _endlessDepth: depth,
     };
@@ -222,5 +230,6 @@ export function createMapManager() {
     canSelect,
     setCurrent,
     unlockByLevel,
+    emojiForIndex,
   };
 }

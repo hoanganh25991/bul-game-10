@@ -8,6 +8,7 @@
 import { t as tI18n } from "../../i18n.js";
 import { renderGeneralTab } from "./tabs/general.js";
 import { renderEnvironmentTab } from "./tabs/environment.js";
+import { renderInfoTab } from "./tabs/info.js";
 
 export function setupSettingsScreen({
   t = tI18n,
@@ -57,8 +58,10 @@ export function setupSettingsScreen({
     const content = settingsPanel?.querySelector(".panel-content");
     const generalPanel = content?.querySelector("#tabGeneral");
     const envPanel = content?.querySelector("#tabEnvironment");
+    const infoPanel = content?.querySelector("#tabInfo");
     renderGeneralTab(generalPanel, { t, audioCtl, render });
     renderEnvironmentTab(envPanel, { environment });
+    renderInfoTab && renderInfoTab(infoPanel, { renderer: render?.renderer, getPerf: render?.getPerf });
   } catch (_) {}
 }
 
@@ -72,6 +75,7 @@ function ensureSettingsTabs(settingsPanel, t, startInstructionGuide) {
   const tabBar = content.querySelector(".tab-bar");
   const generalPanel = content.querySelector("#tabGeneral");
   const envPanel = content.querySelector("#tabEnvironment");
+  const infoPanel = content.querySelector("#tabInfo");
   const tabBtns = tabBar ? Array.from(tabBar.querySelectorAll(".tab-btn")) : [];
 
   // Localize tab labels using t() if available
@@ -86,7 +90,7 @@ function ensureSettingsTabs(settingsPanel, t, startInstructionGuide) {
     btn.addEventListener("click", () => {
       tabBtns.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      [generalPanel, envPanel].forEach((p) => {
+      [generalPanel, envPanel, infoPanel].forEach((p) => {
         if (!p) return;
         p.classList.remove("active");
         p.style.display = "none";
@@ -109,7 +113,7 @@ function ensureSettingsTabs(settingsPanel, t, startInstructionGuide) {
     const target = targetId ? content.querySelector(`#${targetId}`) : null;
     tabBtns.forEach((b) => b.classList.remove("active"));
     activeBtn.classList.add("active");
-    [generalPanel, envPanel].forEach((p) => {
+    [generalPanel, envPanel, infoPanel].forEach((p) => {
       if (!p) return;
       p.classList.remove("active");
       p.style.display = "none";
