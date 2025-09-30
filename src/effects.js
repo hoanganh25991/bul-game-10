@@ -25,7 +25,7 @@ export function createGroundRing(innerR, outerR, color, opacity = 0.6) {
       color: normalizeColor(color),
       transparent: true,
       opacity,
-      side: THREE.DoubleSide,
+      side: THREE.FrontSide,
       depthWrite: false,
     })
   );
@@ -435,6 +435,23 @@ export class EffectsManager {
 
   // ----- Frame update -----
   update(t, dt) {
+    // Adaptive VFX throttling based on FPS to reduce draw calls on low-end devices
+    let fps = 60;
+    try { fps = (window.__perfMetrics && window.__perfMetrics.fps) ? window.__perfMetrics.fps : (1000 / Math.max(0.001, (window.__perfMetrics && window.__perfMetrics.avgMs) || 16.7)); } catch (_) {}
+    const __fadeBoost = fps < 20 ? 2.4 : (fps < 28 ? 1.8 : (fps < 40 ? 1.25 : 1));
+    try {
+      const maxAllowed = fps < 20 ? 28 : (fps < 28 ? 42 : (fps < 40 ? 80 : 120));
+      if (this.queue.length > maxAllowed) {
+        const toCull = Math.min(this.queue.length - maxAllowed, Math.floor(this.queue.length * 0.2));
+        // Mark a subset to end soon; disposal occurs below when t >= until
+        for (let k = 0; k < toCull; k++) {
+          const idx = (k % this.queue.length);
+          const e = this.queue[idx];
+          if (e) e.until = Math.min(e.until || (t + 0.3), t + 0.12);
+        }
+      }
+    } catch (_) {}
+
     for (let i = this.queue.length - 1; i >= 0; i--) {
       const e = this.queue[i];
 
@@ -489,7 +506,7 @@ export class EffectsManager {
           if (!m) return;
           m.opacity = m.opacity ?? 1;
           m.transparent = true;
-          m.opacity = Math.max(0, m.opacity - dt * 1.8 * FX.fadeSpeedScale);
+          m.opacity = Math.max(0, m.opacity - dt * 1.8 * FX.fadeSpeedScale * __fadeBoost);
         };
         if (e.mat) fadeOne(e.mat);
         if (e.mats && Array.isArray(e.mats)) e.mats.forEach(fadeOne);
