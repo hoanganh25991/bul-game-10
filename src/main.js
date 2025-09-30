@@ -1283,7 +1283,7 @@ window.addEventListener("keydown", (e) => {
       const dir = getKeyMoveDir ? getKeyMoveDir() : { active: false };
       if (dir && dir.active && effects && effects.spawnMovePing) {
         const base = player.pos();
-        const speed = 10;
+        const speed = 26;
         const px = base.x + dir.x * speed;
         const pz = base.z + dir.y * speed;
         __tempVecA.set(px, 0, pz);
@@ -1334,13 +1334,11 @@ function animate() {
     if (typeof touch !== "undefined" && touch) {
       const joy = touch.getMoveDir?.();
       if (joy && joy.active && !player.frozen && !player.aimMode) {
-        const speed = 10; // target distance ahead in world units
+        const speed = 26; // match input_service ahead distance
         const base = player.pos();
         const px = base.x + joy.x * speed;
         const pz = base.z + joy.y * speed;
-        player.moveTarget = new THREE.Vector3(px, 0, pz);
-        player.attackMove = false;
-        player.target = null;
+        // movement driven by input_service; only show pings here
 
         // Continuous move ping while joystick held; match right-click indicator exactly
         try {
@@ -1374,15 +1372,10 @@ function animate() {
     }
 
     if (active && !player.frozen && !player.aimMode) {
-      const speed = 10;
+      const speed = 26;
       const base = player.pos();
       const px = base.x + dx * speed;
       const pz = base.z + dy * speed;
-
-      // Drive actual movement toward the indicated direction (short-range target)
-      player.moveTarget = new THREE.Vector3(px, 0, pz);
-      player.attackMove = false;
-      player.target = null;
 
       // Fire immediately on initial press, then cadence
       if (!__arrowWasActive) {
@@ -1480,19 +1473,21 @@ function animate() {
 
     // Position camera slightly behind the hands (negative forward)
     // and bias framing so the visible model sits near the center-bottom of the screen
-    const fpBack = 2.5;      // how far behind the hands the camera sits (closer for first-person)
+    const fpBack = 4.5;      // match pre-refactor feel (further behind the hands)
     const fpUp = 2.0;        // minimal vertical raise of camera to avoid occlusion
     const fpLookAhead = 3.0;  // look further ahead so enemies occupy the center
     const fpLookUp = 1.1;     // tilt camera upward more so hands/model sit lower in the frame
 
-    // Compute desired camera position and look target using reusable temporaries.
-    // desiredPos -> __tempVecB, mid already in __tempVecC, forward in __tempVecA
-    __tempVecB.copy(mid).addScaledVector(forward, -fpBack).add(__tempVecQuatOrVec = __tempVecQuatOrVec || __tempVecC.set(0, fpUp, 0));
+    // Compute desired camera position and look target without aliasing pooled vectors.
+    // desiredPos -> __tempVecB, mid in __tempVecC, forward in __tempVecA
+    __tempVecB.copy(mid).addScaledVector(forward, -fpBack);
+    __tempVecB.y += fpUp;
     camera.position.lerp(__tempVecB, 1 - Math.pow(0.001, dt));
 
-    // lookTarget -> reuse __tempVecC (it's safe to overwrite after lerp)
-    __tempVecC.copy(mid).addScaledVector(forward, fpLookAhead).add(__tempVecB.set(0, fpLookUp, 0));
-    camera.lookAt(__tempVecC);
+    // lookTarget -> reuse __tempVecB after lerp
+    const lookTarget = __tempVecB.copy(mid).addScaledVector(forward, fpLookAhead);
+    lookTarget.y += fpLookUp;
+    camera.lookAt(lookTarget);
   } else {
     updateCamera(camera, player, lastMoveDir, dt, cameraOffset, cameraShake);
   }
