@@ -11,6 +11,7 @@ export function createRaycast({ renderer, camera, ground, enemiesMeshesProvider,
   const raycaster = new THREE.Raycaster();
   const mouseNDC = new THREE.Vector2();
   const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const _GROUND_PT = new THREE.Vector3();
 
   function updateMouseNDC(e) {
     const rect = renderer.domElement.getBoundingClientRect();
@@ -30,8 +31,7 @@ export function createRaycast({ renderer, camera, ground, enemiesMeshesProvider,
 
   function raycastGround() {
     raycaster.setFromCamera(mouseNDC, camera);
-    const pt = new THREE.Vector3();
-    if (raycaster.ray.intersectPlane(GROUND_PLANE, pt)) return pt;
+    if (raycaster.ray.intersectPlane(GROUND_PLANE, _GROUND_PT)) return _GROUND_PT;
     return null;
   }
 

@@ -957,25 +957,37 @@ const fenceRadius = REST_RADIUS - 0.2;
 const postGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.6, 8);
 const postMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2a });
 const postPositions = [];
+// Batch posts as a single InstancedMesh to reduce draw calls
+const postsInst = new THREE.InstancedMesh(postGeo, postMat, FENCE_POSTS);
+// Shared temp transforms
+const _m4 = new THREE.Matrix4();
+const _q = new THREE.Quaternion();
+const _s = new THREE.Vector3(1, 1, 1);
+const _p = new THREE.Vector3();
 for (let i = 0; i < FENCE_POSTS; i++) {
   const ang = (i / FENCE_POSTS) * Math.PI * 2;
   const px = VILLAGE_POS.x + Math.cos(ang) * fenceRadius;
   const pz = VILLAGE_POS.z + Math.sin(ang) * fenceRadius;
-  const post = new THREE.Mesh(postGeo, postMat);
-  post.position.set(px, 0.8, pz);
-  post.rotation.y = -ang;
-  post.receiveShadow = true;
-  post.castShadow = true;
-  fenceGroup.add(post);
+  _p.set(px, 0.8, pz);
+  _q.setFromEuler(new THREE.Euler(0, -ang, 0));
+  _s.set(1, 1, 1);
+  _m4.compose(_p, _q, _s);
+  postsInst.setMatrixAt(i, _m4);
   postPositions.push({ x: px, z: pz });
 }
+postsInst.instanceMatrix.needsUpdate = true;
+postsInst.castShadow = true;
+postsInst.receiveShadow = true;
+fenceGroup.add(postsInst);
 
  // connecting rails (three horizontal lines)
 const railMat = new THREE.MeshStandardMaterial({ color: 0x4b3620 });
 const railHeights = [0.45, 0.9, 1.35]; // y positions for rails
-// Reuse a single unit geometry to avoid creating many geometries of different lengths.
-// We'll scale the mesh.x to match desired length so we only allocate one geometry.
+// Batch rails using InstancedMesh (FENCE_POSTS segments * 3 heights)
 const _unitRailGeo = new THREE.BoxGeometry(1, 0.06, 0.06);
+const railsCount = FENCE_POSTS * railHeights.length;
+const railsInst = new THREE.InstancedMesh(_unitRailGeo, railMat, railsCount);
+let railIdx = 0;
 for (let i = 0; i < FENCE_POSTS; i++) {
   const a = postPositions[i];
   const b = postPositions[(i + 1) % FENCE_POSTS];
@@ -983,17 +995,21 @@ for (let i = 0; i < FENCE_POSTS; i++) {
   const dz = b.z - a.z;
   const len = Math.hypot(dx, dz);
   const angle = Math.atan2(dz, dx);
+  const midX = (a.x + b.x) / 2;
+  const midZ = (a.z + b.z) / 2;
   for (const h of railHeights) {
-    const rail = new THREE.Mesh(_unitRailGeo, railMat);
-    // Scale the unit mesh to the required length. BoxGeometry is centered, so scaling keeps it centered.
-    rail.scale.set(len, 1, 1);
-    rail.position.set((a.x + b.x) / 2, h, (a.z + b.z) / 2);
-    rail.rotation.y = -angle;
-    rail.receiveShadow = true;
-    rail.castShadow = false;
-    fenceGroup.add(rail);
+    // Compose transformation: rotation align to segment, translate to midpoint, scale X to segment length
+    const pos = _p.set(midX, h, midZ);
+    const quat = _q.setFromEuler(new THREE.Euler(0, -angle, 0));
+    const scl = _s.set(len, 1, 1);
+    _m4.compose(pos, quat, scl);
+    railsInst.setMatrixAt(railIdx++, _m4);
   }
 }
+railsInst.instanceMatrix.needsUpdate = true;
+railsInst.castShadow = false;
+railsInst.receiveShadow = true;
+fenceGroup.add(railsInst);
 
 // Low translucent ground ring for visual guidance (subtle)
 const fenceRing = new THREE.Mesh(
@@ -1054,11 +1070,24 @@ const touch = initTouchControls({ player, skills, effects, aimPreview, attackPre
 /* Maintain a cached list of alive enemy meshes and refresh periodically to avoid
    allocating/filtering every frame when raycasting. This reduces GC and CPU work.
 */
+const __enemyMeshes = [];
+function __refreshEnemyMeshes() {
+  try {
+    __enemyMeshes.length = 0;
+    for (const en of enemies) {
+      if (en.alive) __enemyMeshes.push(en.mesh);
+    }
+  } catch (_) {}
+}
+__refreshEnemyMeshes();
+try { clearInterval(window.__enemyMeshRefreshInt); } catch (_) {}
+window.__enemyMeshRefreshInt = setInterval(__refreshEnemyMeshes, 200);
+
 const raycast = createRaycast({
   renderer,
   camera,
   ground,
-  enemiesMeshesProvider: () => enemies.filter((en) => en.alive).map((en) => en.mesh),
+  enemiesMeshesProvider: () => __enemyMeshes,
   playerMesh: player.mesh,
 });
 
@@ -1121,14 +1150,6 @@ function getKeyMoveDir() {
   return { active: true, x: x / len, y: y / len };
 }
 
-let lastMouseGroundPoint = new THREE.Vector3();
-renderer.domElement.addEventListener("mousemove", (e) => {
-  raycast.updateMouseNDC(e);
-  const p = raycast.raycastGround();
-  if (p) {
-    lastMouseGroundPoint.copy(p);
-  }
-});
 
 renderer.domElement.addEventListener("mousedown", (e) => {
   raycast.updateMouseNDC(e);
@@ -1303,6 +1324,8 @@ const __MOVE_PING_INTERVAL = 0.3; // seconds between continuous move pings (joys
 let __joyContPingT = 0;
 let __arrowContPingT = 0;
 let __arrowWasActive = false;
+let __bbStride = 2;
+let __bbOffset = 0;
 
 function animate() {
   requestAnimationFrame(animate);
@@ -1517,9 +1540,11 @@ function animate() {
   villages.updateRest(player, dt);
   updateDeathRespawn();
 
-  // Billboard enemy hp bars to face camera
-  enemies.forEach((en) => {
+  // Billboard enemy hp bars to face camera (throttled)
+  __bbOffset = (__bbOffset + 1) % __bbStride;
+  enemies.forEach((en, idx) => {
     if (!en.alive) return;
+    if ((idx % __bbStride) !== __bbOffset) return;
     if (en.hpBar && en.hpBar.container) en.hpBar.container.lookAt(camera.position);
   });
 

@@ -21,10 +21,10 @@ export function getTargetPixelRatio() {
   }
   if (quality === "high") {
     // Cap to 2x to avoid excessive GPU cost on ultra-high DPI
-    return Math.min(dpr, 3);
+    return Math.min(dpr, 2);
   }
 
-  return 3;
+  return 2;
 }
 
 /**
