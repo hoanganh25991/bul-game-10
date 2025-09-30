@@ -1379,6 +1379,11 @@ function animate() {
       const px = base.x + dx * speed;
       const pz = base.z + dy * speed;
 
+      // Drive actual movement toward the indicated direction (short-range target)
+      player.moveTarget = new THREE.Vector3(px, 0, pz);
+      player.attackMove = false;
+      player.target = null;
+
       // Fire immediately on initial press, then cadence
       if (!__arrowWasActive) {
         __tempVecA.set(px, 0, pz);
