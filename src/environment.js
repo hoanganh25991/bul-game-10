@@ -1,6 +1,6 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import { makeNoiseTexture, createSeededRNG, seededRange } from "./utils.js";
-import { WORLD } from "./constants.js";
+import { WORLD, VILLAGE_POS } from "./constants.js";
 import { createHouse, createGreekTemple, createVilla, createGreekColumn, createCypressTree, createOliveTree, createGreekStatue, createObelisk } from "./meshes.js";
 import { placeStructures } from "./environment/structures.js";
 
@@ -17,6 +17,99 @@ import { placeStructures } from "./environment/structures.js";
  * - Uses simple low-poly primitives (fast, no external assets).
  * - Uses WORLD.groundSize as placement bounds by default.
  */
+/**
+ * Create a small circular water surface with Reflector (planar reflection) and a robust fallback.
+ * Returns an object { mesh, update } where:
+ *  - mesh: the current water object (Reflector or fallback Mesh)
+ *  - update(t, dt): optional updater for subtle shimmer on fallback material
+ */
+function createWaterCircleReflector({ root, position, radius = 18, quality = "high" }) {
+  const geo = new THREE.CircleGeometry(Math.max(1, radius), 64);
+  // Fallback material (cheap, always available)
+  const fallbackMat = new THREE.MeshStandardMaterial({
+    color: 0x2f5970,
+    roughness: 0.15,
+    metalness: 0.0,
+    transparent: true,
+    opacity: 0.94,
+    emissive: 0x0b1f2d,
+    emissiveIntensity: 0.02,
+    side: THREE.DoubleSide
+  });
+  const waterMesh = new THREE.Mesh(geo, fallbackMat);
+  waterMesh.rotation.x = -Math.PI / 2;
+  waterMesh.position.copy(position || new THREE.Vector3(0, 0.02, 0));
+  // Draw above ground/roads without z-fighting
+  waterMesh.position.y = Math.max(0.02, waterMesh.position.y || 0.02);
+  waterMesh.renderOrder = 5;
+  if (waterMesh.material) {
+    waterMesh.material.depthWrite = false;      // don't write depth, keep scene depth intact
+    waterMesh.material.depthTest = true;        // still respect geometry in front
+    waterMesh.material.polygonOffset = true;    // bias forward to avoid z-fighting with ground overlay
+    waterMesh.material.polygonOffsetFactor = -1;
+    waterMesh.material.polygonOffsetUnits = -1;
+  }
+  root.add(waterMesh);
+
+  // Fallback subtle shimmer update
+  function updateFallback(t) {
+    try {
+      const m = waterMesh.material;
+      if (!m) return;
+      m.emissiveIntensity = 0.02 + Math.sin(t * 0.8) * 0.02;
+      if (m.map) {
+        m.map.offset.x = Math.sin(t * 0.12) * 0.0015;
+        m.map.offset.y = Math.cos(t * 0.09) * 0.0015;
+      }
+    } catch (_) {}
+  }
+
+  const out = { mesh: waterMesh, update: updateFallback };
+
+  // Attempt Reflector upgrade (non-blocking)
+  try {
+    import("https://unpkg.com/three@0.160.0/examples/jsm/objects/Reflector.js").then((mod) => {
+      const Reflector = mod?.Reflector || mod?.default;
+      if (!Reflector) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const base = quality === "high" ? 512 : (quality === "medium" ? 384 : 256);
+      const texSize = Math.max(128, Math.floor(base * dpr));
+
+      const mirror = new Reflector(geo, {
+        color: 0x2e5368,
+        textureWidth: texSize,
+        textureHeight: texSize,
+        clipBias: 0.002
+      });
+      mirror.rotation.x = -Math.PI / 2;
+      mirror.position.copy(waterMesh.position);
+      mirror.renderOrder = 5;
+      // Make sure the reflector doesn't fight with ground/roads
+      try {
+        mirror.material.transparent = true;
+        mirror.material.opacity = 0.95;
+        mirror.material.depthWrite = false;
+        mirror.material.polygonOffset = true;
+        mirror.material.polygonOffsetFactor = -1;
+        mirror.material.polygonOffsetUnits = -1;
+        mirror.material.side = THREE.DoubleSide;
+      } catch (_) {}
+
+      // Swap fallback -> reflector
+      try { root.remove(waterMesh); } catch (_) {}
+      try { root.add(mirror); } catch (_) {}
+      out.mesh = mirror;
+      out.update = null; // reflector doesn't need shimmer updater
+    }).catch(() => {
+      // keep fallback
+    });
+  } catch (_) {
+    // keep fallback
+  }
+
+  return out;
+}
+
 export function initEnvironment(scene, options = {}) {
   const cfg = Object.assign(
     {
@@ -93,6 +186,7 @@ export function initEnvironment(scene, options = {}) {
   const groundOverlay = new THREE.Mesh(
     new THREE.CircleGeometry(Math.max(40, Math.min(300, WORLD.groundSize * 0.2)), 64),
     new THREE.MeshStandardMaterial({
+      color: 0x4a5b6f, // tint overlay to match new ground color
       map: detailTex,
       transparent: true,
       opacity: 0.12,
@@ -127,6 +221,7 @@ export function initEnvironment(scene, options = {}) {
   const swayObjs = [];
   // Water placeholder (declared early so update() can reference it safely)
   let water = null;
+  let waterUpdate = null;
 
   // ----------------
   // Primitive props
@@ -339,61 +434,15 @@ export function initEnvironment(scene, options = {}) {
 
   root.add(treesTrunkIM, treesFoliageIM, rocks, flowers);
 
-  // Small circular lake with simple reflection (restored)
-  (function addWater() {
-    if (!cfg.enableWater) return;
-    const pos = seededRandomPosInBounds();
-    pos.y = 0.015;
+  // Water: explicit function with Reflector + fallback (quality-aware)
+  if (cfg.enableWater) {
+    // Place lake near the origin village for guaranteed visibility
+    const pos = new THREE.Vector3(VILLAGE_POS.x + 12, 0.02, VILLAGE_POS.z + 6);
     const radius = Math.max(6, Math.min(28, cfg.waterRadius || 18));
-    const geo = new THREE.CircleGeometry(radius, 64);
-
-    const fallbackMat = new THREE.MeshStandardMaterial({
-      color: 0x3a5f7a,
-      roughness: 0.2,
-      metalness: 0.0,
-      transparent: true,
-      opacity: 0.95
-    });
-
-    try {
-      import("https://unpkg.com/three@0.160.0/examples/jsm/objects/Reflector.js").then((mod) => {
-        try {
-          const Reflector = mod.Reflector || mod.default || null;
-          if (Reflector) {
-            const mirror = new Reflector(geo, {
-              color: 0x335c77,
-              textureWidth: 256,
-              textureHeight: 256,
-              clipBias: 0.003
-            });
-            mirror.rotation.x = -Math.PI / 2;
-            mirror.position.copy(pos);
-            root.add(mirror);
-            water = mirror;
-            return;
-          }
-        } catch (e) {}
-        // Fallback non-reflective water
-        const mesh = new THREE.Mesh(geo, fallbackMat);
-        mesh.rotation.x = -Math.PI / 2;
-        mesh.position.copy(pos);
-        root.add(mesh);
-        water = mesh;
-      }).catch(() => {
-        const mesh = new THREE.Mesh(geo, fallbackMat);
-        mesh.rotation.x = -Math.PI / 2;
-        mesh.position.copy(pos);
-        root.add(mesh);
-        water = mesh;
-      });
-    } catch (_) {
-      const mesh = new THREE.Mesh(geo, fallbackMat);
-      mesh.rotation.x = -Math.PI / 2;
-      mesh.position.copy(pos);
-      root.add(mesh);
-      water = mesh;
-    }
-  })();
+    const waterObj = createWaterCircleReflector({ root, position: pos, radius, quality: __q });
+    water = waterObj.mesh;
+    waterUpdate = waterObj.update;
+  }
 
   // Add denser forest clusters for richness
   const forest1 = createForest(new THREE.Vector3(-WORLD.groundSize * 0.15, 0, -WORLD.groundSize * 0.12), Math.max(8, Math.floor(cfg.villageRadius*1.2)), Math.floor(cfg.treeCount * 0.25));
@@ -540,17 +589,8 @@ export function initEnvironment(scene, options = {}) {
   // ----------------
   let __lastSwayT = 0;
   function update(t, dt) {
-    // simple water shimmer: slightly change rotation/scale or material roughness
-    if (water && water.material) {
-      const m = water.material;
-      m.emissive = m.emissive || new THREE.Color(0x001a2b);
-      m.emissiveIntensity = 0.02 + Math.sin(t * 0.8) * 0.02;
-      // gentle animated offset if material map exists
-      if (m.map) {
-        m.map.offset.x = Math.sin(t * 0.12) * 0.0015;
-        m.map.offset.y = Math.cos(t * 0.09) * 0.0015;
-      }
-    }
+    // Water update (fallback shimmer; Reflector needs no per-frame material changes)
+    try { if (typeof waterUpdate === "function") waterUpdate(t, dt); } catch (_) {}
 
     // Subtle tree/foliage sway: animate on an FPS-adaptive interval (instanced + legacy trees)
     let fps = 60;
