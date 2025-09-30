@@ -5,7 +5,7 @@ A lightweight prototype featuring DOTA‑style controls, electric abilities, sim
 ## Overview
 
 **Game Play**
-![guide](./images/got-guide.jpeg)
+![guide](./images/got-game-play.jpeg)
 
 **First Person**
 ![guide](./images/got-first-person.jpeg)
@@ -28,7 +28,11 @@ A lightweight prototype featuring DOTA‑style controls, electric abilities, sim
 
 ## Google Play
 
+Free Version
 https://play.google.com/store/apps/details?id=io.github.hoanganh25991.got
+
+Paid Version
+https://play.google.com/store/apps/details?id=io.github.hoanganh25991.gotsignature
 
 ## Quick Start
 
