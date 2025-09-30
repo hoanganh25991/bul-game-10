@@ -19,10 +19,55 @@ import { createHouse } from "./meshes.js";
 export function initVillages(scene, portals, opts = {}) {
   const VILLAGE_SPACING = opts.spacing || 500;
 
+  // Logarithmic spacing/size controls
+  const SPACING_LOG_K = (typeof opts.spacingLogK === "number") ? opts.spacingLogK : 0.85;
+  const SIZE_LOG_K = (typeof opts.villageSizeLogK === "number") ? opts.villageSizeLogK : 0.65;
+  const SPACING_MULT = (typeof opts.spacingMultiplier === "number") ? opts.spacingMultiplier : 0.5;
+
+  // Spacing grows ~logarithmically with radius; increases distance required to find next village
+  function dynamicSpacingAtRadius(r) {
+    const base = VILLAGE_SPACING;
+    const rr = Math.max(0, r);
+    return base * (1 + Math.log1p(rr / base) * SPACING_LOG_K) * SPACING_MULT;
+  }
+
+  // Village size grows steadily with radius
+  function scaleFromDistance(distance) {
+    const base = VILLAGE_SPACING;
+    const s = 1 + Math.log1p(Math.max(0, distance) / base) * SIZE_LOG_K;
+    return Math.min(6, s);
+  }
+
+  // Deterministic "good" village names from key
+  function nameForKey(key) {
+    const A = ["Oak","Storm","Dawn","Iron","Sky","Elder","Moon","Sun","Frost","Ash","Raven","Wolf","Dragon","Silver","Gold","Star","High","Low","West","East","North","South","Bright","Shadow","Mist","Cloud","Thunder","Wind","Stone","River","Glen","Vale","Hill","Mist","Fire","Ice","Dust","Ember","Lumen","Myth"];
+    const B = ["field","watch","reach","ford","hold","haven","gate","spire","fall","brook","ridge","vale","crest","keep","market","run","moor","hollow","wick","stead","burgh","bridge","rock","cliff","grove","meadow","harbor","shore","spring","cairn","peak","barrow"];
+    const C = ["Village","Town","Haven","Outpost","Gate","Hold","Rest","Hamlet","Retreat","Sanctum"];
+    const r1 = Math.floor(_seededRand01(key + ":1") * A.length);
+    const r2 = Math.floor(_seededRand01(key + ":2") * B.length);
+    const r3 = Math.floor(_seededRand01(key + ":3") * C.length);
+    return A[r1] + B[r2].charAt(0).toUpperCase() + B[r2].slice(1) + " " + C[r3];
+  }
+
+  // Compute center for a given grid key with deterministic jitter, based on radial spacing
+  function centerForKey(ix, iz) {
+    const approxR = Math.hypot(ix, iz) * VILLAGE_SPACING;
+    const sp = dynamicSpacingAtRadius(approxR);
+    let cx = ix * sp;
+    let cz = iz * sp;
+    const key = `${ix},${iz}`;
+    const jitter = sp * 0.3;
+    cx += (_seededRand01(key + ":x") - 0.5) * jitter * 2;
+    cz += (_seededRand01(key + ":z") - 0.5) * jitter * 2;
+    return new THREE.Vector3(cx, 0, cz);
+  }
+
   // State
   const dynamicVillages = new Map(); // key "ix,iz" -> { center, radius, group, portal }
   const builtRoadKeys = new Set();   // canonical "a|b"
   let currentVillageKey = null;      // "origin" or "{ix},{iz}"
+  const roadGeoms = new Map(); // canonical -> { aKey, bKey, a:{x,z}, ctrl:{x,z}, b:{x,z}, width, segments }
+  const roadPolylines = new Map(); // canonical -> Array<{x,z}>
 
   // Roads parent
   const dynamicRoads = new THREE.Group();
@@ -30,8 +75,9 @@ export function initVillages(scene, portals, opts = {}) {
   scene.add(dynamicRoads);
 
   // Persistence keys
-  const STORAGE_VILLAGES = "zeus.dynamic.villages.v1";
-  const STORAGE_ROADS = "zeus.dynamic.roads.v1";
+  const STORAGE_VILLAGES = "got.dynamic.villages.v1";
+  const STORAGE_ROADS = "got.dynamic.roads.v1";
+  const STORAGE_ROADS_GEOM = "got.dynamic.roads_geom.v1";
 
   function saveVillagesToStorage() {
     try {
@@ -47,9 +93,18 @@ export function initVillages(scene, portals, opts = {}) {
     } catch (_) {}
   }
 
+  function saveRoadGeomsToStorage() {
+    try {
+      const obj = {};
+      roadGeoms.forEach((g, k) => { obj[k] = g; });
+      localStorage.setItem(STORAGE_ROADS_GEOM, JSON.stringify(obj));
+    } catch (_) {}
+  }
+
   (function loadFromStorage() {
     try {
       const vraw = localStorage.getItem(STORAGE_VILLAGES);
+      const graw = localStorage.getItem(STORAGE_ROADS_GEOM);
       const rraw = localStorage.getItem(STORAGE_ROADS);
       const vKeys = vraw ? JSON.parse(vraw) : [];
       if (Array.isArray(vKeys)) {
@@ -58,9 +113,24 @@ export function initVillages(scene, portals, opts = {}) {
           const [ixStr, izStr] = key.split(",");
           const ix = parseInt(ixStr, 10), iz = parseInt(izStr, 10);
           if (!Number.isFinite(ix) || !Number.isFinite(iz)) return;
-          const center = new THREE.Vector3(ix * VILLAGE_SPACING, 0, iz * VILLAGE_SPACING);
-          const info = createDynamicVillageAt(center, Math.hypot(center.x, center.z));
+          const center = centerForKey(ix, iz);
+          const info = createDynamicVillageAt(center, Math.hypot(center.x, center.z), nameForKey(key));
           dynamicVillages.set(key, info);
+        });
+      }
+      const geoms = graw ? JSON.parse(graw) : null;
+      if (geoms && typeof geoms === "object") {
+        Object.keys(geoms).forEach((canonical) => {
+          if (typeof canonical !== "string" || builtRoadKeys.has(canonical)) return;
+          const parts = canonical.split("|");
+          if (parts.length !== 2) return;
+          const aKey = parts[0];
+          const bKey = parts[1];
+          const hasA = (aKey === "origin") || dynamicVillages.has(aKey);
+          const hasB = (bKey === "origin") || dynamicVillages.has(bKey);
+          if (hasA && hasB) {
+            _ensureRoadFromGeom(canonical, geoms[canonical]);
+          }
         });
       }
       const roads = rraw ? JSON.parse(rraw) : [];
@@ -148,6 +218,53 @@ export function initVillages(scene, portals, opts = {}) {
     return mesh;
   }
 
+  // Helper: seeded random [0,1) based on string
+  function _seededRand01(str) {
+    let h = 0x811c9dc5; // FNV-1a 32-bit
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+    return ((h >>> 0) / 4294967296);
+  }
+
+  // Compute a 2D polyline from stored road geometry
+  function _computePolylineFromGeom(g, samples = 64) {
+    try {
+      const a = new THREE.Vector3(g.a.x, 0, g.a.z);
+      const c = new THREE.Vector3(g.ctrl.x, 0, g.ctrl.z);
+      const b = new THREE.Vector3(g.b.x, 0, g.b.z);
+      const curve = new THREE.CatmullRomCurve3([a, c, b], false, "catmullrom", 0.5);
+      const pts = [];
+      for (let i = 0; i <= samples; i++) {
+        const t = i / samples;
+        const p = curve.getPointAt(t);
+        pts.push({ x: p.x, z: p.z });
+      }
+      return pts;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // Build a road from persisted geometry
+  function _ensureRoadFromGeom(canonical, g) {
+    if (!canonical || !g) return;
+    if (builtRoadKeys.has(canonical)) return;
+    const pts = [
+      new THREE.Vector3(g.a.x, 0, g.a.z),
+      new THREE.Vector3(g.ctrl.x, 0, g.ctrl.z),
+      new THREE.Vector3(g.b.x, 0, g.b.z)
+    ];
+    const width = g.width || 7;
+    const segments = g.segments || 200;
+    const mesh = createCurvedRoad(pts, width, segments, 0x2b2420);
+    dynamicRoads.add(mesh);
+    builtRoadKeys.add(canonical);
+    roadGeoms.set(canonical, g);
+    roadPolylines.set(canonical, _computePolylineFromGeom(g));
+  }
+
   function ensureRoadBetween(keyA, keyB) {
     if (!keyA || !keyB || keyA === keyB) return;
     const canonical = keyA < keyB ? `${keyA}|${keyB}` : `${keyB}|${keyA}`;
@@ -163,13 +280,31 @@ export function initVillages(scene, portals, opts = {}) {
     dir.normalize();
     const perp = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), dir).normalize();
     const curveAmt = Math.min(600, Math.max(30, len * 0.25));
-    const ctrl = mid.clone().addScaledVector(perp, curveAmt * (Math.random() < 0.5 ? 1 : -1));
+    const sign = _seededRand01(canonical) < 0.5 ? 1 : -1;
+    const ctrl = mid.clone().addScaledVector(perp, curveAmt * sign);
     ctrl.y = 0.0;
 
-    const road = createCurvedRoad([a, ctrl, b], 7, 200, 0x2b2420);
+    const width = 7;
+    const segments = 200;
+    const road = createCurvedRoad([a, ctrl, b], width, segments, 0x2b2420);
     dynamicRoads.add(road);
     builtRoadKeys.add(canonical);
+
+    // Persist geometry and sampled polyline for minimap
+    const geomObj = {
+      aKey: keyA,
+      bKey: keyB,
+      a: { x: a.x, z: a.z },
+      ctrl: { x: ctrl.x, z: ctrl.z },
+      b: { x: b.x, z: b.z },
+      width,
+      segments
+    };
+    roadGeoms.set(canonical, geomObj);
+    roadPolylines.set(canonical, _computePolylineFromGeom(geomObj));
+
     saveRoadsToStorage();
+    saveRoadGeomsToStorage();
   }
 
   function createTextSprite(text, color = "#e6f4ff", bg = "rgba(0,0,0,0.35)") {
@@ -199,8 +334,8 @@ export function initVillages(scene, portals, opts = {}) {
     return sprite;
   }
 
-  function createDynamicVillageAt(center, distanceFromOrigin) {
-    const scale = Math.min(4, 1 + distanceFromOrigin / VILLAGE_SPACING); // 1..4
+  function createDynamicVillageAt(center, distanceFromOrigin, name) {
+    const scale = scaleFromDistance(distanceFromOrigin); // grows ~logarithmically with radius
     const fenceRadius = Math.max(REST_RADIUS + 4, REST_RADIUS * (0.9 + scale));
     const posts = Math.max(28, Math.floor(28 * (0.9 + scale * 0.6)));
     const houseCount = Math.max(6, Math.floor(6 * (0.8 + scale * 1.4)));
@@ -281,8 +416,8 @@ export function initVillages(scene, portals, opts = {}) {
       Math.abs(center.x) > Math.abs(center.z)
         ? (center.x >= 0 ? "East" : "West")
         : (center.z >= 0 ? "South" : "North");
-    const km = Math.round(distanceFromOrigin / VILLAGE_SPACING);
-    const label = createTextSprite(`${quadrant} Gate — ${km}km`);
+    const labelText = name || `${quadrant} Gate`;
+    const label = createTextSprite(labelText);
     label.position.set(gatePos.x, 3.6, gatePos.z + 0.01);
     villageGroup.add(label);
 
@@ -290,21 +425,22 @@ export function initVillages(scene, portals, opts = {}) {
     const portalOffset = new THREE.Vector3(-2.5, 0, 0);
     const portal = portals.addPortalAt(gatePos.clone().add(portalOffset), COLOR.portal);
 
-    return { center: center.clone(), radius: fenceRadius, group: villageGroup, portal };
+    return { center: center.clone(), radius: fenceRadius, group: villageGroup, portal, name };
   }
 
   function ensureFarVillage(playerPos) {
     if (!playerPos) return;
     const distFromOrigin = Math.hypot(playerPos.x - VILLAGE_POS.x, playerPos.z - VILLAGE_POS.z);
-    if (distFromOrigin < VILLAGE_SPACING * 0.9) return;
+    const sp = dynamicSpacingAtRadius(distFromOrigin);
+    if (distFromOrigin < sp * 0.9) return;
 
-    const ix = Math.round(playerPos.x / VILLAGE_SPACING);
-    const iz = Math.round(playerPos.z / VILLAGE_SPACING);
+    const ix = Math.round(playerPos.x / sp);
+    const iz = Math.round(playerPos.z / sp);
     const key = `${ix},${iz}`;
     if (dynamicVillages.has(key)) return;
 
-    const center = new THREE.Vector3(ix * VILLAGE_SPACING, 0, iz * VILLAGE_SPACING);
-    const info = createDynamicVillageAt(center, Math.hypot(center.x, center.z));
+    const center = centerForKey(ix, iz);
+    const info = createDynamicVillageAt(center, Math.hypot(center.x, center.z), nameForKey(key));
     dynamicVillages.set(key, info);
     saveVillagesToStorage();
   }
@@ -352,7 +488,34 @@ export function initVillages(scene, portals, opts = {}) {
   function listVillages() {
     const arr = [];
     dynamicVillages.forEach((v, key) => {
-      arr.push({ key, center: v.center.clone(), radius: v.radius });
+      arr.push({ key, center: v.center.clone(), radius: v.radius, name: v.name });
+    });
+    return arr;
+  }
+
+  // For minimap: list road segments as world-space endpoints {a:{x,z}, b:{x,z}}
+  function listRoadSegments() {
+    const arr = [];
+    builtRoadKeys.forEach((canonical) => {
+      if (typeof canonical !== "string") return;
+      const parts = canonical.split("|");
+      if (parts.length !== 2) return;
+      const a = getVillageCenterByKey(parts[0]);
+      const b = getVillageCenterByKey(parts[1]);
+      if (a && b) {
+        arr.push({ a: { x: a.x, z: a.z }, b: { x: b.x, z: b.z } });
+      }
+    });
+    return arr;
+  }
+
+  // For minimap: list road polylines as arrays of {x,z}
+  function listRoadPolylines() {
+    const arr = [];
+    roadPolylines.forEach((pts) => {
+      if (Array.isArray(pts) && pts.length > 1) {
+        arr.push(pts);
+      }
     });
     return arr;
   }
@@ -392,10 +555,14 @@ export function initVillages(scene, portals, opts = {}) {
     getVillageKeyAt,
     isInsideAnyVillage,
     listVillages,
+    listRoadPolylines,
+    listRoadSegments,
     _debug: {
       dynamicVillages,
       dynamicRoads,
       builtRoadKeys,
+      roadGeoms,
+      roadPolylines,
       get currentVillageKey() { return currentVillageKey; }
     }
   };
