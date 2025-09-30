@@ -1533,7 +1533,52 @@ function animate() {
   }
 
   renderer.render(scene, camera);
+
+  try {
+    if (!window.__gameRenderReadyDispatched) {
+      window.__gameRenderReadyDispatched = true;
+      try {
+        const c = renderer && renderer.domElement;
+        if (c) {
+          try { c.style.opacity = "1"; } catch (_) {}
+        }
+      } catch (_) {}
+      try { window.dispatchEvent(new Event("game-render-ready")); } catch (_) {}
+    }
+  } catch (_) {}
+
+  // Update perf metrics (throttled)
+  try {
+    __computePerf(performance.now());
+    // Throttle heavy renderer.info snapshotting / perf exposure to reduce cost.
+    // Tunable at runtime via window.__PERF_INFO_THROTTLE_MS (default 1000ms).
+    const PERF_INFO_THROTTLE_MS = window.__PERF_INFO_THROTTLE_MS || 1000;
+    if (!window.__lastPerfInfoT) window.__lastPerfInfoT = 0;
+    const nowPerfT = performance.now();
+    if ((nowPerfT - window.__lastPerfInfoT) >= PERF_INFO_THROTTLE_MS) {
+      window.__lastPerfInfoT = nowPerfT;
+      try { window.__perfMetrics = getPerf(); } catch (_) {}
+    }
+  } catch (_) {}
+
+  // Adaptive performance: adjust AI stride and enemy count based on FPS
+  try {
+    if (!__adaptNextT || t >= __adaptNextT) {
+      const fps = __perf.fps || 60;
+      if (fps < 25) {
+        __aiStride = Math.min(5, (__aiStride || 1) + 1);
+        __enemyPerfScale = Math.max(0.5, (__enemyPerfScale || 1) - 0.1);
+        adjustEnemyCountForCurrentMap();
+      } else if (fps > 50) {
+        __aiStride = Math.max(1, (__aiStride || 1) - 1);
+        __enemyPerfScale = Math.min(1, (__enemyPerfScale || 1) + 0.05);
+        adjustEnemyCountForCurrentMap();
+      }
+      __adaptNextT = t + 1.5;
+    }
+  } catch (_) {}
 }
+
 animate();
 
 // ------------------------------------------------------------
