@@ -197,41 +197,115 @@ export function initEnvironment(scene, options = {}) {
     return fg;
   }
 
-  // Scatter props
-  const trees = new THREE.Group();
-  const rocks = new THREE.Group();
-  const flowers = new THREE.Group();
-  trees.name = "trees";
-  rocks.name = "rocks";
-  flowers.name = "flowers";
+  // Scatter props via InstancedMesh batching (reduce draw calls significantly)
+  // Trees: trunk + foliage instanced
+  const trunkGeo = new THREE.CylinderGeometry(0.12, 0.12, 1, 6);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x332a22 });
+  const foliageGeo = new THREE.ConeGeometry(1, 1, 8);
+  const foliageMat = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(0.52, 0.5, 0.22) });
+
+  const trunkInst = new THREE.InstancedMesh(trunkGeo, trunkMat, cfg.treeCount);
+  const foliageInst = new THREE.InstancedMesh(foliageGeo, foliageMat, cfg.treeCount);
+  trunkInst.castShadow = true; trunkInst.receiveShadow = true;
+  foliageInst.castShadow = true; foliageInst.receiveShadow = true;
+
+  // Rocks
+  const rockGeo = new THREE.DodecahedronGeometry(1, 0);
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0x223344 });
+  const rockInst = new THREE.InstancedMesh(rockGeo, rockMat, cfg.rockCount);
+  rockInst.castShadow = true; rockInst.receiveShadow = true;
+
+  // Flowers (stems + petals)
+  const stemGeo = new THREE.CylinderGeometry(0.02, 0.02, 1);
+  const stemMat = new THREE.MeshStandardMaterial({ color: 0x1a7a3e });
+  const petalGeo = new THREE.SphereGeometry(1, 6, 6);
+  const petalMat = new THREE.MeshStandardMaterial({ color: 0xffcc66, emissive: 0xffb86b });
+  const stemInst = new THREE.InstancedMesh(stemGeo, stemMat, cfg.flowerCount);
+  const petalInst = new THREE.InstancedMesh(petalGeo, petalMat, cfg.flowerCount);
+
+  const _m4 = new THREE.Matrix4();
+  const _q = new THREE.Quaternion();
+  const _s = new THREE.Vector3();
+  const _p = new THREE.Vector3();
+
+  // Store per-tree base transforms for lightweight sway updates
+  const treeBases = new Array(cfg.treeCount);
+  // Sway stride by quality (0 disables)
+  const __instSwayStride = (__q === "high" ? 2 : (__q === "medium" ? 4 : 0));
+  let __swayTick = 0;
 
   for (let i = 0; i < cfg.treeCount; i++) {
-    const t = createTree();
     const p = randomPosInBounds();
-    t.position.set(p.x, 0, p.z);
-    t.rotateY(Math.random() * Math.PI * 2);
-    trees.add(t);
+    const rotY = Math.random() * Math.PI * 2;
+    const baseH = 1.6 + Math.random() * 1.2;
+    const trunkH = baseH * 0.45;
+    const foliageH = baseH * 0.9;
+    const trunkXZ = 0.85 + Math.random() * 0.4;
+    const foliageXZ = baseH * 0.6;
+
+    // Trunk
+    _p.set(p.x, trunkH * 0.5, p.z);
+    _q.setFromEuler(new THREE.Euler(0, rotY, 0));
+    _s.set(trunkXZ, trunkH, trunkXZ);
+    _m4.compose(_p, _q, _s);
+    trunkInst.setMatrixAt(i, _m4);
+
+    // Foliage (lies above trunk)
+    _p.set(p.x, trunkH + foliageH * 0.5, p.z);
+    _q.setFromEuler(new THREE.Euler(0, rotY, 0));
+    _s.set(foliageXZ, foliageH, foliageXZ);
+    _m4.compose(_p, _q, _s);
+    foliageInst.setMatrixAt(i, _m4);
+
+    treeBases[i] = {
+      pos: new THREE.Vector3(p.x, 0, p.z),
+      rotY,
+      trunkH,
+      foliageH,
+      trunkXZ,
+      foliageXZ,
+      swayPhase: Math.random() * Math.PI * 2,
+      swayAmp: 0.004 + Math.random() * 0.01
+    };
   }
+  trunkInst.instanceMatrix.needsUpdate = true;
+  foliageInst.instanceMatrix.needsUpdate = true;
+
   for (let i = 0; i < cfg.rockCount; i++) {
-    const r = createRock();
     const p = randomPosInBounds();
-    r.position.set(p.x, 0, p.z);
-    r.scale.multiplyScalar(0.7 + Math.random() * 1.2);
-    rocks.add(r);
+    const s = 0.7 + Math.random() * 1.2;
+    const rx = Math.random() * Math.PI;
+    const ry = Math.random() * Math.PI;
+    const rz = Math.random() * Math.PI;
+    _p.set(p.x, 0.02, p.z);
+    _q.setFromEuler(new THREE.Euler(rx, ry, rz));
+    _s.set(s, s, s);
+    _m4.compose(_p, _q, _s);
+    rockInst.setMatrixAt(i, _m4);
   }
+  rockInst.instanceMatrix.needsUpdate = true;
+
   for (let i = 0; i < cfg.flowerCount; i++) {
-    const f = createFlower();
     const p = randomPosInBounds();
-    f.position.set(p.x, 0, p.z);
-    flowers.add(f);
+    // Stem ~0.24 height
+    _p.set(p.x, 0.12, p.z);
+    _q.set(0, 0, 0, 1);
+    _s.set(1, 0.24, 1);
+    _m4.compose(_p, _q, _s);
+    stemInst.setMatrixAt(i, _m4);
+    // Petal ~0.08 radius sphere at y ~0.28
+    _p.set(p.x, 0.28, p.z);
+    _q.set(0, 0, 0, 1);
+    _s.set(0.08, 0.08, 0.08);
+    _m4.compose(_p, _q, _s);
+    petalInst.setMatrixAt(i, _m4);
   }
+  stemInst.instanceMatrix.needsUpdate = true;
+  petalInst.instanceMatrix.needsUpdate = true;
 
-  root.add(trees, rocks, flowers);
+  root.add(trunkInst, foliageInst, rockInst, stemInst, petalInst);
 
-  // Add denser forest clusters for richness
-  const forest1 = createForest(new THREE.Vector3(-WORLD.groundSize * 0.15, 0, -WORLD.groundSize * 0.12), Math.max(8, Math.floor(cfg.villageRadius*1.2)), Math.floor(cfg.treeCount * 0.25));
-  const forest2 = createForest(new THREE.Vector3(WORLD.groundSize * 0.18, 0, WORLD.groundSize * 0.05), Math.max(8, Math.floor(cfg.villageRadius*1.0)), Math.floor(cfg.treeCount * 0.18));
-  root.add(forest1, forest2);
+  // Forest clusters merged into instanced scatter for performance (draw call reduction).
 
   // (removed old straight cross roads; replaced with curved, connected network below)
 
@@ -389,6 +463,13 @@ export function initEnvironment(scene, options = {}) {
   // Update loop (animate water & rain)
   // ----------------
   let __lastSwayT = 0;
+  // Rain adaptivity and stride
+  const __baseRainCount = cfg.rainCount;
+  let __rainStride = (__q === "high" ? 1 : (__q === "medium" ? 2 : 3));
+  let __rainFrame = 0;
+  let __rainDownscaled = false;
+  let __lastRainAdaptT = 0;
+
   function update(t, dt) {
     // simple water shimmer: slightly change rotation/scale or material roughness
     if (water && water.material) {
@@ -402,30 +483,56 @@ export function initEnvironment(scene, options = {}) {
       }
     }
 
-    // subtle tree/foliage sway: animate pre-collected swayers to avoid full graph traversal
-    const doSway = (__q === "high") || (__q === "medium" && (t - __lastSwayT) > 0.12);
-    if (doSway) {
+    // Instanced foliage sway: update a subset per frame based on quality
+    const doSway = (__instSwayStride > 0) && ((__q === "high") || (__q === "medium" && (t - __lastSwayT) > 0.12));
+    if (doSway && foliageInst && Array.isArray(treeBases)) {
       __lastSwayT = t;
-      for (let i = 0; i < swayObjs.length; i++) {
-        const obj = swayObjs[i];
-        if (!obj) continue;
-        const phase = (obj.userData && obj.userData.swayPhase) || 0;
-        const amp = (obj.userData && obj.userData.swayAmp) || 0.006;
-        obj.rotation.z = Math.sin(t + phase) * amp;
+      const startIdx = __swayTick % __instSwayStride;
+      for (let i = startIdx; i < treeBases.length; i += __instSwayStride) {
+        const b = treeBases[i]; if (!b) continue;
+        const zRot = Math.sin(t + b.swayPhase) * b.swayAmp;
+        // Recompose foliage matrix with extra Z rotation while preserving Y orientation
+        _p.set(b.pos.x, b.trunkH + b.foliageH * 0.5, b.pos.z);
+        _q.setFromEuler(new THREE.Euler(zRot, b.rotY, 0));
+        _s.set(b.foliageXZ, b.foliageH, b.foliageXZ);
+        _m4.compose(_p, _q, _s);
+        foliageInst.setMatrixAt(i, _m4);
       }
+      foliageInst.instanceMatrix.needsUpdate = true;
+      __swayTick++;
     }
 
     if (rain.enabled && rain.points) {
-      const pos = rain.points.geometry.attributes.position.array;
-      for (let i = 0; i < rain.velocities.length; i++) {
-        pos[i * 3 + 1] -= rain.velocities[i] * dt;
-        if (pos[i * 3 + 1] < 0.2) {
-          pos[i * 3 + 0] = (Math.random() * 2 - 1) * half;
-          pos[i * 3 + 1] = 12 + Math.random() * 20;
-          pos[i * 3 + 2] = (Math.random() * 2 - 1) * half;
+      __rainFrame++;
+      if ((__rainFrame % __rainStride) === 0) {
+        const pos = rain.points.geometry.attributes.position.array;
+        for (let i = 0; i < rain.velocities.length; i++) {
+          pos[i * 3 + 1] -= rain.velocities[i] * dt;
+          if (pos[i * 3 + 1] < 0.2) {
+            pos[i * 3 + 0] = (Math.random() * 2 - 1) * half;
+            pos[i * 3 + 1] = 12 + Math.random() * 20;
+            pos[i * 3 + 2] = (Math.random() * 2 - 1) * half;
+          }
         }
+        rain.points.geometry.attributes.position.needsUpdate = true;
       }
-      rain.points.geometry.attributes.position.needsUpdate = true;
+      // Adapt rain density/stride based on FPS (throttled ~1.2s)
+      const nowMs = performance.now();
+      if (nowMs - __lastRainAdaptT > 1200) {
+        __lastRainAdaptT = nowMs;
+        try {
+          const fps = (window.__perfMetrics && window.__perfMetrics.fps) || 60;
+          if (!__rainDownscaled && fps < 35) {
+            setRainCount(Math.floor(__baseRainCount * 0.6));
+            __rainDownscaled = true;
+            __rainStride = Math.min(3, __rainStride + 1);
+          } else if (__rainDownscaled && fps > 70) {
+            setRainCount(__baseRainCount);
+            __rainDownscaled = false;
+            __rainStride = (__q === "high" ? 1 : (__q === "medium" ? 2 : 3));
+          }
+        } catch (_) {}
+      }
     }
   }
 

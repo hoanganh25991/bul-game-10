@@ -255,18 +255,22 @@ export class SkillsSystem {
     // Falls back to origin-only rule if villages API is not provided.
     try {
       if (attacker === this.player) {
+        // More permissive safe-zone rule:
+        // - Allow attacking inside same village
+        // - Allow attacking just outside boundary (small tolerance)
+        // - Prevent cross-village aggression only when both are inside different villages
         if (this.villages && typeof this.villages.isInsideAnyVillage === "function") {
           const pin = this.villages.isInsideAnyVillage(attacker.pos());
           const tin = this.villages.isInsideAnyVillage(target.pos());
-          if (pin && pin.inside) {
-            const sameVillage = tin && tin.inside && tin.key === pin.key;
-            if (!sameVillage) return false;
+          if (pin && pin.inside && tin && tin.inside && pin.key !== tin.key) {
+            return false; // inside different villages
           }
         } else {
-          // Fallback: origin-only protection
+          // Fallback: origin-only safe ring with tolerance to avoid misses near boundary
           const pd = distance2D(attacker.pos(), VILLAGE_POS);
           const td = distance2D(target.pos(), VILLAGE_POS);
-          if (pd <= REST_RADIUS && td > REST_RADIUS) return false;
+          const tol = 1.5;
+          if ((pd <= (REST_RADIUS - tol)) && (td > (REST_RADIUS + tol))) return false;
         }
       }
     } catch (e) {

@@ -1324,7 +1324,7 @@ const __MOVE_PING_INTERVAL = 0.3; // seconds between continuous move pings (joys
 let __joyContPingT = 0;
 let __arrowContPingT = 0;
 let __arrowWasActive = false;
-let __bbStride = 2;
+let __bbStride = renderQuality === "high" ? 2 : 3;
 let __bbOffset = 0;
 
 function animate() {
@@ -1332,6 +1332,11 @@ function animate() {
   const t = now();
   const dt = Math.min(0.05, t - lastT);
   lastT = t;
+
+  // Frame time budget guard to avoid long rAF hitches (tune via window.__FRAME_BUDGET_MS)
+  const __frameStartMs = performance.now();
+  const __frameBudgetMs = window.__FRAME_BUDGET_MS || 10.0; // ~10ms JS time budget aims toward 120fps headroom
+  const __overBudget = () => (performance.now() - __frameStartMs) > __frameBudgetMs;
 
   // Unified input (Hexagonal service): movement, holds, skills
   inputService.update(t, dt);
@@ -1531,30 +1536,42 @@ function animate() {
   if (env && typeof env.update === "function") env.update(t, dt);
 
   // Stream world features: ensure far village(s) exist as player travels
-  villages.ensureFarVillage(player.pos());
+  // Throttle world streaming to avoid per-frame overhead and hitching
+  if (!window.__lastVillageStreamT) window.__lastVillageStreamT = 0;
+  const __nowMs = performance.now();
+  if ((__nowMs - window.__lastVillageStreamT) >= (window.__VILLAGE_STREAM_MS || 150)) {
+    try { villages.ensureFarVillage(player.pos()); } catch (_) {}
+    try { villages.updateVisitedVillage(player.pos()); } catch (_) {}
+    window.__lastVillageStreamT = __nowMs;
+  }
   // When entering a village, connect it to previous visited village with a road
-  villages.updateVisitedVillage(player.pos());
 
-  updateIndicators(dt);
-  portals.update(dt);
-  villages.updateRest(player, dt);
-  updateDeathRespawn();
+  if (!__overBudget()) {
+    updateIndicators(dt);
+    portals.update(dt);
+    villages.updateRest(player, dt);
+    updateDeathRespawn();
+  }
 
-  // Billboard enemy hp bars to face camera (throttled)
-  __bbOffset = (__bbOffset + 1) % __bbStride;
-  enemies.forEach((en, idx) => {
-    if (!en.alive) return;
-    if ((idx % __bbStride) !== __bbOffset) return;
-    if (en.hpBar && en.hpBar.container) en.hpBar.container.lookAt(camera.position);
-  });
+  if (!__overBudget()) {
+    // Billboard enemy hp bars to face camera (throttled)
+    __bbOffset = (__bbOffset + 1) % __bbStride;
+    enemies.forEach((en, idx) => {
+      if (!en.alive) return;
+      if ((idx % __bbStride) !== __bbOffset) return;
+      if (en.hpBar && en.hpBar.container) en.hpBar.container.lookAt(camera.position);
+    });
+  }
 
-  // Update hero overhead bars and billboard to camera
-  if (heroBars) {
-    const hpRatio = clamp01(player.hp / player.maxHP);
-    const mpRatio = clamp01(player.mp / player.maxMP);
-    heroBars.hpFill.scale.x = Math.max(0.001, hpRatio);
-    heroBars.mpFill.scale.x = Math.max(0.001, mpRatio);
-    heroBars.container.lookAt(camera.position);
+  if (!__overBudget()) {
+    // Update hero overhead bars and billboard to camera
+    if (heroBars) {
+      const hpRatio = clamp01(player.hp / player.maxHP);
+      const mpRatio = clamp01(player.mp / player.maxMP);
+      heroBars.hpFill.scale.x = Math.max(0.001, hpRatio);
+      heroBars.mpFill.scale.x = Math.max(0.001, mpRatio);
+      heroBars.container.lookAt(camera.position);
+    }
   }
 
   renderer.render(scene, camera);
