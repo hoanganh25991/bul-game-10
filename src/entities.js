@@ -1,6 +1,6 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import { COLOR, WORLD, STATS_BASE, SCALING } from "./constants.js";
-import { createZeusMesh, createEnemyMesh, createBillboardHPBar } from "./meshes.js";
+import { createGoTMesh, createEnemyMesh, createBillboardHPBar } from "./meshes.js";
 import { distance2D, now } from "./utils.js";
 
 export class Entity {
@@ -45,7 +45,7 @@ export class Entity {
 
 export class Player extends Entity {
   constructor() {
-    const mesh = createZeusMesh();
+    const mesh = createGoTMesh();
     super(mesh, 1.2);
     this.team = "player";
     this.level = 1;
@@ -377,7 +377,7 @@ export function getNearestEnemy(origin, maxDist, enemies) {
 }
 
 /**
- * World position of Zeus's right hand (thunder hand); fallback to chest height.
+ * World position of GoT's right hand (thunder hand); fallback to chest height.
  * @param {Player} player
  * @returns {THREE.Vector3}
  */
@@ -391,7 +391,7 @@ export function handWorldPos(player) {
 }
 
 /**
- * World position of Zeus's left hand.
+ * World position of GoT's left hand.
  * @param {Player} player
  * @returns {THREE.Vector3}
  */

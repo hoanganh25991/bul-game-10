@@ -1,7 +1,8 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { makeNoiseTexture } from "./utils.js";
+import { makeNoiseTexture, createSeededRNG, seededRange } from "./utils.js";
 import { WORLD } from "./constants.js";
-import { createHouse } from "./meshes.js";
+import { createHouse, createGreekTemple, createVilla, createGreekColumn, createCypressTree, createOliveTree, createGreekStatue, createObelisk } from "./meshes.js";
+import { placeStructures } from "./environment/structures.js";
 
 /**
  * initEnvironment(scene, options)
@@ -27,7 +28,7 @@ export function initEnvironment(scene, options = {}) {
       villageRadius: 12,
       enableWater: true,
       waterRadius: 22,
-      enableRain: false,
+      enableRain: true,
       rainCount: 800,
       seed: Date.now(),
     },
@@ -58,10 +59,18 @@ export function initEnvironment(scene, options = {}) {
   const __houseLights = __q === "high" ? "full" : (__q === "medium" ? "dim" : "none");
   // Fireflies density factor
   const __fireflyMul = __q === "low" ? 0.25 : (__q === "medium" ? 0.5 : 1);
+  // Dynamic light budget to cap per-frame lighting cost
+  const __lightBudget = (__q === "low") ? 0 : (__q === "medium" ? 6 : 10);
+  let __lightBudgetLeft = __lightBudget;
+  function acquireLight(n = 1) {
+    if (__lightBudgetLeft >= n) { __lightBudgetLeft -= n; return true; }
+    return false;
+  }
 
   const root = new THREE.Group();
   root.name = "environment";
   scene.add(root);
+  const rng = createSeededRNG(cfg.seed);
 
   // atmospheric fog tuned for thunder/blue theme
   scene.fog = scene.fog || new THREE.FogExp2(0x081827, 0.0009);
@@ -104,6 +113,18 @@ export function initEnvironment(scene, options = {}) {
       (Math.random() * 2 - 1) * half
     );
   }
+  function seededRandomPosInBounds() {
+    return new THREE.Vector3(
+      (rng() * 2 - 1) * half,
+      0,
+      (rng() * 2 - 1) * half
+    );
+  }
+
+  // Cache of objects that sway to avoid traversing full scene graph every frame
+  const swayObjs = [];
+  // Water placeholder (declared early so update() can reference it safely)
+  let water = null;
 
   // ----------------
   // Primitive props
@@ -113,7 +134,7 @@ export function initEnvironment(scene, options = {}) {
 
     const h = 1.6 + Math.random() * 1.2;
     const trunkGeo = new THREE.CylinderGeometry(0.12 * (0.85 + Math.random() * 0.6), 0.12 * (0.85 + Math.random() * 0.6), h * 0.45, 6);
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x332a22, roughness: 0.92, metalness: 0.0 });
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x332a22 });
     const trunk = new THREE.Mesh(trunkGeo, trunkMat);
     trunk.position.y = h * 0.225;
     trunk.castShadow = true;
@@ -123,9 +144,7 @@ export function initEnvironment(scene, options = {}) {
     // shift foliage color slightly toward cyan/teal to match thunder theme
     const hueBase = 0.52 + (Math.random() - 0.5) * 0.04;
     const foliageMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color().setHSL(hueBase, 0.45 + Math.random() * 0.12, 0.18 + Math.random() * 0.06),
-      roughness: 0.72,
-      metalness: 0.0,
+      color: new THREE.Color().setHSL(hueBase, 0.45 + Math.random() * 0.12, 0.18 + Math.random() * 0.06)
     });
     const foliage = new THREE.Mesh(foliageGeo, foliageMat);
     foliage.position.y = h * 0.9;
@@ -135,6 +154,8 @@ export function initEnvironment(scene, options = {}) {
     // small sway params used by update() to animate subtle motion
     g.userData.swayPhase = Math.random() * Math.PI * 2;
     g.userData.swayAmp = 0.004 + Math.random() * 0.01;
+    // register for per-frame sway updates
+    swayObjs.push(g);
 
     g.scale.setScalar(0.9 + Math.random() * 0.8);
     return g;
@@ -143,7 +164,7 @@ export function initEnvironment(scene, options = {}) {
   function createRock() {
     const s = 0.6 + Math.random() * 1.4;
     const geo = new THREE.DodecahedronGeometry(s, 0);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x223344, roughness: 0.95, metalness: 0.05 });
+    const mat = new THREE.MeshStandardMaterial({ color: 0x223344 });
     const m = new THREE.Mesh(geo, mat);
     m.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
     m.castShadow = true;
@@ -155,72 +176,11 @@ export function initEnvironment(scene, options = {}) {
     const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.24), new THREE.MeshStandardMaterial({ color: 0x1a7a3e }));
     stem.position.y = 0.12;
     g.add(stem);
-    const petal = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), new THREE.MeshStandardMaterial({ color: 0xffcc66, emissive: 0xffb86b, roughness: 0.9 }));
+    const petal = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), new THREE.MeshStandardMaterial({ color: 0xffcc66, emissive: 0xffb86b }));
     petal.position.y = 0.28;
     g.add(petal);
     g.scale.setScalar(0.9 + Math.random() * 0.6);
     return g;
-  }
-
-  // Curved road helper — builds a flat ribbon along a Catmull–Rom spline (connected and curved)
-  function createCurvedRoad(points, width = 6, segments = 120, color = 0x2b2420) {
-    const curve = new THREE.CatmullRomCurve3(points, false, "catmullrom", 0.5);
-    const pos = new Float32Array((segments + 1) * 2 * 3);
-    const uv = new Float32Array((segments + 1) * 2 * 2);
-    const idx = new Uint32Array(segments * 6);
-
-    const up = new THREE.Vector3(0, 1, 0);
-    const p = new THREE.Vector3();
-    const t = new THREE.Vector3();
-    const left = new THREE.Vector3();
-
-    for (let i = 0; i <= segments; i++) {
-      const a = i / segments;
-      curve.getPointAt(a, p);
-      curve.getTangentAt(a, t).normalize();
-      left.crossVectors(up, t).normalize();
-      const hw = width * 0.5;
-      const l = new THREE.Vector3().copy(p).addScaledVector(left, hw);
-      const r = new THREE.Vector3().copy(p).addScaledVector(left, -hw);
-      // keep slightly above ground
-      l.y = (l.y || 0) + 0.015;
-      r.y = (r.y || 0) + 0.015;
-
-      const vi = i * 2 * 3;
-      pos[vi + 0] = l.x; pos[vi + 1] = l.y; pos[vi + 2] = l.z;
-      pos[vi + 3] = r.x; pos[vi + 4] = r.y; pos[vi + 5] = r.z;
-
-      const uvi = i * 2 * 2;
-      uv[uvi + 0] = 0; uv[uvi + 1] = a * 8;
-      uv[uvi + 2] = 1; uv[uvi + 3] = a * 8;
-    }
-
-    for (let i = 0; i < segments; i++) {
-      const i0 = i * 2;
-      const i1 = i0 + 1;
-      const i2 = i0 + 2;
-      const i3 = i0 + 3;
-      const ti = i * 6;
-      idx[ti + 0] = i0; idx[ti + 1] = i1; idx[ti + 2] = i2;
-      idx[ti + 3] = i1; idx[ti + 4] = i3; idx[ti + 5] = i2;
-    }
-
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-    geom.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
-    geom.setIndex(new THREE.BufferAttribute(idx, 1));
-    geom.computeVertexNormals();
-
-    const mat = new THREE.MeshStandardMaterial({
-      color,
-      roughness: 0.95,
-      metalness: 0.0,
-      side: THREE.DoubleSide
-    });
-
-    const mesh = new THREE.Mesh(geom, mat);
-    mesh.receiveShadow = false;
-    return mesh;
   }
 
   // Forest cluster generator - denser cluster of trees
@@ -277,11 +237,10 @@ export function initEnvironment(scene, options = {}) {
 
   // ----------------
   // Village generator (simple clustering of houses)
-  // ----------------
   function generateVillage(center = new THREE.Vector3(0, 0, 0), count = 6, radius = 8) {
     const vgroup = new THREE.Group();
     vgroup.name = "village";
-      for (let i = 0; i < count; i++) {
+    for (let i = 0; i < count; i++) {
       try {
         const house = createHouse();
         const ang = Math.random() * Math.PI * 2;
@@ -293,7 +252,9 @@ export function initEnvironment(scene, options = {}) {
         house.scale.setScalar(sc);
 
         // Add a warm lantern and small emissive bulb near each house to match village ambiance
-        if (__houseLights !== "none") {
+        let __hasLanternLight = false;
+        if (__houseLights !== "none" && acquireLight(1)) {
+          __hasLanternLight = true;
           const intensity = __houseLights === "dim" ? 0.4 : 0.9;
           const dist = __houseLights === "dim" ? 4 : 6;
           const decay = 2;
@@ -309,6 +270,9 @@ export function initEnvironment(scene, options = {}) {
         );
         lanternBulb.position.set(0.6, 0.8, 0.6);
         house.add(lanternBulb);
+        if (typeof __hasLanternLight !== "undefined" && !__hasLanternLight) {
+          lanternBulb.material.emissiveIntensity = (__houseLights === "none" ? 1.2 : 1.4);
+        }
 
         // small ground decoration near house entrance
         const peb = new THREE.Mesh(
@@ -328,105 +292,50 @@ export function initEnvironment(scene, options = {}) {
     return vgroup;
   }
 
-  // Place a village or multiple villages
+  // create villages and collect their centers so structures avoid them
   const villages = [];
   const villageCenters = [];
   for (let i = 0; i < cfg.villageCount; i++) {
-    const c = randomPosInBounds();
+    const c = seededRandomPosInBounds();
     villages.push(generateVillage(c, 4 + Math.floor(Math.random() * 6), cfg.villageRadius));
     villageCenters.push(c);
   }
 
-  // Build curved, connected road network between villages using MST (minimal, fully connected)
   try {
-    if (villageCenters.length >= 2) {
-      const roadsGroup = new THREE.Group();
-      roadsGroup.name = "roads";
-
-      // Prepare 2D points (y = 0)
-      const pts = villageCenters.map(v => v.clone().setY(0));
-      const n = pts.length;
-
-      // Prim's algorithm for MST
-      const inTree = new Array(n).fill(false);
-      const d = new Array(n).fill(Infinity);
-      const parent = new Array(n).fill(-1);
-
-      inTree[0] = true;
-      for (let j = 1; j < n; j++) {
-        d[j] = pts[0].distanceTo(pts[j]);
-        parent[j] = 0;
-      }
-      for (let k = 1; k < n; k++) {
-        let m = -1, best = Infinity;
-        for (let j = 0; j < n; j++) {
-          if (!inTree[j] && d[j] < best) { best = d[j]; m = j; }
+    placeStructures({
+      rng,
+      seededRange,
+      root,
+      villageCenters,
+      water,
+      cfg,
+      __q,
+      acquireLight,
+      createGreekTemple,
+      createVilla,
+      createGreekColumn,
+      createCypressTree,
+      createOliveTree,
+      createGreekStatue,
+      createObelisk,
+      pickPos: (minVillage = 12, minWater = 10, minBetween = 10, maxTries = 60) => {
+        let tries = maxTries;
+        while (tries-- > 0) {
+          const p = seededRandomPosInBounds();
+          if (p) return p;
         }
-        if (m < 0) break;
-        inTree[m] = true;
-        for (let j = 0; j < n; j++) {
-          if (!inTree[j]) {
-            const nd = pts[m].distanceTo(pts[j]);
-            if (nd < d[j]) { d[j] = nd; parent[j] = m; }
-          }
-        }
+        return seededRandomPosInBounds();
       }
-
-      // Create a curved road segment for each MST edge
-      for (let i = 1; i < n; i++) {
-        const a = pts[i];
-        const b = pts[parent[i]];
-        const mid = a.clone().lerp(b, 0.5);
-        const dir = b.clone().sub(a).setY(0);
-        const len = Math.max(1, dir.length());
-        dir.normalize();
-        const perp = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), dir).normalize();
-        const curveAmt = Math.min(30, len * 0.25);
-        const ctrl = mid.clone().addScaledVector(perp, (i % 2 === 0 ? 1 : -1) * curveAmt);
-        ctrl.y = 0.0;
-
-        const road = createCurvedRoad([a, ctrl, b], 6, __roadSegs, 0x2b2420);
-        roadsGroup.add(road);
-      }
-
-      root.add(roadsGroup);
-    }
+    });
   } catch (e) {
-    console.warn("Road network generation failed", e);
+    console.warn("Extra structures generation failed", e);
   }
 
-  // Fireflies: small glowing points around village centers for ambiance
-  const fireflies = new THREE.Group();
-  villageCenters.forEach((center, idx) => {
-    const baseCount = 24 + Math.floor(Math.random() * 16);
-    const count = Math.max(0, Math.floor(baseCount * __fireflyMul));
-    const positions = new Float32Array(count * 3);
-    for (let j = 0; j < count; j++) {
-      const a = Math.random() * Math.PI * 2;
-      const r = Math.random() * (cfg.villageRadius * 0.6);
-      positions[j * 3 + 0] = center.x + Math.cos(a) * r + (Math.random() - 0.5) * 1.2;
-      positions[j * 3 + 1] = 0.6 + Math.random() * 1.6;
-      positions[j * 3 + 2] = center.z + Math.sin(a) * r + (Math.random() - 0.5) * 1.2;
-    }
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    const mat = new THREE.PointsMaterial({
-      color: 0xffe0a8,
-      size: 0.06,
-      transparent: true,
-      opacity: 0.9,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
-    const pts = new THREE.Points(geom, mat);
-    fireflies.add(pts);
-  });
-  root.add(fireflies);
+  // (structures were moved to src/environment/structures.js - handled above)
 
   // ----------------
   // Water pool (optional)
   // ----------------
-  let water = null;
   if (cfg.enableWater) {
     const geo = new THREE.CircleGeometry(cfg.waterRadius, 64);
     const mat = new THREE.MeshStandardMaterial({
@@ -493,17 +402,17 @@ export function initEnvironment(scene, options = {}) {
       }
     }
 
-    // subtle tree/foliage sway: animate any object with userData.swayPhase
+    // subtle tree/foliage sway: animate pre-collected swayers to avoid full graph traversal
     const doSway = (__q === "high") || (__q === "medium" && (t - __lastSwayT) > 0.12);
     if (doSway) {
       __lastSwayT = t;
-      root.traverse((obj) => {
-        if (obj.userData && typeof obj.userData.swayPhase !== "undefined") {
-          const phase = obj.userData.swayPhase || 0;
-          const amp = obj.userData.swayAmp || 0.006;
-          obj.rotation.z = Math.sin(t + phase) * amp;
-        }
-      });
+      for (let i = 0; i < swayObjs.length; i++) {
+        const obj = swayObjs[i];
+        if (!obj) continue;
+        const phase = (obj.userData && obj.userData.swayPhase) || 0;
+        const amp = (obj.userData && obj.userData.swayAmp) || 0.006;
+        obj.rotation.z = Math.sin(t + phase) * amp;
+      }
     }
 
     if (rain.enabled && rain.points) {

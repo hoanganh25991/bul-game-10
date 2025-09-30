@@ -1,14 +1,28 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { COLOR } from "./constants.js";
+import { COLOR, FX } from "./constants.js";
 import { now } from "./utils.js";
 import { handWorldPos, leftHandWorldPos } from "./entities.js";
+
+// Normalize color inputs from various formats ("0x66ffc2", "#66ffc2", 0x66ffc2, 6750146)
+function normalizeColor(c, fallback = COLOR.blue) {
+  try {
+    if (typeof c === "number" && Number.isFinite(c)) return c >>> 0;
+    if (typeof c === "string") {
+      const s = c.trim();
+      if (/^0x[0-9a-fA-F]{6}$/.test(s)) return Number(s);
+      if (/^#[0-9a-fA-F]{6}$/.test(s)) return parseInt(s.slice(1), 16) >>> 0;
+      if (/^[0-9a-fA-F]{6}$/.test(s)) return parseInt(s, 16) >>> 0;
+    }
+  } catch (_) {}
+  return fallback >>> 0;
+}
 
 // Standalone ring factory (used by UI modules and effects)
 export function createGroundRing(innerR, outerR, color, opacity = 0.6) {
   const ring = new THREE.Mesh(
     new THREE.RingGeometry(innerR, outerR, 48),
     new THREE.MeshBasicMaterial({
-      color,
+      color: normalizeColor(color),
       transparent: true,
       opacity,
       side: THREE.DoubleSide,
@@ -36,6 +50,14 @@ export class EffectsManager {
     this.indicators = new THREE.Group();
     scene.add(this.indicators);
 
+    // Small pool of temporaries used by hot VFX paths to avoid per-frame allocations.
+    // These are reused within each EffectsManager instance (safe as VFX creation is synchronous).
+    this._tmpVecA = new THREE.Vector3();
+    this._tmpVecB = new THREE.Vector3();
+    this._tmpVecC = new THREE.Vector3();
+    this._tmpVecD = new THREE.Vector3();
+    this._tmpVecE = new THREE.Vector3();
+
     // Internal timed queue for cleanup and animations
     this.queue = []; // items: { obj, until, fade?, mat?, scaleRate? }
   }
@@ -45,7 +67,7 @@ export class EffectsManager {
     const ring = createGroundRing(0.6, 0.85, color, 0.8);
     ring.position.set(point.x, 0.02, point.z);
     this.indicators.add(ring);
-    this.queue.push({ obj: ring, until: now() + 0.8, fade: true, mat: ring.material, scaleRate: 1.6 });
+    this.queue.push({ obj: ring, until: now() + 0.8 * FX.timeScale, fade: true, mat: ring.material, scaleRate: 1.6 });
   }
 
   spawnTargetPing(entity, color = 0xff6060) {
@@ -54,7 +76,7 @@ export class EffectsManager {
     const ring = createGroundRing(0.65, 0.9, color, 0.85);
     ring.position.set(p.x, 0.02, p.z);
     this.indicators.add(ring);
-    this.queue.push({ obj: ring, until: now() + 0.7, fade: true, mat: ring.material, scaleRate: 1.4 });
+    this.queue.push({ obj: ring, until: now() + 0.7 * FX.timeScale, fade: true, mat: ring.material, scaleRate: 1.4 });
   }
 
   showNoTargetHint(player, radius) {
@@ -62,45 +84,52 @@ export class EffectsManager {
     const p = player.pos();
     ring.position.set(p.x, 0.02, p.z);
     this.indicators.add(ring);
-    this.queue.push({ obj: ring, until: now() + 0.8, fade: true, mat: ring.material });
+    this.queue.push({ obj: ring, until: now() + 0.8 * FX.timeScale, fade: true, mat: ring.material });
     // subtle spark at player for feedback
     this.spawnStrike(player.pos(), 1.2, 0x8fd3ff);
   }
 
   // ----- Beam helpers -----
   spawnBeam(from, to, color = COLOR.blue, life = 0.12) {
-    const geometry = new THREE.BufferGeometry().setFromPoints([from.clone(), to.clone()]);
-    const material = new THREE.LineBasicMaterial({ color, linewidth: 2 });
+    // Avoid allocating temporary vectors for simple two-point lines by reusing instance temps.
+    const p0 = this._tmpVecA.copy(from);
+    const p1 = this._tmpVecB.copy(to);
+    const geometry = new THREE.BufferGeometry().setFromPoints([p0, p1]);
+    const material = new THREE.LineBasicMaterial({ color: normalizeColor(color), linewidth: 2 });
     const line = new THREE.Line(geometry, material);
     this.transient.add(line);
     const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
-    this.queue.push({ obj: line, until: now() + life * lifeMul, fade: true, mat: material });
+    this.queue.push({ obj: line, until: now() + life * lifeMul * FX.timeScale, fade: true, mat: material });
   }
 
   // Jagged electric beam with small fork
   spawnElectricBeam(from, to, color = COLOR.blue, life = 0.12, segments = 10, amplitude = 0.6) {
-    const dir = to.clone().sub(from);
-    const normal = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
-    const up = new THREE.Vector3(0, 1, 0);
+    // Use temporaries to compute dir/normal/up without allocations.
+    const dir = this._tmpVecA.copy(to).sub(this._tmpVecB.copy(from));
+    const normal = this._tmpVecC.set(-dir.z, 0, dir.x).normalize();
+    const up = this._tmpVecD.set(0, 1, 0);
 
     const points = [];
     const seg = Math.max(4, Math.round(segments * (this.quality === "low" ? 0.5 : (this.quality === "medium" ? 0.75 : 1))));
     for (let i = 0; i <= seg; i++) {
       const t = i / segments;
-      const p = from.clone().lerp(to, t);
+      // build point into a temp vector to avoid intermediate clones of normal/up per op
+      const pTmp = this._tmpVecE.copy(from).lerp(this._tmpVecB.copy(to), t);
       const amp = Math.sin(Math.PI * t) * amplitude;
-      const jitter = normal.clone().multiplyScalar((Math.random() * 2 - 1) * amp)
-        .add(up.clone().multiplyScalar((Math.random() * 2 - 1) * amp * 0.4));
-      p.add(jitter);
-      points.push(p);
+      // jitter components into temp vectors
+      const j1 = this._tmpVecA.copy(normal).multiplyScalar((Math.random() * 2 - 1) * amp);
+      const j2 = this._tmpVecC.copy(up).multiplyScalar((Math.random() * 2 - 1) * amp * 0.4);
+      pTmp.add(j1).add(j2);
+      // push a cloned vector because pTmp is reused
+      points.push(pTmp.clone());
     }
 
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = new THREE.LineBasicMaterial({ color });
+    const material = new THREE.LineBasicMaterial({ color: normalizeColor(color) });
     const line = new THREE.Line(geometry, material);
     this.transient.add(line);
     const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
-    this.queue.push({ obj: line, until: now() + life * lifeMul, fade: true, mat: material });
+    this.queue.push({ obj: line, until: now() + life * lifeMul * FX.timeScale, fade: true, mat: material });
 
     // occasional fork flicker
     const length = dir.length() || 1;
@@ -108,11 +137,11 @@ export class EffectsManager {
       const mid = from.clone().lerp(to, 0.6);
       const forkEnd = mid.clone().add(normal.clone().multiplyScalar(1.2 + Math.random() * 1.2));
       const g2 = new THREE.BufferGeometry().setFromPoints([mid, forkEnd]);
-      const m2 = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.8 });
+      const m2 = new THREE.LineBasicMaterial({ color: normalizeColor(color), transparent: true, opacity: 0.8 });
       const l2 = new THREE.Line(g2, m2);
       this.transient.add(l2);
       const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
-      this.queue.push({ obj: l2, until: now() + life * lifeMul * 0.7, fade: true, mat: m2 });
+      this.queue.push({ obj: l2, until: now() + life * lifeMul * 0.7 * FX.timeScale, fade: true, mat: m2 });
     }
   }
 
@@ -135,31 +164,31 @@ export class EffectsManager {
       const pts = [];
       for (let i = 0; i <= seg; i++) {
         const t = i / segments;
-        const p = from.clone().lerp(to, t);
+        const pTmp = this._tmpVecE.copy(from).lerp(this._tmpVecB.copy(to), t);
         const amp = Math.sin(Math.PI * t) * amplitude;
-        const jitter = normal.clone().multiplyScalar((Math.random() * 2 - 1) * amp * (0.8 + n * 0.15))
-          .add(up.clone().multiplyScalar((Math.random() * 2 - 1) * amp * 0.35));
-        p.add(jitter);
-        pts.push(p);
+        const j1 = this._tmpVecA.copy(normal).multiplyScalar((Math.random() * 2 - 1) * amp * (0.8 + n * 0.15));
+        const j2 = this._tmpVecC.copy(up).multiplyScalar((Math.random() * 2 - 1) * amp * 0.35);
+        pTmp.add(j1).add(j2);
+        pts.push(pTmp.clone());
       }
       const g = new THREE.BufferGeometry().setFromPoints(pts);
       const opacity = Math.max(0.35, (0.7 + Math.min(0.3, length * 0.01) - n * 0.15));
-      const m = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+      const m = new THREE.LineBasicMaterial({ color: normalizeColor(color), transparent: true, opacity });
       const l = new THREE.Line(g, m);
       this.transient.add(l);
       const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
-      this.queue.push({ obj: l, until: now() + life * lifeMul, fade: true, mat: m });
+      this.queue.push({ obj: l, until: now() + life * lifeMul * FX.timeScale, fade: true, mat: m });
     }
 
     if (length > 6) {
       const mid = from.clone().lerp(to, 0.6);
       const forkEnd = mid.clone().add(normal.clone().multiplyScalar(1.2 + Math.random() * 1.2));
       const g2 = new THREE.BufferGeometry().setFromPoints([mid, forkEnd]);
-      const m2 = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.8 });
+      const m2 = new THREE.LineBasicMaterial({ color: normalizeColor(color), transparent: true, opacity: 0.8 });
       const l2 = new THREE.Line(g2, m2);
       this.transient.add(l2);
       const lifeMul = this.quality === "low" ? 0.7 : (this.quality === "medium" ? 0.85 : 1);
-      this.queue.push({ obj: l2, until: now() + life * lifeMul * 0.7, fade: true, mat: m2 });
+      this.queue.push({ obj: l2, until: now() + life * lifeMul * 0.7 * FX.timeScale, fade: true, mat: m2 });
     }
   }
 
@@ -174,7 +203,7 @@ export class EffectsManager {
     const ring = createGroundRing(0.2, 0.55, color, 0.5);
     ring.position.set(center.x, 0.02, center.z);
     this.indicators.add(ring);
-    this.queue.push({ obj: ring, until: now() + 0.22, fade: true, mat: ring.material, scaleRate: 1.3 });
+    this.queue.push({ obj: ring, until: now() + 0.22 * FX.timeScale, fade: true, mat: ring.material, scaleRate: 1.3 });
   }
 
   spawnStrike(point, radius = 2, color = COLOR.blue) {
@@ -199,7 +228,7 @@ export class EffectsManager {
       ring.position.set(center.x, 0.02, center.z);
       this.indicators.add(ring);
       // Scale out over time; fade handled by update loop
-      this.queue.push({ obj: ring, until: now() + duration, fade: true, mat: ring.material, scaleRate: 1.0 });
+      this.queue.push({ obj: ring, until: now() + duration * FX.timeScale, fade: true, mat: ring.material, scaleRate: 1.0 });
     } catch (_) {}
   }
 
@@ -211,39 +240,40 @@ export class EffectsManager {
       const h = Math.max(1.4, height);
       const yMid = h * 0.5;
       const r = Math.max(1, radius);
+      const col = normalizeColor(color);
       for (let i = 0; i < Math.max(6, bars); i++) {
         const ang = (i / Math.max(6, bars)) * Math.PI * 2;
         const x = center.x + Math.cos(ang) * r;
         const z = center.z + Math.sin(ang) * r;
         const geo = new THREE.CylinderGeometry(0.06, 0.06, h, 6);
-        const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 });
+        const mat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85 });
         const m = new THREE.Mesh(geo, mat);
         m.position.set(x, yMid, z);
         g.add(m);
         mats.push(mat);
       }
       // Ground ring tying the cage together
-      const baseRing = createGroundRing(Math.max(0.2, r - 0.25), r + 0.25, color, 0.4);
+      const baseRing = createGroundRing(Math.max(0.2, r - 0.25), r + 0.25, col, 0.4);
       baseRing.position.set(center.x, 0.02, center.z);
       g.add(baseRing);
       mats.push(baseRing.material);
 
       this.transient.add(g);
-      this.queue.push({ obj: g, until: now() + duration, fade: true, mats });
+      this.queue.push({ obj: g, until: now() + duration * FX.timeScale, fade: true, mats });
     } catch (_) {}
   }
 
   // Shield bubble that follows an entity and gently pulses
   spawnShieldBubble(entity, color = COLOR.blue, duration = 6, radius = 1.7) {
     try {
-      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, wireframe: true });
+      const mat = new THREE.MeshBasicMaterial({ color: normalizeColor(color), transparent: true, opacity: 0.22, wireframe: true });
       const bubble = new THREE.Mesh(new THREE.SphereGeometry(radius, 24, 16), mat);
       const p = entity.pos();
       bubble.position.set(p.x, 1.1, p.z);
       this.transient.add(bubble);
       this.queue.push({
         obj: bubble,
-        until: now() + duration,
+        until: now() + duration * FX.timeScale,
         fade: true,
         mat,
         follow: entity,
@@ -261,12 +291,12 @@ export class EffectsManager {
       const thick = Math.max(0.6, radius * 0.08);
       const torus = new THREE.Mesh(
         new THREE.TorusGeometry(Math.max(2, radius * 0.8), thick * 0.5, 12, 32),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.18 })
+        new THREE.MeshBasicMaterial({ color: normalizeColor(color), transparent: true, opacity: 0.18 })
       );
       torus.position.set(center.x, height, center.z);
       torus.rotation.x = Math.PI / 2; // lie flat like a cloud disc
       this.transient.add(torus);
-      this.queue.push({ obj: torus, until: now() + duration, fade: true, mat: torus.material, spinRate: 0.6 });
+      this.queue.push({ obj: torus, until: now() + duration * FX.timeScale, fade: true, mat: torus.material, spinRate: 0.6 });
     } catch (_) {}
   }
 
@@ -284,7 +314,7 @@ export class EffectsManager {
       for (let i = 0; i < count; i++) {
         const orb = new THREE.Mesh(
           new THREE.SphereGeometry(size, 10, 10),
-          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 })
+          new THREE.MeshBasicMaterial({ color: normalizeColor(color), transparent: true, opacity: 0.9 })
         );
         group.add(orb);
         children.push(orb);
@@ -294,7 +324,7 @@ export class EffectsManager {
       this.transient.add(group);
       this.queue.push({
         obj: group,
-        until: now() + duration,
+        until: now() + duration * FX.timeScale,
         fade: true,
         follow: entity,
         followYOffset: 0,
@@ -314,7 +344,7 @@ export class EffectsManager {
     );
     s.position.copy(p);
     this.transient.add(s);
-    this.queue.push({ obj: s, until: now() + 0.12, fade: true, mat: s.material, scaleRate: 1.8 });
+    this.queue.push({ obj: s, until: now() + 0.12 * FX.timeScale, fade: true, mat: s.material, scaleRate: 1.8 });
   }
 
   // Colored variant for skill-tinted flashes
@@ -322,11 +352,11 @@ export class EffectsManager {
     const p = left ? leftHandWorldPos(player) : handWorldPos(player);
     const s = new THREE.Mesh(
       new THREE.SphereGeometry(0.28, 12, 12),
-      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95 })
+      new THREE.MeshBasicMaterial({ color: normalizeColor(color), transparent: true, opacity: 0.95 })
     );
     s.position.copy(p);
     this.transient.add(s);
-    this.queue.push({ obj: s, until: now() + 0.14, fade: true, mat: s.material, scaleRate: 2.0 });
+    this.queue.push({ obj: s, until: now() + 0.14 * FX.timeScale, fade: true, mat: s.material, scaleRate: 2.0 });
   }
 
   /**
@@ -373,7 +403,7 @@ export class EffectsManager {
     this.transient.add(spr);
     this.queue.push({
       obj: spr,
-      until: now() + 1.0,
+      until: now() + 1.0 * FX.popupDurationScale,
       fade: true,
       mat: mat,
       velY: 0.9,
@@ -415,7 +445,7 @@ export class EffectsManager {
 
       // Optional animated scaling (for pings)
       if (e.scaleRate && e.obj && e.obj.scale) {
-        const s = 1 + e.scaleRate * dt;
+        const s = 1 + (e.scaleRate || 0) * dt * FX.scaleRateScale;
         e.obj.scale.multiplyScalar(s);
       }
 
@@ -428,7 +458,7 @@ export class EffectsManager {
       // Pulsing scale (breathing bubble, buff auras)
       if (e.pulseAmp && e.obj && e.obj.scale) {
         const base = e.baseScale || 1;
-        const rate = e.pulseRate || 3;
+        const rate = (e.pulseRate || 3) * FX.pulseRateScale;
         const amp = e.pulseAmp || 0.05;
         const s2 = base * (1 + Math.sin(t * rate) * amp);
         try { e.obj.scale.set(s2, s2, s2); } catch (_) {}
@@ -436,13 +466,13 @@ export class EffectsManager {
 
       // Spin rotation (e.g., storm cloud disc)
       if (e.spinRate && e.obj && e.obj.rotation) {
-        try { e.obj.rotation.y += e.spinRate * dt; } catch (_) {}
+        try { e.obj.rotation.y += (e.spinRate || 0) * dt * FX.spinRateScale; } catch (_) {}
       }
 
       // Orbiting orbs around a followed entity
       if (e.orbitChildren && e.obj) {
         const cnt = e.orbitChildren.length || 0;
-        e.orbitBase = (e.orbitBase || 0) + (e.orbitRate || 4) * dt;
+        e.orbitBase = (e.orbitBase || 0) + (e.orbitRate || 4) * dt * FX.orbitRateScale;
         const base = e.orbitBase || 0;
         const r = e.orbitR || 1.2;
         const y = e.orbitYOffset ?? 1.2;
@@ -459,7 +489,7 @@ export class EffectsManager {
           if (!m) return;
           m.opacity = m.opacity ?? 1;
           m.transparent = true;
-          m.opacity = Math.max(0, m.opacity - dt * 1.8);
+          m.opacity = Math.max(0, m.opacity - dt * 1.8 * FX.fadeSpeedScale);
         };
         if (e.mat) fadeOne(e.mat);
         if (e.mats && Array.isArray(e.mats)) e.mats.forEach(fadeOne);
