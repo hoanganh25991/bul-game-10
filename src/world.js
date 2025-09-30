@@ -43,7 +43,7 @@ export function initWorld() {
   try {
     renderer = new THREE.WebGLRenderer({
       antialias: q === "high",
-      alpha: true,
+      alpha: false,
       powerPreference: "high-performance",
       failIfMajorPerformanceCaveat: false,
       stencil: false,
@@ -52,7 +52,7 @@ export function initWorld() {
   } catch (e) {
     // Fallback if context creation fails due to driver/flag quirks
     try {
-      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false });
+      renderer = new THREE.WebGLRenderer({ alpha: false, antialias: false });
     } catch (e2) {}
   }
   if (!renderer) {
