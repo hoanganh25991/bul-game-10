@@ -10,7 +10,7 @@
   bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1100;
+  z-index: 40;
   gap: 8px;
   pointer-events: auto;
   user-select: none;

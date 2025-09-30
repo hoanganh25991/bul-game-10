@@ -6,7 +6,8 @@
     "tabs": {
       "general": "Chung",
       "environment": "Môi trường",
-      "controls": "Điều khiển"
+      "controls": "Điều khiển",
+      "info": "Thông tin"
     },
     "general": {
       "fullscreen": "Toàn màn hình",
@@ -14,7 +15,7 @@
     },
     "env": {
       "rain": "Mưa",
-      "density": "Mật độ môi trường",
+      "density": "Mật độ",
       "rainDensity": "Mật độ mưa"
     },
     "render": {
@@ -23,7 +24,7 @@
       "high": "Cao",
       "medium": "Trung bình",
       "low": "Thấp",
-      "reloadPrompt": "Thay đổi chất lượng đồ họa cần tải lại trò chơi. Tải lại ngay?",
+      "reloadPrompt": "Thay đổi chất lượng đồ họa cần tải lại. Tải lại ngay?",
       "reloadTitle": "Cần tải lại",
       "reloadDesc": "Thay đổi chất lượng đồ họa cần tải lại."
     }
@@ -31,7 +32,7 @@
   "instructions": {
     "title": "Hướng dẫn",
     "items": [
-      "Chuột+Bàn phím",
+      "Chuột + Bàn phím",
       "- Nhấp phải: di chuyển",
       "- Nhấp trái: tấn công kẻ địch",
       "- A: giữ để tự động tấn công cơ bản kẻ địch gần nhất",
@@ -40,10 +41,10 @@
       "- B: dịch chuyển",
       "- M: cắm cờ",
       "",
-      "Touch",
+      "Cảm ứng",
       "- Joystick: di chuyển",
-      "- Nút kĩ năng: tấn công",
-      "- Nút hỗ trợ: dịch chuyển, cắm cờ"
+      "- Nút kỹ năng: tấn công",
+      "- Nút phụ trợ: dịch chuyển, cắm cờ"
     ]
   },
   "hero": {
@@ -59,7 +60,20 @@
     "info": {
       "level": "Cấp",
       "hp": "HP",
-      "mp": "MP"
+      "mp": "MP",
+      "title": "Tướng",
+      "attack": "Tấn công",
+      "attackSpeed": "Tốc đánh",
+      "defense": "Phòng thủ",
+      "active": "Đang hiệu lực",
+      "inactive": "Không hiệu lực",
+      "map": "Bản đồ",
+      "buffs": "Bùa lợi",
+      "debuffs": "Bất lợi",
+      "uplifts": "Cường hóa",
+      "move": "Di chuyển",
+      "baseDmg": "Sát thương cơ bản",
+      "depth": "Độ sâu"
     },
     "assign": "Gán",
     "pool": "Ngân hàng kỹ năng",
@@ -77,17 +91,18 @@
     "no": "Không"
   },
   "intro": {
-    "tagline": "Thần sấm sét thức tỉnh."
+    "tagline": "Thần sấm thức tỉnh."
   },
   "flash": {
-    "title": "Đang tải Thần Sấm Mãi Đỉnh",
+    "title": "Đang tải Thần Sấm — Mãi Đỉnh",
     "desc": "Chuẩn bị trải nghiệm sấm sét…",
-    "note": "Đang tải mô-đun…"
+    "note": "Đang tải mô-đun…",
+    "motto": "Thần Sấm — Mãi Đỉnh"
   },
   "start": {
     "title": "Hành trình của Thần Sấm",
-    "story": "Thế giới chìm trong u ám. Những bóng đêm tỉnh dậy, và chỉ một vị thần có thể gọi sấm sét trở lại. Hãy dẫn Zeus — vị thần sấm — qua rừng hoang, làng mạc đổ nát và chiến trường, tiêu diệt lũ quái và khôi phục trật tự."
-    },
+    "story": "Thế giới chìm trong u ám. Những bóng đêm thức tỉnh; chỉ một vị thần có thể gọi bão. Hãy dẫn GoT — vị thần sấm — qua rừng hoang, làng mạc đổ nát và chiến trường, tiêu diệt lũ quái và khôi phục trật tự."
+  },
   "guide": {
     "button": "👋 Hướng dẫn",
     "nav": {
@@ -118,15 +133,154 @@
     },
     "skills": {
       "title": "Kỹ năng",
-      "desc": "Chạm Basic hoặc Q/W/E/R để dùng kỹ năng. Thời gian hồi hiện ở vòng."
+      "desc": "Nhấn Basic hoặc Q/W/E/R để dùng kỹ năng. Thời gian hồi hiển thị ở vòng."
     },
     "hud": {
       "title": "HUD",
-      "desc": "Thanh HP/MP/XP hiển thị trạng thái. Cấp ở bên phải."
+      "desc": "Thanh HP/MP/XP hiển thị trạng thái. Cấp hiển thị ở bên phải."
     },
     "joystick": {
       "title": "Joystick",
       "desc": "Kéo để di chuyển. Trên máy tính, nhấp phải để di chuyển."
     }
+  },
+  "death": {
+    "msg": "Bạn đã chết. Đang hồi sinh..."
+  },
+  "uplift": {
+    "unlocked": "Cường hóa mở",
+    "choose": "Chọn một cường hóa cho Đòn Đánh Cơ Bản:",
+    "btn": {
+      "aoe": "AOE",
+      "chain": "Chuỗi",
+      "impact": "Hiệu ứng"
+    },
+    "decideLater": "Quyết định sau",
+    "applied": "Đã áp dụng cường hóa!",
+    "none": "Chưa chọn cường hóa",
+    "basic": "Cường hóa cơ bản",
+    "lv": "Cấp"
+  },
+  "assign": {
+    "assign": "Gán",
+    "toKey": "vào phím:",
+    "toSlot": "vào ô:",
+    "tip": "Mẹo: nhấn Q, W, E hoặc R để chọn nhanh",
+    "casted": "Đã thi triển!"
+  },
+  "skills": {
+    "names": {
+      "chain_lightning": "Sét Liên Hoàn",
+      "lightning_bolt": "Tia Sét",
+      "static_field": "Trường Tĩnh Điện",
+      "thunderstorm": "Bão Sét",
+      "got_bolt": "Tia GoT",
+      "ion_nova": "Nova Ion",
+      "overcharge_aura": "Hào Quang Quá Tải",
+      "crackling_field": "Trường Nổ Lách Tách",
+      "static_overload": "Quá Tải Tĩnh Điện",
+      "ball_lightning": "Cầu Sét",
+      "arc_spear": "Thương Sét",
+      "shockwave": "Sóng Xung Kích",
+      "sky_wrath": "Thịnh Nộ Trời",
+      "thunderdome": "Vòm Sét",
+      "ion_storm": "Bão Ion",
+      "tempest_ring": "Vòng Bão",
+      "storm_pulse": "Xung Bão",
+      "magneto_burst": "Vụ Nổ Từ Tính",
+      "static_prison": "Nhà Tù Tĩnh Điện",
+      "thundersurge": "Làn Sóng Sét",
+      "forked_lightning": "Sét Rẽ Nhánh",
+      "thunder_mend": "Chữa Trị Sấm Sét",
+      "divine_mend": "Chữa Trị Thần Thánh",
+      "storm_sip": "Nhấp Bão",
+      "mana_well": "Giếng Mana",
+      "overload_buff": "Tăng Cường Quá Tải",
+      "surge_of_haste": "Làn Sóng Tăng Tốc",
+      "fortify": "Tăng Cường",
+      "storm_barrier": "Rào Chắn Bão",
+      "tempest_guard": "Lính Canh Bão Tố",
+      "lightning_dash": "Lướt Sét",
+      "blink_strike": "Đòn Đánh Tức Thời",
+      "thunder_image": "Ảnh Sấm Sét",
+      "got_judgement": "Phán Quyết GoT",
+      "maelstrom": "Cột Bão"
+    },
+    "shorts": {
+      "chain_lightning": "Liên Hoàn",
+      "lightning_bolt": "Tia",
+      "static_field": "Tĩnh",
+      "thunderstorm": "Bão",
+      "got_bolt": "Tia+",
+      "ion_nova": "Nova",
+      "overcharge_aura": "QuáTải",
+      "crackling_field": "TrườngNổ",
+      "static_overload": "QuáTải",
+      "ball_lightning": "Cầu",
+      "arc_spear": "Thương",
+      "shockwave": "Sóng",
+      "sky_wrath": "ThịnhNộ",
+      "thunderdome": "Vòm",
+      "ion_storm": "Ion",
+      "tempest_ring": "Vòng",
+      "storm_pulse": "Xung",
+      "magneto_burst": "NổTừTính",
+      "static_prison": "TùTĩnh",
+      "thundersurge": "Sóng",
+      "forked_lightning": "RẽNhánh",
+      "thunder_mend": "HồiHP",
+      "divine_mend": "Hồi+",
+      "storm_sip": "Mana",
+      "mana_well": "Giếng",
+      "overload_buff": "Buff",
+      "surge_of_haste": "TăngTốc",
+      "fortify": "TăngCường",
+      "storm_barrier": "RàoChắn",
+      "tempest_guard": "Lính",
+      "lightning_dash": "Lướt",
+      "blink_strike": "DịchChuyển",
+      "thunder_image": "Ảnh",
+      "got_judgement": "Phán",
+      "maelstrom": "Cột"
+    },
+    "types": {
+      "chain": "Nhảy giữa kẻ địch gần đó, đánh nhiều mục tiêu.",
+      "aoe": "Khu vực mục tiêu trên mặt đất, gây sát thương trong bán kính.",
+      "aura": "Hào quang bật/tắt quanh tướng, gây sát thương định kỳ và tiêu tốn mana.",
+      "storm": "Nhiều cú đánh ngẫu nhiên trong bán kính theo thời gian.",
+      "beam": "Tia lập tức tới kẻ địch gần nhất trong tầm.",
+      "nova": "Nổ tỏa quanh tướng.",
+      "heal": "Hồi HP ngay lập tức.",
+      "mana": "Hồi MP ngay lập tức.",
+      "buff": "Tạm thời tăng sát thương và tốc độ.",
+      "dash": "Lướt nhanh về phía trước.",
+      "blink": "Dịch chuyển tới hướng/điểm.",
+      "clone": "Triệu hồi ảnh sấm zapping kẻ địch định kỳ.",
+      "shield": "Giảm sát thương nhận vào trong thời gian ngắn; có thể grant miễn nhiễm tạm thời."
+    },
+    "stats": {
+      "type": "Loại",
+      "cooldown": "Thời gian hồi",
+      "mana": "Mana",
+      "radius": "Bán kính",
+      "range": "Tầm",
+      "jumps": "Số lần nhảy",
+      "jumpRange": "Tầm nhảy",
+      "tick": "Tick",
+      "duration": "Thời lượng",
+      "slow": "Làm chậm",
+      "slowDuration": "Thời gian làm chậm",
+      "damage": "Sát thương",
+      "base": "cơ bản"
+    }
+  },
+  "maps": {
+    "endless": "Vô hạn",
+    "current": "Hiện tại",
+    "locked": "Bị khoá",
+    "requires": "Yêu cầu",
+    "loadMore": "Tải thêm",
+    "depthDesc": "Độ sâu +${depth}. Mỗi bước làm kẻ địch mạnh hơn: HP, sát thương, tốc độ và mật độ tăng.",
+    "elites": "Kẻ tinh nhuệ:"
   }
 }

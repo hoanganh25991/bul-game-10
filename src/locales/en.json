@@ -6,7 +6,8 @@
     "tabs": {
       "general": "General",
       "environment": "Environment",
-      "controls": "Controls"
+      "controls": "Controls",
+      "info": "Info"
     },
     "general": {
       "fullscreen": "Fullscreen",
@@ -59,7 +60,20 @@
     "info": {
       "level": "Level",
       "hp": "HP",
-      "mp": "MP"
+      "mp": "MP",
+      "title": "Hero",
+      "attack": "Attack",
+      "attackSpeed": "Attack Speed",
+      "defense": "Defense",
+      "active": "Active",
+      "inactive": "Inactive",
+      "map": "Map",
+      "buffs": "Buffs",
+      "debuffs": "Debuffs",
+      "uplifts": "Uplifts",
+      "move": "Move",
+      "baseDmg": "Base DMG",
+      "depth": "Depth"
     },
     "assign": "Assign",
     "pool": "Skill Pool",
@@ -82,11 +96,12 @@
   "flash": {
     "title": "Loading Thunder God — Always Peak",
     "desc": "Preparing thunderous experience…",
-    "note": "Loading modules…"
+    "note": "Loading modules…",
+    "motto": "Thunder God — Always Peak"
   },
   "start": {
     "title": "Journey of the Thunder God",
-    "story": "The world has slipped into shadow. Waking phantoms roam the land; only one god can summon the storm again. Lead Zeus — the thunder god — through wild forests, ruined villages and battlefields, slaying hordes of creatures and restoring order."
+    "story": "The world has slipped into shadow. Waking phantoms roam the land; only one god can summon the storm again. Lead GoT — the thunder god — through wild forests, ruined villages and battlefields, slaying hordes of creatures and restoring order."
   },
   "guide": {
     "button": "👋 Guide",
@@ -128,5 +143,144 @@
       "title": "Joystick",
       "desc": "Drag to move your hero. On desktop, right-click to move."
     }
+  },
+  "death": {
+    "msg": "You died. Respawning..."
+  },
+  "uplift": {
+    "unlocked": "Uplift Unlocked",
+    "choose": "Choose an enhancement for your Basic Attack:",
+    "btn": {
+      "aoe": "AOE",
+      "chain": "Chain",
+      "impact": "Impact FX"
+    },
+    "decideLater": "Decide later",
+    "applied": "Uplift applied!",
+    "none": "No uplifts chosen yet",
+    "basic": "Basic Uplift",
+    "lv": "Lv"
+  },
+  "assign": {
+    "assign": "Assign",
+    "toKey": "to key:",
+    "toSlot": "to slot:",
+    "tip": "Tip: press Q, W, E or R to choose quickly",
+    "casted": "Casted!"
+  },
+  "skills": {
+    "names": {
+      "chain_lightning": "Chain Lightning",
+      "lightning_bolt": "Lightning Bolt",
+      "static_field": "Static Field",
+      "thunderstorm": "Thunderstorm",
+      "got_bolt": "GoT Bolt",
+      "ion_nova": "Ion Nova",
+      "overcharge_aura": "Overcharge Aura",
+      "crackling_field": "Crackling Field",
+      "static_overload": "Static Overload",
+      "ball_lightning": "Ball Lightning",
+      "arc_spear": "Arc Spear",
+      "shockwave": "Shockwave",
+      "sky_wrath": "Sky Wrath",
+      "thunderdome": "Thunderdome",
+      "ion_storm": "Ion Storm",
+      "tempest_ring": "Tempest Ring",
+      "storm_pulse": "Storm Pulse",
+      "magneto_burst": "Magneto Burst",
+      "static_prison": "Static Prison",
+      "thundersurge": "Thundersurge",
+      "forked_lightning": "Forked Lightning",
+      "thunder_mend": "Thunder Mend",
+      "divine_mend": "Divine Mend",
+      "storm_sip": "Storm Sip",
+      "mana_well": "Mana Well",
+      "overload_buff": "Overload",
+      "surge_of_haste": "Surge of Haste",
+      "fortify": "Fortify",
+      "storm_barrier": "Storm Barrier",
+      "tempest_guard": "Tempest Guard",
+      "lightning_dash": "Lightning Dash",
+      "blink_strike": "Blink Strike",
+      "thunder_image": "Thunder Image",
+      "got_judgement": "GoT' Judgement",
+      "maelstrom": "Maelstrom"
+    },
+    "shorts": {
+      "chain_lightning": "Chain",
+      "lightning_bolt": "Bolt",
+      "static_field": "Static",
+      "thunderstorm": "Storm",
+      "got_bolt": "Bolt+",
+      "ion_nova": "Nova",
+      "overcharge_aura": "O-Chg",
+      "crackling_field": "C-Field",
+      "static_overload": "Over",
+      "ball_lightning": "Ball",
+      "arc_spear": "Spear",
+      "shockwave": "Shock",
+      "sky_wrath": "Wrath",
+      "thunderdome": "Dome",
+      "ion_storm": "Ion",
+      "tempest_ring": "Ring",
+      "storm_pulse": "Pulse",
+      "magneto_burst": "Burst",
+      "static_prison": "Prison",
+      "thundersurge": "Surge",
+      "forked_lightning": "Fork",
+      "thunder_mend": "Heal",
+      "divine_mend": "Mend+",
+      "storm_sip": "Mana",
+      "mana_well": "Well",
+      "overload_buff": "Buff",
+      "surge_of_haste": "Haste",
+      "fortify": "Fort",
+      "storm_barrier": "Barrier",
+      "tempest_guard": "Guard",
+      "lightning_dash": "Dash",
+      "blink_strike": "Blink",
+      "thunder_image": "Clone",
+      "got_judgement": "Judg",
+      "maelstrom": "Mael"
+    },
+    "types": {
+      "chain": "Chains between nearby enemies, hitting multiple targets.",
+      "aoe": "Ground-targeted area. Damages enemies within its radius.",
+      "aura": "Toggle aura around hero. Ticks damage periodically while draining mana.",
+      "storm": "Multiple random strikes in a radius over time.",
+      "beam": "Instant zap to nearest enemy in range.",
+      "nova": "Radial burst around hero.",
+      "heal": "Restores hero HP instantly.",
+      "mana": "Restores hero MP instantly.",
+      "buff": "Temporarily increases damage and speed.",
+      "dash": "Quickly dash forward.",
+      "blink": "Teleport toward direction/point.",
+      "clone": "Summons a lightning image that periodically zaps nearby foes.",
+      "shield": "Reduces incoming damage for a short time; may grant brief invulnerability on cast."
+    },
+    "stats": {
+      "type": "Type",
+      "cooldown": "Cooldown",
+      "mana": "Mana",
+      "radius": "Radius",
+      "range": "Range",
+      "jumps": "Jumps",
+      "jumpRange": "Jump Range",
+      "tick": "Tick",
+      "duration": "Duration",
+      "slow": "Slow",
+      "slowDuration": "Slow Duration",
+      "damage": "Damage",
+      "base": "base"
+    }
+  },
+  "maps": {
+    "endless": "Endless",
+    "current": "Current",
+    "locked": "Locked",
+    "requires": "Requires",
+    "loadMore": "Load more",
+    "depthDesc": "Depth +${depth}. Each step strengthens foes: more HP, damage, speed and density.",
+    "elites": "Elites:"
   }
 }
