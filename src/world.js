@@ -77,7 +77,7 @@ export function initWorld() {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(WORLD.groundSize, WORLD.groundSize),
     new THREE.MeshStandardMaterial({
-      color: 0x0a1424,
+      color: 0xC1C1C1,
       emissive: 0x060e1c,
       side: THREE.DoubleSide,
       map: groundTex,
