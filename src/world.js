@@ -12,19 +12,24 @@ export function getTargetPixelRatio() {
   } catch (_) {}
 
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  // Dynamic Resolution Scaling multiplier (set at runtime by main loop). Defaults to 1.0.
+  const drs = (typeof window !== "undefined" && typeof window.__drsScale === "number" && window.__drsScale > 0) ? window.__drsScale : 1;
 
+  let base;
   if (quality === "low") {
-    return 1;
-  }
-  if (quality === "medium") {
-    return 1.0;
-  }
-  if (quality === "high") {
+    base = 1.0;
+  } else if (quality === "medium") {
+    base = 1.0;
+  } else if (quality === "high") {
     // Cap to 2x to avoid excessive GPU cost on ultra-high DPI
-    return Math.min(dpr, 2);
+    base = Math.min(dpr, 2);
+  } else {
+    base = 2.0;
   }
 
-  return 2;
+  // Apply DRS and clamp to safe bounds for mobile GPUs.
+  const result = Math.max(0.6, Math.min(2.0, base * drs));
+  return result;
 }
 
 /**

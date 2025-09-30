@@ -398,14 +398,41 @@ export function initEnvironment(scene, options = {}) {
 
     if (rain.enabled && rain.points) {
       const pos = rain.points.geometry.attributes.position.array;
-      for (let i = 0; i < rain.velocities.length; i++) {
-        pos[i * 3 + 1] -= rain.velocities[i] * dt;
-        if (pos[i * 3 + 1] < 0.2) {
-          pos[i * 3 + 0] = (Math.random() * 2 - 1) * half;
-          pos[i * 3 + 1] = 12 + Math.random() * 20;
-          pos[i * 3 + 2] = (Math.random() * 2 - 1) * half;
+      const count = rain.velocities.length;
+
+      // Adaptive rain update: under lower FPS, update a fraction per frame
+      let fps = 60;
+      try {
+        fps = (window.__perfMetrics && window.__perfMetrics.fps)
+          ? window.__perfMetrics.fps
+          : (1000 / Math.max(0.001, (window.__perfMetrics && window.__perfMetrics.avgMs) || 16.7));
+      } catch (_) {}
+
+      // Update subset size based on FPS budget
+      let step = count; // default: update all
+      if (fps < 24) {
+        step = Math.max(1, Math.floor(count * 0.25));
+      } else if (fps < 36) {
+        step = Math.max(1, Math.floor(count * 0.5));
+      } else if (fps < 48) {
+        step = Math.max(1, Math.floor(count * 0.75));
+      }
+
+      if (typeof rain._idx !== "number") rain._idx = 0;
+      const start = rain._idx;
+
+      for (let n = 0; n < step; n++) {
+        const i = (start + n) % count;
+        const base = i * 3;
+        pos[base + 1] -= rain.velocities[i] * dt;
+        if (pos[base + 1] < 0.2) {
+          pos[base + 0] = (Math.random() * 2 - 1) * half;
+          pos[base + 1] = 12 + Math.random() * 20;
+          pos[base + 2] = (Math.random() * 2 - 1) * half;
         }
       }
+
+      rain._idx = (start + step) % count;
       rain.points.geometry.attributes.position.needsUpdate = true;
     }
   }

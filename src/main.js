@@ -1326,6 +1326,17 @@ function animate() {
   const dt = Math.min(0.05, t - lastT);
   lastT = t;
 
+  // Reduce work when tab is hidden to save battery/CPU on mobile.
+  // Keep rAF scheduled but skip heavy updates except every ~500ms.
+  try {
+    if (document.hidden) {
+      if (!window.__hiddenNextT) window.__hiddenNextT = 0;
+      const tn = performance.now();
+      if (tn < window.__hiddenNextT) return;
+      window.__hiddenNextT = tn + 500;
+    }
+  } catch (_) {}
+
   // Unified input (Hexagonal service): movement, holds, skills
   inputService.update(t, dt);
 
@@ -1534,19 +1545,40 @@ function animate() {
   villages.updateRest(player, dt);
   updateDeathRespawn();
 
-  // Billboard enemy hp bars to face camera
-  enemies.forEach((en) => {
-    if (!en.alive) return;
-    if (en.hpBar && en.hpBar.container) en.hpBar.container.lookAt(camera.position);
-  });
+  // Billboard enemy hp bars to face camera (throttled to reduce per-frame math)
+  try {
+    const nowMs2 = performance.now();
+    if (!window.__lastBillboardT) window.__lastBillboardT = 0;
+    if ((nowMs2 - window.__lastBillboardT) >= (window.__BILLBOARD_UPDATE_MS || 100)) {
+      window.__lastBillboardT = nowMs2;
+      enemies.forEach((en) => {
+        if (!en.alive) return;
+        if (en.hpBar && en.hpBar.container) en.hpBar.container.lookAt(camera.position);
+      });
+    }
+  } catch (_) {
+    // Fallback: if throttle fails, keep behavior
+    enemies.forEach((en) => {
+      if (!en.alive) return;
+      if (en.hpBar && en.hpBar.container) en.hpBar.container.lookAt(camera.position);
+    });
+  }
 
-  // Update hero overhead bars and billboard to camera
+  // Update hero overhead bars; billboard to camera throttled
   if (heroBars) {
     const hpRatio = clamp01(player.hp / player.maxHP);
     const mpRatio = clamp01(player.mp / player.maxMP);
     heroBars.hpFill.scale.x = Math.max(0.001, hpRatio);
     heroBars.mpFill.scale.x = Math.max(0.001, mpRatio);
-    heroBars.container.lookAt(camera.position);
+    try {
+      const nowMs2 = performance.now();
+      if (!window.__lastBillboardT) window.__lastBillboardT = 0;
+      if ((nowMs2 - window.__lastBillboardT) >= (window.__BILLBOARD_UPDATE_MS || 100)) {
+        heroBars.container.lookAt(camera.position);
+      }
+    } catch (_) {
+      heroBars.container.lookAt(camera.position);
+    }
   }
 
   renderer.render(scene, camera);
@@ -1575,6 +1607,29 @@ function animate() {
     if ((nowPerfT - window.__lastPerfInfoT) >= PERF_INFO_THROTTLE_MS) {
       window.__lastPerfInfoT = nowPerfT;
       try { window.__perfMetrics = getPerf(); } catch (_) {}
+    }
+  } catch (_) {}
+
+  // Dynamic Resolution Scaling (DRS): adjust renderer pixel ratio based on avg frame time
+  try {
+    const targetMs = (renderQuality === "low") ? 33 : (renderQuality === "medium" ? 24 : 16.7);
+    const tol = 2.5;
+    const avgMs = __perf.avgMs || 16.7;
+    if (!window.__drsScale || typeof window.__drsScale !== "number") window.__drsScale = 1;
+    if (!window.__nextDrsT) window.__nextDrsT = 0;
+    const nowTms = performance.now();
+    if (nowTms >= window.__nextDrsT) {
+      let s = window.__drsScale;
+      if (avgMs > targetMs + tol) {
+        s = Math.max(0.6, s - 0.06);
+      } else if (avgMs < targetMs - tol) {
+        s = Math.min(1.0, s + 0.04);
+      }
+      if (Math.abs(s - window.__drsScale) >= 0.02) {
+        window.__drsScale = s;
+        try { renderer.setPixelRatio(getTargetPixelRatio()); } catch (_) {}
+      }
+      window.__nextDrsT = nowTms + 800; // adjust roughly every 0.8s
     }
   } catch (_) {}
 
