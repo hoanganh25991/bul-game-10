@@ -3,9 +3,82 @@
 
 <head>
   <title>GoT RPG</title>
-  <link rel="preconnect" href="https://unpkg.com" />
-  <link rel="stylesheet" href="css/style.css" />
-  <link rel="stylesheet" href="css/landscape.css" />
+  
+  <!-- DNS prefetch and preconnect for critical external resources -->
+  <link rel="dns-prefetch" href="https://unpkg.com" />
+  <link rel="preconnect" href="https://unpkg.com" crossorigin />
+  
+  <!-- Inline critical CSS for splash screen to avoid render-blocking -->
+  <style>
+    /* Minimal critical styles for splash screen - inlined for fast LCP */
+    .flash {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #0a0e1a 0%, #1a2332 100%);
+      display: grid;
+      place-items: center;
+      z-index: 9999;
+    }
+    .flash-card {
+      text-align: center;
+      color: #fff;
+      padding: 2rem;
+      max-width: 500px;
+    }
+    .flash-title {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      font-weight: bold;
+    }
+    .flash-desc {
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+      opacity: 0.9;
+    }
+    .progress {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress .bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4a9eff, #7cc4ff);
+      transition: width 0.3s ease;
+    }
+    .flash-note {
+      margin-top: 10px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-display: swap; /* Ensure text remains visible during font load */
+      overflow: hidden;
+    }
+    /* Hide non-critical content initially */
+    #hud, #topRightGroup, #bottomLeftGroup, #bottomRightGroup, #bottomMiddle {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .splash-active #hud,
+    .splash-active #topRightGroup,
+    .splash-active #bottomLeftGroup,
+    .splash-active #bottomRightGroup,
+    .splash-active #bottomMiddle {
+      opacity: 0;
+    }
+  </style>
+  
+  <!-- Defer non-critical stylesheets to avoid blocking LCP -->
+  <link rel="preload" href="css/style.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <link rel="preload" href="css/landscape.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/landscape.css" />
+  </noscript>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon.png" />
   <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -434,17 +507,64 @@
     </div>
   </div>
 
-  <script src="lock-zoom.js"></script>
+  <script src="lock-zoom.js" defer></script>
 
-  <!-- Module game code -->
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
-      }
+  <!-- Deferred module loading for better LCP -->
+  <script>
+    // Mark start time for performance tracking
+    if (window.performance && performance.mark) {
+      performance.mark('page-load-start');
     }
+
+    // Progressive loading strategy: show splash immediately, defer heavy modules
+    (function() {
+      // Import map must be defined before any module scripts
+      const importMap = document.createElement('script');
+      importMap.type = 'importmap';
+      importMap.textContent = JSON.stringify({
+        imports: {
+          three: "https://unpkg.com/three@0.160.0/build/three.module.js"
+        }
+      });
+      document.head.appendChild(importMap);
+
+      // Wait for first paint before loading heavy game modules
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => loadGameModules(), { timeout: 2000 });
+      } else {
+        // Fallback: use setTimeout with minimal delay
+        setTimeout(loadGameModules, 100);
+      }
+
+      function loadGameModules() {
+        if (window.performance && performance.mark) {
+          performance.mark('modules-load-start');
+        }
+        
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = 'src/main.js';
+        
+        // Show UI elements after game is ready
+        script.onload = function() {
+          if (window.performance && performance.mark) {
+            performance.mark('modules-loaded');
+          }
+          
+          // Fade in UI elements
+          setTimeout(() => {
+            const elements = ['hud', 'topRightGroup', 'bottomLeftGroup', 'bottomRightGroup', 'bottomMiddle'];
+            elements.forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.style.opacity = '1';
+            });
+          }, 100);
+        };
+        
+        document.body.appendChild(script);
+      }
+    })();
   </script>
-  <script type="module" src="src/main.js"></script>
 
   <!-- PWA Register service worker -->
   <script>

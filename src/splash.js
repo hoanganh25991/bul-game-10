@@ -21,7 +21,7 @@ export function initSplash() {
   overlay.style.display = "flex";
   try { document.documentElement.classList.add("splash-active"); } catch (e) {}
 
-  const minDisplayMs = 1000; // minimum visible time
+  const minDisplayMs = 800; // reduced minimum visible time for faster perceived load
   const startTs = Date.now();
 
   let progress = 0;
@@ -30,12 +30,12 @@ export function initSplash() {
     progressBar.style.width = progress + "%";
   }
 
-  // Gentle auto-increment until we hit ~70% while waiting for load
+  // Faster progress increments for quicker perceived loading
   const autoTicker = setInterval(() => {
     if (progress < 70) {
-      setProgress(progress + (Math.random() * 3 + 1)); // small random increments
+      setProgress(progress + (Math.random() * 5 + 2)); // faster increments
     }
-  }, 80);
+  }, 60); // faster interval
 
   function finish() {
     // Stop auto increments
