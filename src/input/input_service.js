@@ -26,6 +26,8 @@ export function createInputService({
   skills,
   WORLD,
   DEBUG,
+  setCenterMsg,
+  clearCenterMsg,
 }) {
   // ---- Internal State ----
   const state = {
@@ -216,9 +218,7 @@ export function createInputService({
 
     if (k === "b") {
       e.preventDefault(); e.stopImmediatePropagation();
-      portals.recallToVillage(player, (t) => {
-        try { /* no-op center msg passthrough */ } catch (_) {}
-      });
+      portals.recallToVillage(player, setCenterMsg, clearCenterMsg);
       return;
     }
   }

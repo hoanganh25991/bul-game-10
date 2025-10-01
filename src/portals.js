@@ -91,7 +91,7 @@ export function initPortals(scene) {
     player.target = null;
   }
 
-  function recallToVillage(player, setCenterMsg) {
+  function recallToVillage(player, setCenterMsg, clearCenterMsg) {
     // Create/refresh return portal where player stands and auto-teleport after countdown
     const here = player.pos().clone();
     if (!returnPortal) {
@@ -126,7 +126,15 @@ export function initPortals(scene) {
       try { teleportToPortal(returnPortal.linkTo || villagePortal, player); } catch (_) {}
       player.frozen = false;
       try { setCenterMsg && setCenterMsg("🛖"); } catch (_) {}
-      setTimeout(() => { try { setCenterMsg && setCenterMsg(""); } catch (_) {} }, 600);
+      setTimeout(() => { 
+        try { 
+          if (clearCenterMsg) {
+            clearCenterMsg(); // Properly hide the div
+          } else {
+            setCenterMsg && setCenterMsg(""); // Fallback to empty string
+          }
+        } catch (_) {} 
+      }, 600);
     }, 3000));
     returnPortal.__countTimers = timers;
   }

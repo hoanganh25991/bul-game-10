@@ -612,7 +612,7 @@ btnStart?.addEventListener("click", () => { introScreen?.classList.add("hidden")
 btnCamera?.addEventListener("click", () => { setFirstPerson(!firstPerson); });
 // Portal button: recall to nearest portal (same as pressing 'B')
 btnPortal?.addEventListener("click", () => {
-  try { portals.recallToVillage(player, setCenterMsg); } catch (e) {}
+  try { portals.recallToVillage(player, setCenterMsg, clearCenterMsg); } catch (e) {}
 });
 // Place persistent Mark/Flag (3-minute cooldown)
 btnMark?.addEventListener("click", () => {
@@ -1247,7 +1247,9 @@ const inputService = createInputService({
   WORLD,
   DEBUG,
   aimPreview,
-  attackPreview
+  attackPreview,
+  setCenterMsg,
+  clearCenterMsg,
 });
 inputService.attachCaptureListeners();
 if (typeof touch !== "undefined" && touch) inputService.setTouchAdapter(touch);
@@ -1390,7 +1392,7 @@ window.addEventListener("keydown", (e) => {
   } else if (k === "r") {
     skills.castSkill("R");
   } else if (k === "b") {
-    portals.recallToVillage(player, setCenterMsg);
+    portals.recallToVillage(player, setCenterMsg, clearCenterMsg);
   } else if (k === "s") {
     stopPlayer();
   } else if (k === "m") {
