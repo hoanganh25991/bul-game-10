@@ -949,7 +949,13 @@ try {
   });
 } catch (_) {}
 try { promptBasicUpliftIfNeeded(player); } catch (_) {}
-try { window.addEventListener("player-levelup", () => { try { promptBasicUpliftIfNeeded(player); } catch (_) {} }); } catch (_) {}
+try { 
+  window.addEventListener("player-levelup", () => { 
+    try { promptBasicUpliftIfNeeded(player); } catch (_) {}
+    // Adjust enemy count when player levels up (spawn more, stronger enemies)
+    try { adjustEnemyCountForCurrentMap(); } catch (_) {}
+  }); 
+} catch (_) {}
 
 // Hero overhead HP/MP bars
 const heroBars = createHeroOverheadBars();
@@ -987,23 +993,40 @@ function applyMapModifiersToEnemy(en) {
     }
   } catch (_) {}
 }
-// Minimum enemy count to ensure consistent gameplay (always ~50 enemies)
+// Enemy count scaling with player level
+// Base: 50 enemies at level 1
+// Scaling: +2 enemies per level (50→52→54... up to 100 max)
 const MIN_ENEMY_COUNT = 50;
+const ENEMY_COUNT_PER_LEVEL = 2;
+const MAX_ENEMY_COUNT = 100;
 
-// Enemies - enforce minimum count for consistent gameplay
-const ENEMY_COUNT_BY_QUALITY = {
-  high: WORLD.enemyCount,
-  medium: Math.max(MIN_ENEMY_COUNT, Math.floor(WORLD.enemyCount * 0.4)),
-  low: Math.max(MIN_ENEMY_COUNT, Math.floor(WORLD.enemyCount * 0.25)),
-};
+/**
+ * Calculate target enemy count based on player level, quality settings, and map modifiers.
+ * Scales from 50 enemies at level 1 to 100 enemies at level 25+.
+ */
+function calculateEnemyCountForLevel(playerLevel) {
+  const levelBonus = Math.floor((playerLevel - 1) * ENEMY_COUNT_PER_LEVEL);
+  const baseCount = Math.min(MAX_ENEMY_COUNT, MIN_ENEMY_COUNT + levelBonus);
+  
+  const qualityMultiplier = {
+    high: 1.0,
+    medium: 0.6,
+    low: 0.4,
+  };
+  const mult = qualityMultiplier[renderQuality] || 1.0;
+  const qualityAdjusted = Math.floor(baseCount * mult);
+  
+  const mods = mapManager.getModifiers?.() || {};
+  const withMapMods = Math.floor(qualityAdjusted * (mods.enemyCountMul || 1));
+  
+  // Always enforce minimum, but allow level scaling
+  return Math.max(MIN_ENEMY_COUNT, withMapMods);
+}
 
-// Apply map modifiers but respect minimum count
-const baseEnemyCount = ENEMY_COUNT_BY_QUALITY[renderQuality] || WORLD.enemyCount;
-const __mods = mapManager.getModifiers?.() || {};
-// Override mobile multiplier to maintain minimum enemy count
-const enemyCountTarget = Math.max(MIN_ENEMY_COUNT, Math.floor(baseEnemyCount * (__mods.enemyCountMul || 1)));
+// Initial enemy count based on player's starting level
+const enemyCountTarget = calculateEnemyCountForLevel(player.level);
 
-console.info(`[Enemy Spawn] Target count: ${enemyCountTarget} (minimum: ${MIN_ENEMY_COUNT})`);
+console.info(`[Enemy Spawn] Level ${player.level}: ${enemyCountTarget} enemies (base: ${MIN_ENEMY_COUNT}, max: ${MAX_ENEMY_COUNT})`);
 const enemies = [];
 for (let i = 0; i < enemyCountTarget; i++) {
   const angle = Math.random() * Math.PI * 2;
@@ -1020,19 +1043,28 @@ for (let i = 0; i < enemyCountTarget; i++) {
   enemies.push(e);
 }
 
-// Dynamically adjust enemy count to match current map modifiers and render quality
-// Enforces minimum enemy count to ensure consistent gameplay
+/**
+ * Dynamically adjust enemy count based on player level, map modifiers, quality, and performance.
+ * Scales enemy count as player levels up (50→100 enemies from level 1→25+).
+ * New enemies spawn at current player level (stronger stats).
+ */
 function adjustEnemyCountForCurrentMap() {
   try {
-    const mods = mapManager.getModifiers?.() || {};
-    const baseTarget = ENEMY_COUNT_BY_QUALITY[renderQuality] || WORLD.enemyCount;
-    const MIN_ENEMY_COUNT = 50; // Enforce minimum for consistent gameplay
-    const desired = Math.max(MIN_ENEMY_COUNT, Math.floor(baseTarget * (mods.enemyCountMul || 1) * (__enemyPerfScale || 1)));
+    // Calculate desired count with level scaling
+    let desired = calculateEnemyCountForLevel(player.level);
+    
+    // Apply adaptive performance scaling (reduce if FPS is low)
+    desired = Math.floor(desired * (__enemyPerfScale || 1));
+    
+    // Enforce minimum
+    desired = Math.max(MIN_ENEMY_COUNT, desired);
+    
     if (enemies.length < desired) {
       const toAdd = desired - enemies.length;
+      console.info(`[Enemy Scaling] Adding ${toAdd} enemies (Level ${player.level}, Total: ${desired})`);
       for (let i = 0; i < toAdd; i++) {
         const pos = randomEnemySpawnPos();
-        const e = new Enemy(pos, player.level);
+        const e = new Enemy(pos, player.level); // Spawn at current level (stronger)
         applyMapModifiersToEnemy(e);
         e.mesh.userData.enemyRef = e;
         scene.add(e.mesh);
@@ -1040,6 +1072,7 @@ function adjustEnemyCountForCurrentMap() {
       }
     } else if (enemies.length > desired) {
       const toRemove = enemies.length - desired;
+      console.info(`[Enemy Scaling] Removing ${toRemove} enemies (Level ${player.level}, Total: ${desired})`);
       for (let i = 0; i < toRemove; i++) {
         const e = enemies.pop();
         try { scene.remove(e.mesh); } catch (_) {}
