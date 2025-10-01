@@ -111,10 +111,10 @@
   }
 
   #bottomLeftGroup {
-    display: block;
+    display: flex;
   }
 
   #bottomRightGroup {
-    display: block;
+    display: flex;
   }
 }
