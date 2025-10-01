@@ -66,12 +66,19 @@ export function initSplash() {
             if (noteEl) noteEl.style.display = "none";
           } catch (e) {}
 
-          // Reveal the start screen (keeps overlay visible) and wait for player to click Start.
+          // Populate and reveal the start screen (keeps overlay visible) and wait for player to click Start.
           const startScreen = document.getElementById("startScreen");
-          const startBtn = document.getElementById("btnStartGame");
-
+          
           if (startScreen) {
+            // Inject start screen content dynamically to avoid affecting LCP
+            startScreen.innerHTML = `
+              <h2 id="startTitle" data-i18n="start.title">Hành trình của Thần Sấm</h2>
+              <p id="startStory" data-i18n="start.story">Thế giới chìm trong u ám. Những bóng đêm tỉnh dậy, và chỉ một vị thần có thể gọi sấm sét trở lại. Hãy dẫn GoT — vị thần sấm — qua rừng hoang, làng mạc đổ nát và chiến trường, tiêu diệt lũ quái và khôi phục trật tự.</p>
+              <button id="btnStartGame" class="primary" data-i18n="btn.start">Bắt đầu</button>
+            `;
+            
             startScreen.style.display = "block";
+            
             // Ensure translated text is applied if i18n has loaded later
             try {
               // applyTranslations is exported by src/i18n.js; if available on window, call it
@@ -80,6 +87,8 @@ export function initSplash() {
               }
             } catch (e) {}
           }
+
+          const startBtn = document.getElementById("btnStartGame");
 
           // Cleanup function to hide splash and restore UI
           function cleanupAndCloseSplash() {
