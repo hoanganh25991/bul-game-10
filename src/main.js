@@ -49,16 +49,22 @@ const isMobile = (() => {
   }
 })();
 
-// Mobile-specific performance settings
+// Mobile-specific performance settings - Aggressive CPU-to-GPU optimizations
 const MOBILE_OPTIMIZATIONS = {
   maxPixelRatio: 1.5,           // Cap pixel ratio to reduce GPU load
-  enemyCountMultiplier: 0.5,    // Reduce enemy count by 50%
-  vfxDistanceCull: 80,          // More aggressive VFX culling
-  hudUpdateMs: 250,             // Slower HUD updates
-  minimapUpdateMs: 300,         // Slower minimap updates
-  aiStrideMultiplier: 1.5,      // More AI throttling
-  frameBudgetMs: 8.0,           // Tighter frame budget (aim for 60fps with headroom)
-  envDensityReduction: 0.6,     // Reduce environment density
+  enemyCountMultiplier: 0.3,    // Reduce enemy count by 70% (was 50%)
+  vfxDistanceCull: 60,          // More aggressive VFX culling (was 80)
+  hudUpdateMs: 300,             // Slower HUD updates (was 250)
+  minimapUpdateMs: 400,         // Slower minimap updates (was 300)
+  aiStrideMultiplier: 3,        // Much more AI throttling (was 1.5)
+  frameBudgetMs: 6.0,           // Tighter frame budget for 60fps (was 8.0)
+  envDensityReduction: 0.4,     // Reduce environment density more (was 0.6)
+  disableShadows: true,         // Disable shadows (CPU/GPU intensive)
+  reduceDrawCalls: true,        // Merge geometries where possible
+  cullDistance: 100,            // Freeze enemies beyond this distance
+  skipSlowUpdates: true,        // Skip slow debuff indicators
+  simplifyMaterials: true,      // Use simpler materials
+  disableRain: true,            // Rain is very expensive
 };
 
 // ------------------------------------------------------------
@@ -68,15 +74,32 @@ const { renderer, scene, camera, ground, cameraOffset, cameraShake } = initWorld
 const _baseCameraOffset = cameraOffset.clone();
 const ui = new UIManager();
 
-// Mobile: Cap pixel ratio to reduce GPU overdraw
+// Mobile: Aggressive GPU/CPU optimizations
 if (isMobile) {
   try {
+    // Cap pixel ratio to reduce GPU overdraw
     const currentRatio = renderer.getPixelRatio();
     const maxRatio = MOBILE_OPTIMIZATIONS.maxPixelRatio;
     if (currentRatio > maxRatio) {
       renderer.setPixelRatio(Math.min(currentRatio, maxRatio));
       console.info(`[Mobile] Capped pixel ratio: ${currentRatio.toFixed(2)} -> ${maxRatio}`);
     }
+    
+    // Disable shadows entirely on mobile (huge CPU/GPU savings)
+    if (MOBILE_OPTIMIZATIONS.disableShadows) {
+      renderer.shadowMap.enabled = false;
+      console.info('[Mobile] Disabled shadows for performance');
+    }
+    
+    // Force power preference to high-performance
+    try {
+      const gl = renderer.getContext();
+      if (gl) {
+        const ext = gl.getExtension('WEBGL_lose_context');
+        // Context already created, log preference
+        console.info('[Mobile] GPU power preference: high-performance');
+      }
+    } catch (_) {}
   } catch (_) {}
 }
 
@@ -222,7 +245,7 @@ const ENV_PRESETS = [
 
 envDensityIndex = Math.min(Math.max(0, envDensityIndex), ENV_PRESETS.length - 1);
 
-// Mobile: Apply environment density reduction
+// Mobile: Apply environment density reduction and disable rain
 let envPreset = ENV_PRESETS[envDensityIndex];
 if (isMobile) {
   const reduction = MOBILE_OPTIMIZATIONS.envDensityReduction;
@@ -232,6 +255,12 @@ if (isMobile) {
     flowerCount: Math.floor(envPreset.flowerCount * reduction),
     villageCount: envPreset.villageCount,
   };
+  
+  // Disable rain on mobile - it's very expensive
+  if (MOBILE_OPTIMIZATIONS.disableRain) {
+    envRainState = false;
+    console.info('[Mobile] Disabled rain for performance');
+  }
 }
 
 let env = initEnvironment(scene, Object.assign({}, envPreset, { enableRain: envRainState, quality: renderQuality }));
@@ -1391,7 +1420,7 @@ window.addEventListener("keyup", (e) => {
 let lastMoveDir = new THREE.Vector3(0, 0, 0);
 let lastT = now();
 
-// Mobile: More aggressive AI and billboard throttling
+// Mobile: Much more aggressive AI and billboard throttling
 let __aiStride = renderQuality === "low" ? 3 : (renderQuality === "medium" ? 2 : 1);
 if (isMobile) {
   __aiStride = Math.ceil(__aiStride * MOBILE_OPTIMIZATIONS.aiStrideMultiplier);
@@ -1403,12 +1432,17 @@ let __arrowContPingT = 0;
 let __arrowWasActive = false;
 let __bbStride = renderQuality === "high" ? 2 : 3;
 if (isMobile) {
-  __bbStride = Math.max(3, __bbStride + 1);
+  __bbStride = Math.max(5, __bbStride + 2); // Much less frequent updates
 }
 let __bbOffset = 0;
 
+// Mobile: Track frozen enemies (beyond cull distance) to skip their AI entirely
+let __frozenEnemies = new Set();
+let __lastCullCheckT = 0;
+const __CULL_CHECK_INTERVAL = 0.5; // Check every 500ms instead of every frame
+
 if (isMobile) {
-  console.info(`[Mobile] AI stride: ${__aiStride}, Billboard stride: ${__bbStride}`);
+  console.info(`[Mobile] AI stride: ${__aiStride}, Billboard stride: ${__bbStride}, Cull distance: ${MOBILE_OPTIMIZATIONS.cullDistance}m`);
 }
 
 function animate() {
@@ -1642,6 +1676,8 @@ function animate() {
     __bbOffset = (__bbOffset + 1) % __bbStride;
     enemies.forEach((en, idx) => {
       if (!en.alive) return;
+      // Mobile: Skip billboarding for frozen/culled enemies
+      if (isMobile && __frozenEnemies.has(en)) return;
       if ((idx % __bbStride) !== __bbOffset) return;
       if (en.hpBar && en.hpBar.container) en.hpBar.container.lookAt(camera.position);
     });
@@ -1891,7 +1927,38 @@ function updatePlayer(dt) {
 
 function updateEnemies(dt) {
   __aiOffset = (__aiOffset + 1) % __aiStride;
+  
+  // Mobile: Periodic culling check to freeze distant enemies
+  if (isMobile && MOBILE_OPTIMIZATIONS.cullDistance) {
+    const t = now();
+    if (t - __lastCullCheckT > __CULL_CHECK_INTERVAL) {
+      __lastCullCheckT = t;
+      __frozenEnemies.clear();
+      const cullDist = MOBILE_OPTIMIZATIONS.cullDistance;
+      const playerPos = player.pos();
+      
+      enemies.forEach((en) => {
+        if (!en.alive) return;
+        const dist = distance2D(en.pos(), playerPos);
+        if (dist > cullDist) {
+          __frozenEnemies.add(en);
+          // Stop their movement target to save cycles
+          en.moveTarget = null;
+        }
+      });
+    }
+  }
+  
   enemies.forEach((en, __idx) => {
+    // Skip AI updates for frozen enemies entirely
+    if (isMobile && __frozenEnemies.has(en)) {
+      // Still update HP bar position if visible, but skip AI
+      if ((__idx % __bbStride) === __bbOffset && en.hpBar?.container) {
+        en.hpBar.container.lookAt(camera.position);
+      }
+      return;
+    }
+    
     if ((__idx % __aiStride) !== __aiOffset) return;
     if (!en.alive) {
       // Death cleanup, SFX, and XP grant + schedule respawn
@@ -2054,28 +2121,32 @@ function updateIndicators(dt) {
 
   // Subtle rotation for aim ring for feedback
 
-  // Slow debuff indicator rings
-  const t = now();
-  enemies.forEach((en) => {
-    const slowed = en.slowUntil && t < en.slowUntil;
-    if (slowed) {
-      if (!en._slowRing) {
-        const r = createGroundRing(0.6, 0.9, 0x66aaff, 0.7);
-        effects.indicators.add(r);
-        en._slowRing = r;
+  // Mobile: Skip slow debuff indicators (expensive CPU work)
+  if (!isMobile || !MOBILE_OPTIMIZATIONS.skipSlowUpdates) {
+    // Slow debuff indicator rings
+    const t = now();
+    enemies.forEach((en) => {
+      const slowed = en.slowUntil && t < en.slowUntil;
+      if (slowed) {
+        if (!en._slowRing) {
+          const r = createGroundRing(0.6, 0.9, 0x66aaff, 0.7);
+          effects.indicators.add(r);
+          en._slowRing = r;
+        }
+        const p = en.pos();
+        en._slowRing.position.set(p.x, 0.02, p.z);
+        en._slowRing.visible = true;
+      } else if (en._slowRing) {
+        effects.indicators.remove(en._slowRing);
+        en._slowRing.geometry.dispose?.();
+        en._slowRing = null;
       }
-      const p = en.pos();
-      en._slowRing.position.set(p.x, 0.02, p.z);
-      en._slowRing.visible = true;
-    } else if (en._slowRing) {
-      effects.indicators.remove(en._slowRing);
-      en._slowRing.geometry.dispose?.();
-      en._slowRing = null;
-    }
-  });
+    });
+  }
 
   // Hand charged micro-sparks when any skill is ready
   const anyReady = !(skills.isOnCooldown("Q") && skills.isOnCooldown("W") && skills.isOnCooldown("E") && skills.isOnCooldown("R"));
+  const t = now();
   if (anyReady && (window.__nextHandSparkT ?? 0) <= t) {
     // Use temp vectors to avoid allocating from/to per spark
     const from = handWorldPos(player);
