@@ -35,16 +35,67 @@ import * as payments from './payments.js';
 
 
 // ------------------------------------------------------------
+// Mobile Device Detection & Optimization
+// ------------------------------------------------------------
+const isMobile = (() => {
+  try {
+    // Check for touch support and mobile user agents
+    const hasTouchScreen = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isSmallScreen = window.innerWidth <= 1024;
+    return hasTouchScreen && (mobileUA || isSmallScreen);
+  } catch (_) {
+    return false;
+  }
+})();
+
+// Mobile-specific performance settings
+const MOBILE_OPTIMIZATIONS = {
+  maxPixelRatio: 1.5,           // Cap pixel ratio to reduce GPU load
+  enemyCountMultiplier: 0.5,    // Reduce enemy count by 50%
+  vfxDistanceCull: 80,          // More aggressive VFX culling
+  hudUpdateMs: 250,             // Slower HUD updates
+  minimapUpdateMs: 300,         // Slower minimap updates
+  aiStrideMultiplier: 1.5,      // More AI throttling
+  frameBudgetMs: 8.0,           // Tighter frame budget (aim for 60fps with headroom)
+  envDensityReduction: 0.6,     // Reduce environment density
+};
+
+// ------------------------------------------------------------
 // Bootstrapping world, UI, effects
 // ------------------------------------------------------------
 const { renderer, scene, camera, ground, cameraOffset, cameraShake } = initWorld();
 const _baseCameraOffset = cameraOffset.clone();
 const ui = new UIManager();
-// Render quality preference (persisted). Default to "high".
+
+// Mobile: Cap pixel ratio to reduce GPU overdraw
+if (isMobile) {
+  try {
+    const currentRatio = renderer.getPixelRatio();
+    const maxRatio = MOBILE_OPTIMIZATIONS.maxPixelRatio;
+    if (currentRatio > maxRatio) {
+      renderer.setPixelRatio(Math.min(currentRatio, maxRatio));
+      console.info(`[Mobile] Capped pixel ratio: ${currentRatio.toFixed(2)} -> ${maxRatio}`);
+    }
+  } catch (_) {}
+}
+
+// Render quality preference (persisted). Default to "high" on desktop, "medium" on mobile.
 const _renderPrefs = JSON.parse(localStorage.getItem("renderPrefs") || "{}");
 let renderQuality = (typeof _renderPrefs.quality === "string" && ["low", "medium", "high"].includes(_renderPrefs.quality))
   ? _renderPrefs.quality
-  : "high";
+  : (isMobile ? "medium" : "high");
+
+// Mobile: Force medium quality on first run for optimal performance
+if (isMobile && !_renderPrefs.quality) {
+  renderQuality = "medium";
+  try {
+    const prefs = { ..._renderPrefs, quality: "medium" };
+    localStorage.setItem("renderPrefs", JSON.stringify(prefs));
+    console.info("[Mobile] Auto-set quality to 'medium' for optimal performance");
+  } catch (_) {}
+}
+
 const effects = new EffectsManager(scene, { quality: renderQuality });
 const mapManager = createMapManager();
 
@@ -73,10 +124,10 @@ let __tempVecQuatOrVec;
 //
 // Use shouldSpawnVfx(type, position) before spawning expensive effects.
 if (!window.__vfxQuality) {
-  window.__vfxQuality = (renderQuality === "low") ? "low" : "high";
+  window.__vfxQuality = (renderQuality === "low") ? "low" : (isMobile ? "medium" : "high");
 }
 if (!window.__vfxDistanceCull) {
-  window.__vfxDistanceCull = 140;
+  window.__vfxDistanceCull = isMobile ? MOBILE_OPTIMIZATIONS.vfxDistanceCull : 140;
 }
 function shouldSpawnVfx(kind, pos) {
   try {
@@ -101,13 +152,14 @@ function shouldSpawnVfx(kind, pos) {
   }
 }
 
-// Throttle values for UI updates (ms)
-const HUD_UPDATE_MS = 150;
-const MINIMAP_UPDATE_MS = 150;
+// Throttle values for UI updates (ms) - mobile uses slower updates
+const HUD_UPDATE_MS = isMobile ? MOBILE_OPTIMIZATIONS.hudUpdateMs : 150;
+const MINIMAP_UPDATE_MS = isMobile ? MOBILE_OPTIMIZATIONS.minimapUpdateMs : 150;
 try {
   // expose for runtime tuning/debug if needed
   window.__HUD_UPDATE_MS = HUD_UPDATE_MS;
   window.__MINIMAP_UPDATE_MS = MINIMAP_UPDATE_MS;
+  window.__IS_MOBILE = isMobile;
 } catch (_) {}
 
 // last-update timestamps (initialized lazily in the loop)
@@ -169,7 +221,20 @@ const ENV_PRESETS = [
 ];
 
 envDensityIndex = Math.min(Math.max(0, envDensityIndex), ENV_PRESETS.length - 1);
-let env = initEnvironment(scene, Object.assign({}, ENV_PRESETS[envDensityIndex], { enableRain: envRainState, quality: renderQuality }));
+
+// Mobile: Apply environment density reduction
+let envPreset = ENV_PRESETS[envDensityIndex];
+if (isMobile) {
+  const reduction = MOBILE_OPTIMIZATIONS.envDensityReduction;
+  envPreset = {
+    treeCount: Math.floor(envPreset.treeCount * reduction),
+    rockCount: Math.floor(envPreset.rockCount * reduction),
+    flowerCount: Math.floor(envPreset.flowerCount * reduction),
+    villageCount: envPreset.villageCount,
+  };
+}
+
+let env = initEnvironment(scene, Object.assign({}, envPreset, { enableRain: envRainState, quality: renderQuality }));
 try {
   if (envRainState && env && typeof env.setRainLevel === "function") {
     env.setRainLevel(Math.min(Math.max(0, envRainLevel), 2));
@@ -887,14 +952,22 @@ function applyMapModifiersToEnemy(en) {
     }
   } catch (_) {}
 }
-// Enemies
+// Enemies - mobile gets further reduction
 const ENEMY_COUNT_BY_QUALITY = {
   high: WORLD.enemyCount,
   medium: Math.max(30, Math.floor(WORLD.enemyCount * 0.4)),
   low: Math.max(20, Math.floor(WORLD.enemyCount * 0.25)),
 };
+
+// Mobile: Apply additional enemy count reduction
+const baseEnemyCount = ENEMY_COUNT_BY_QUALITY[renderQuality] || WORLD.enemyCount;
+const mobileMultiplier = isMobile ? MOBILE_OPTIMIZATIONS.enemyCountMultiplier : 1.0;
 const __mods = mapManager.getModifiers?.() || {};
-const enemyCountTarget = Math.max(1, Math.floor((ENEMY_COUNT_BY_QUALITY[renderQuality] || WORLD.enemyCount) * (__mods.enemyCountMul || 1)));
+const enemyCountTarget = Math.max(1, Math.floor(baseEnemyCount * mobileMultiplier * (__mods.enemyCountMul || 1)));
+
+if (isMobile) {
+  console.info(`[Mobile] Enemy count: ${baseEnemyCount} -> ${enemyCountTarget} (${(mobileMultiplier * 100).toFixed(0)}%)`);
+}
 const enemies = [];
 for (let i = 0; i < enemyCountTarget; i++) {
   const angle = Math.random() * Math.PI * 2;
@@ -1318,14 +1391,25 @@ window.addEventListener("keyup", (e) => {
 let lastMoveDir = new THREE.Vector3(0, 0, 0);
 let lastT = now();
 
+// Mobile: More aggressive AI and billboard throttling
 let __aiStride = renderQuality === "low" ? 3 : (renderQuality === "medium" ? 2 : 1);
+if (isMobile) {
+  __aiStride = Math.ceil(__aiStride * MOBILE_OPTIMIZATIONS.aiStrideMultiplier);
+}
 let __aiOffset = 0;
 const __MOVE_PING_INTERVAL = 0.3; // seconds between continuous move pings (joystick/arrow). Match right-click cadence.
 let __joyContPingT = 0;
 let __arrowContPingT = 0;
 let __arrowWasActive = false;
 let __bbStride = renderQuality === "high" ? 2 : 3;
+if (isMobile) {
+  __bbStride = Math.max(3, __bbStride + 1);
+}
 let __bbOffset = 0;
+
+if (isMobile) {
+  console.info(`[Mobile] AI stride: ${__aiStride}, Billboard stride: ${__bbStride}`);
+}
 
 function animate() {
   requestAnimationFrame(animate);
@@ -1335,7 +1419,7 @@ function animate() {
 
   // Frame time budget guard to avoid long rAF hitches (tune via window.__FRAME_BUDGET_MS)
   const __frameStartMs = performance.now();
-  const __frameBudgetMs = window.__FRAME_BUDGET_MS || 10.0; // ~10ms JS time budget aims toward 120fps headroom
+  const __frameBudgetMs = window.__FRAME_BUDGET_MS || (isMobile ? MOBILE_OPTIMIZATIONS.frameBudgetMs : 10.0);
   const __overBudget = () => (performance.now() - __frameStartMs) > __frameBudgetMs;
 
   // Unified input (Hexagonal service): movement, holds, skills
