@@ -987,22 +987,23 @@ function applyMapModifiersToEnemy(en) {
     }
   } catch (_) {}
 }
-// Enemies - mobile gets further reduction
+// Minimum enemy count to ensure consistent gameplay (always ~50 enemies)
+const MIN_ENEMY_COUNT = 50;
+
+// Enemies - enforce minimum count for consistent gameplay
 const ENEMY_COUNT_BY_QUALITY = {
   high: WORLD.enemyCount,
-  medium: Math.max(30, Math.floor(WORLD.enemyCount * 0.4)),
-  low: Math.max(20, Math.floor(WORLD.enemyCount * 0.25)),
+  medium: Math.max(MIN_ENEMY_COUNT, Math.floor(WORLD.enemyCount * 0.4)),
+  low: Math.max(MIN_ENEMY_COUNT, Math.floor(WORLD.enemyCount * 0.25)),
 };
 
-// Mobile: Apply additional enemy count reduction
+// Apply map modifiers but respect minimum count
 const baseEnemyCount = ENEMY_COUNT_BY_QUALITY[renderQuality] || WORLD.enemyCount;
-const mobileMultiplier = isMobile ? MOBILE_OPTIMIZATIONS.enemyCountMultiplier : 1.0;
 const __mods = mapManager.getModifiers?.() || {};
-const enemyCountTarget = Math.max(1, Math.floor(baseEnemyCount * mobileMultiplier * (__mods.enemyCountMul || 1)));
+// Override mobile multiplier to maintain minimum enemy count
+const enemyCountTarget = Math.max(MIN_ENEMY_COUNT, Math.floor(baseEnemyCount * (__mods.enemyCountMul || 1)));
 
-if (isMobile) {
-  console.info(`[Mobile] Enemy count: ${baseEnemyCount} -> ${enemyCountTarget} (${(mobileMultiplier * 100).toFixed(0)}%)`);
-}
+console.info(`[Enemy Spawn] Target count: ${enemyCountTarget} (minimum: ${MIN_ENEMY_COUNT})`);
 const enemies = [];
 for (let i = 0; i < enemyCountTarget; i++) {
   const angle = Math.random() * Math.PI * 2;
@@ -1020,11 +1021,13 @@ for (let i = 0; i < enemyCountTarget; i++) {
 }
 
 // Dynamically adjust enemy count to match current map modifiers and render quality
+// Enforces minimum enemy count to ensure consistent gameplay
 function adjustEnemyCountForCurrentMap() {
   try {
     const mods = mapManager.getModifiers?.() || {};
     const baseTarget = ENEMY_COUNT_BY_QUALITY[renderQuality] || WORLD.enemyCount;
-    const desired = Math.max(1, Math.floor(baseTarget * (mods.enemyCountMul || 1) * __enemyPerfScale));
+    const MIN_ENEMY_COUNT = 50; // Enforce minimum for consistent gameplay
+    const desired = Math.max(MIN_ENEMY_COUNT, Math.floor(baseTarget * (mods.enemyCountMul || 1) * (__enemyPerfScale || 1)));
     if (enemies.length < desired) {
       const toAdd = desired - enemies.length;
       for (let i = 0; i < toAdd; i++) {
@@ -1729,18 +1732,18 @@ function animate() {
     }
   } catch (_) {}
 
-  // Adaptive performance: adjust AI stride and enemy count based on FPS
+  // Adaptive performance: adjust AI stride but maintain minimum enemy count
   try {
     if (!__adaptNextT || t >= __adaptNextT) {
       const fps = __perf.fps || 60;
       if (fps < 25) {
-        __aiStride = Math.min(5, (__aiStride || 1) + 1);
-        __enemyPerfScale = Math.max(0.5, (__enemyPerfScale || 1) - 0.1);
-        adjustEnemyCountForCurrentMap();
+        // Increase AI throttling instead of reducing enemy count
+        __aiStride = Math.min(8, (__aiStride || 1) + 1);
+        // Only slightly reduce performance scale, minimum of 1.0 to keep ~50 enemies
+        __enemyPerfScale = Math.max(1.0, (__enemyPerfScale || 1) - 0.05);
       } else if (fps > 50) {
         __aiStride = Math.max(1, (__aiStride || 1) - 1);
-        __enemyPerfScale = Math.min(1, (__enemyPerfScale || 1) + 0.05);
-        adjustEnemyCountForCurrentMap();
+        __enemyPerfScale = Math.min(1.2, (__enemyPerfScale || 1) + 0.05);
       }
       __adaptNextT = t + 1.5;
     }
