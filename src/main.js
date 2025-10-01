@@ -889,6 +889,12 @@ window.addEventListener("loadout-changed", () => {
     currentLoadout = loadOrDefault(SKILL_POOL, DEFAULT_LOADOUT);
     applyLoadoutToSKILLS(currentLoadout);
     updateSkillBarLabels();
+    
+    // Critical: Notify the SkillsSystem instance to refresh its internal skill references
+    if (skills && typeof skills.refreshSkills === 'function') {
+      skills.refreshSkills();
+    }
+    
     // Do NOT re-render the Hero screen here. The Skills tab updates its slots in-place.
     // This preserves tab scroll positions (e.g., Maps list) and prevents cross-tab DOM pollution.
   } catch (_) {}
